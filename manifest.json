@@ -1,0 +1,35 @@
+{
+  "display_information": {
+    "name": "DEO",
+    "description": "Onboarding and metrics tracking bot for marketing teams",
+    "background_color": "#2c3e50"
+  },
+  "features": {
+    "app_home": {
+      "home_tab_enabled": false,
+      "messages_tab_enabled": true,
+      "messages_tab_read_only_enabled": false
+    },
+    "bot_user": {
+      "display_name": "DEO",
+      "always_online": true
+    }
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": [
+        "app_mentions:read",
+        "channels:read",
+        "chat:write",
+        "chat:write.public",
+        "groups:read",
+        "im:history",
+        "im:read",
+        "im:write",
+        "users:read",
+        "users:read.email",
+        "users.profile:read"
+      ]
+    }
+  }
+}

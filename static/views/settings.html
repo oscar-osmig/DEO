@@ -1,0 +1,26 @@
+<!-- VIEW: SETTINGS -->
+<section class="view" id="settings">
+    <h2 class="template-title">Settings</h2>
+    <p class="template-subtitle">Manage your workspace configuration</p>
+
+    <div class="card">
+        <div class="card-title">Slack Integration</div>
+
+        <form id="token-form">
+            <div class="form-group">
+                <label class="form-label" for="slack-token">Bot Token</label>
+                <input
+                    type="password"
+                    id="slack-token"
+                    name="bot_token"
+                    class="form-input"
+                    placeholder="xoxb-your-bot-token"
+                >
+                <p class="form-hint">Get your bot token from api.slack.com/apps</p>
+            </div>
+
+            <button type="submit" class="btn" id="save-token-btn">Save Token</button>
+            <span id="token-status"></span>
+        </form>
+    </div>
+</section>
