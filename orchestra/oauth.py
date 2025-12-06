@@ -22,7 +22,8 @@ templates = Jinja2Templates(directory="static")
 # Google OAuth2 Configuration
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-REDIRECT_URI = os.getenv("REDIRECT_URI", "http://127.0.0.1:8000/auth/callback")
+REDIRECT_URI = "https://godeo.app/auth/callback"
+APP_URL = "https://godeo.app"
 
 
 @router.get("/login")
@@ -114,14 +115,14 @@ async def auth_callback(request: Request):
 
         print(f"✅ Session stored for {user_info.get('name')}")
 
-        return HTMLResponse(content="""
+        return HTMLResponse(content=f"""
             <!DOCTYPE html>
             <html>
             <head>
-                <meta http-equiv="refresh" content="0;url=/app">
+                <meta http-equiv="refresh" content="0;url={APP_URL}/app">
             </head>
             <body>
-                <script>window.location.replace('/app');</script>
+                <script>window.location.replace('{APP_URL}/app');</script>
             </body>
             </html>
         """)
@@ -224,7 +225,7 @@ async def logout(request: Request):
         print(f"✅ Session deleted for {user_email}")
 
     request.session.clear()
-    return RedirectResponse(url="/login")
+    return RedirectResponse(url=f"{APP_URL}/login")
 
 
 @router.get("/sessions/active")
