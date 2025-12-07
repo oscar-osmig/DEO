@@ -19,10 +19,10 @@ class CreateWorkspaceRequest(BaseModel):
     """
     username: str
     account_id: str
+    gmail: str = ""
     bot_token: str
     workspace_name: str
     workspace_id: str
-
 
 @router.post("/make-workspace")
 async def make_workspace(request: CreateWorkspaceRequest):
@@ -38,6 +38,7 @@ async def make_workspace(request: CreateWorkspaceRequest):
     workspace_doc = {
         "username": request.username,
         "account_id": request.account_id,
+        "gmail": request.gmail or request.account_id,
         "bot_token": request.bot_token,
         "workspace_name": request.workspace_name,
         "workspace_id": request.workspace_id,
@@ -53,7 +54,6 @@ async def make_workspace(request: CreateWorkspaceRequest):
         "workspace_id": request.workspace_id,
         "id": str(result.inserted_id)
     }
-
 
 @router.get("/by-id/{workspace_id}")
 async def get_workspace_by_id(workspace_id: str):
@@ -92,10 +92,16 @@ async def get_workspace_by_name(workspace_name: str):
 
 @router.get("/by-account/{account_id}")
 async def get_workspaces_by_account(account_id: str):
-    """Get all workspaces for an account."""
+    """Get all workspaces for an account (by account_id or gmail)."""
     workspaces_collection = get_collection("workspaces")
 
-    cursor = workspaces_collection.find({"account_id": account_id})
+    # Search by account_id OR gmail (email)
+    cursor = workspaces_collection.find({
+        "$or": [
+            {"account_id": account_id},
+            {"gmail": account_id}
+        ]
+    })
     workspaces = await cursor.to_list(length=100)
 
     for ws in workspaces:

@@ -129,6 +129,7 @@ document.addEventListener('submit', async (e) => {
                 body: JSON.stringify({
                     username: currentUser?.username || 'User',
                     account_id: currentUser?.email || 'unknown',
+                    gmail: currentUser?.email || 'unknown',
                     bot_token: botToken,
                     workspace_name: workspaceName,
                     workspace_id: workspaceId
