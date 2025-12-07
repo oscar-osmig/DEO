@@ -48,6 +48,7 @@ fetch('/auth/me').then(r => {
     loadWorkspacesSidebar(u.email);
     loadTemplatesSidebar(u.workspace_id);
     loadDashboardsSidebar();
+    loadTeamsSidebar();
 
 }).catch(() => {
     window.location.href = '/login';
@@ -113,6 +114,8 @@ document.addEventListener('click', (e) => {
             setHeaderSection('New Deo');
         } else if (href === '#dashboards') {
             setHeaderSection('Dashboards');
+        } else if (href === '#teams') {
+            setHeaderSection('Teams');
         }
     }
 

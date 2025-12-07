@@ -46,6 +46,8 @@ function initFromHash() {
         setHeaderSection('Templates');
     } else if (hash === '#dashboards') {
         setHeaderSection('Dashboards');
+    } else if (hash === '#teams') {
+        setHeaderSection('Teams');
     } else {
         setHeaderSection('');
     }

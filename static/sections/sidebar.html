@@ -4,6 +4,7 @@
     <input type="checkbox" id="workspaces-toggle" class="submenu-checkbox">
     <input type="checkbox" id="templates-toggle" class="submenu-checkbox">
     <input type="checkbox" id="dashboards-toggle" class="submenu-checkbox">
+    <input type="checkbox" id="teams-toggle" class="submenu-checkbox">
 
     <nav class="sidebar">
         <div class="sidebar-top">
@@ -37,6 +38,25 @@
                     </svg>
                 </label>
                 <div class="sidebar-submenu" id="dashboards-list">
+                    <a href="#" class="sidebar-submenu-item">Loading...</a>
+                </div>
+            </div>
+
+            <!-- Teams with submenu -->
+            <div class="sidebar-group" id="teams-group">
+                <label for="teams-toggle" class="sidebar-btn" title="Teams">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <span class="sidebar-label">Teams</span>
+                    <svg class="sidebar-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </label>
+                <div class="sidebar-submenu" id="teams-list">
                     <a href="#" class="sidebar-submenu-item">Loading...</a>
                 </div>
             </div>
@@ -77,14 +97,12 @@
         </div>
 
         <div class="sidebar-bottom">
-            <!-- Expand Arrow (visible when collapsed) -->
             <label for="sidebar-toggle" class="sidebar-btn sidebar-expand" title="Expand">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="9 18 15 12 9 6"></polyline>
                 </svg>
             </label>
 
-            <!-- Settings + Collapse (visible when expanded) -->
             <div class="sidebar-settings-row">
                 <a href="#settings" class="sidebar-btn sidebar-settings" title="Settings">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -179,3 +179,12 @@
 .sidebar-checkbox:checked ~ #templates-toggle:checked ~ .sidebar #templates-group .sidebar-chevron {
     transform: rotate(180deg);
 }
+
+/* === TEAMS SUBMENU === */
+.sidebar-checkbox:checked ~ #teams-toggle:checked ~ .sidebar #teams-group .sidebar-submenu {
+    display: flex;
+}
+
+.sidebar-checkbox:checked ~ #teams-toggle:checked ~ .sidebar #teams-group .sidebar-chevron {
+    transform: rotate(180deg);
+}
