@@ -1,45 +1,23 @@
-// Check if there's a hash in URL and set header section accordingly
-function initFromHash() {
-    const hash = window.location.hash;
-    if (hash === '#settings') {
-        setHeaderSection('Settings');
-    } else if (hash === '#new-deo') {
-        setHeaderSection('New Deo');
-        initNewDeo();
-    } else if (hash === '#workspace') {
-        setHeaderSection('Workspaces');
-    } else if (hash === '#template') {
-        setHeaderSection('Templates');
-    } else if (hash === '#dashboards') {
-        setHeaderSection('Dashboards');
-    } else {
-        setHeaderSection('');
-    }
-}
-
-// Handle New Deo click to generate fresh template name
-document.addEventListener('click', (e) => {
-    const newDeoLink = e.target.closest('a[href="#new-deo"]');
-    if (newDeoLink) {
-        const templateNameInput = document.getElementById('template-name-input');
-        if (templateNameInput) {
-            templateNameInput.value = generateTemplateName();
-        }
-    }
-});
-
-// Run on page load
-window.addEventListener('DOMContentLoaded', () => {
-    initFromHash();
-});
-
-// Also handle back/forward navigation
-window.addEventListener('hashchange', () => {
-    initFromHash();
-});
+// Track open workspace tabs
+let openWorkspaceTabs = [];
+let activeWorkspaceTab = null;
 
 // Store user data globally
 let currentUser = null;
+
+// Helper function to set header section
+function setHeaderSection(text) {
+    const section = document.getElementById('header-section');
+    const separator = document.querySelector('.header-separator');
+
+    if (text) {
+        section.textContent = text;
+        separator.classList.add('visible');
+    } else {
+        section.textContent = '';
+        separator.classList.remove('visible');
+    }
+}
 
 // Generate random template name
 function generateTemplateName() {
@@ -59,18 +37,115 @@ function initNewDeo() {
     }
 }
 
-// Helper function to set header section
-function setHeaderSection(text) {
-    const section = document.getElementById('header-section');
-    const separator = document.querySelector('.header-separator');
-
-    if (text) {
-        section.textContent = text;
-        separator.classList.add('visible');
+// Check if there's a hash in URL and set header section accordingly
+function initFromHash() {
+    const hash = window.location.hash;
+    if (hash === '#settings') {
+        setHeaderSection('Settings');
+    } else if (hash === '#new-deo') {
+        setHeaderSection('New Deo');
+        initNewDeo();
+    } else if (hash === '#workspace') {
+        setHeaderSection('Workspaces');
+    } else if (hash === '#template') {
+        setHeaderSection('Templates');
+    } else if (hash === '#dashboards') {
+        setHeaderSection('Dashboards');
     } else {
-        section.textContent = '';
-        separator.classList.remove('visible');
+        setHeaderSection('');
     }
+}
+
+// Run on page load
+window.addEventListener('DOMContentLoaded', () => {
+    initFromHash();
+});
+
+// Also handle back/forward navigation
+window.addEventListener('hashchange', () => {
+    initFromHash();
+});
+
+// Render workspace tabs
+function renderWorkspaceTabs() {
+    const tabsBar = document.getElementById('workspace-tabs');
+    if (!tabsBar) return;
+
+    tabsBar.innerHTML = openWorkspaceTabs.map(tab => {
+        const isActive = tab.id === activeWorkspaceTab;
+        return `
+            <div class="tab ${isActive ? 'active' : ''}" data-tab-id="${tab.id}">
+                <span class="tab-name">${tab.name}</span>
+                <span class="tab-close" data-close-tab="${tab.id}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </span>
+            </div>
+        `;
+    }).join('');
+}
+
+// Open workspace in tab
+async function openWorkspaceTab(workspaceId) {
+    // Check if tab already exists
+    const existingTab = openWorkspaceTabs.find(tab => tab.id === workspaceId);
+
+    if (existingTab) {
+        // Just switch to it
+        activeWorkspaceTab = workspaceId;
+        renderWorkspaceTabs();
+        await loadWorkspaceDetails(workspaceId);
+        return;
+    }
+
+    // Fetch workspace data
+    try {
+        const res = await fetch(`/workspace/by-id/${encodeURIComponent(workspaceId)}`);
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            const ws = data.workspace;
+
+            // Add new tab
+            openWorkspaceTabs.push({
+                id: workspaceId,
+                name: ws.workspace_name || 'Workspace'
+            });
+
+            activeWorkspaceTab = workspaceId;
+            renderWorkspaceTabs();
+            await loadWorkspaceDetails(workspaceId);
+        }
+    } catch (err) {
+        console.error('Error opening workspace tab:', err);
+    }
+}
+
+// Close workspace tab
+function closeWorkspaceTab(workspaceId) {
+    const index = openWorkspaceTabs.findIndex(tab => tab.id === workspaceId);
+    if (index === -1) return;
+
+    openWorkspaceTabs.splice(index, 1);
+
+    // If closing active tab, switch to another
+    if (activeWorkspaceTab === workspaceId) {
+        if (openWorkspaceTabs.length > 0) {
+            // Switch to previous tab or first available
+            const newIndex = Math.max(0, index - 1);
+            activeWorkspaceTab = openWorkspaceTabs[newIndex].id;
+            loadWorkspaceDetails(activeWorkspaceTab);
+        } else {
+            // No tabs left, go to home
+            activeWorkspaceTab = null;
+            window.location.hash = '#home';
+            setHeaderSection('');
+        }
+    }
+
+    renderWorkspaceTabs();
 }
 
 // Load user data
@@ -80,13 +155,21 @@ fetch('/auth/me').then(r => {
 }).then(u => {
     currentUser = u;
 
-    document.getElementById('user-name').textContent = u.username || 'User';
-    document.getElementById('dropdown-name').textContent = u.username || 'User';
-    document.getElementById('dropdown-email').textContent = u.email || '';
+    const userName = document.getElementById('user-name');
+    if (userName) userName.textContent = u.username || 'User';
+
+    const dropdownName = document.getElementById('dropdown-name');
+    if (dropdownName) dropdownName.textContent = u.username || 'User';
+
+    const dropdownEmail = document.getElementById('dropdown-email');
+    if (dropdownEmail) dropdownEmail.textContent = u.email || '';
 
     if (u.picture) {
-        document.getElementById('account-img').src = u.picture;
-        document.getElementById('dropdown-img').src = u.picture;
+        const accountImg = document.getElementById('account-img');
+        if (accountImg) accountImg.src = u.picture;
+
+        const dropdownImg = document.getElementById('dropdown-img');
+        if (dropdownImg) dropdownImg.src = u.picture;
     }
 
     const slackToken = document.getElementById('slack-token');
@@ -175,11 +258,34 @@ if (tokenForm) {
 
 // Workspace click handler
 document.addEventListener('click', async (e) => {
+    // Handle workspace sidebar link
     const workspaceLink = e.target.closest('[data-workspace-id]');
-    if (workspaceLink) {
+    if (workspaceLink && !e.target.closest('.tab')) {
+        e.preventDefault();
         const workspaceId = workspaceLink.dataset.workspaceId;
+        window.location.hash = '#workspace';
         setHeaderSection('Workspaces');
-        await loadWorkspaceDetails(workspaceId);
+        await openWorkspaceTab(workspaceId);
+        return;
+    }
+
+    // Handle tab click (switch tabs)
+    const tab = e.target.closest('.tab[data-tab-id]');
+    if (tab && !e.target.closest('.tab-close')) {
+        const tabId = tab.dataset.tabId;
+        activeWorkspaceTab = tabId;
+        renderWorkspaceTabs();
+        await loadWorkspaceDetails(tabId);
+        return;
+    }
+
+    // Handle tab close
+    const closeBtn = e.target.closest('.tab-close[data-close-tab]');
+    if (closeBtn) {
+        e.stopPropagation();
+        const tabId = closeBtn.dataset.closeTab;
+        closeWorkspaceTab(tabId);
+        return;
     }
 });
 
@@ -216,6 +322,17 @@ document.addEventListener('click', (e) => {
     }
 });
 
+// Handle New Deo click to generate fresh template name
+document.addEventListener('click', (e) => {
+    const newDeoLink = e.target.closest('a[href="#new-deo"]');
+    if (newDeoLink) {
+        const templateNameInput = document.getElementById('template-name-input');
+        if (templateNameInput) {
+            templateNameInput.value = generateTemplateName();
+        }
+    }
+});
+
 // Load workspace details by ID
 async function loadWorkspaceDetails(workspaceId) {
     try {
@@ -225,19 +342,36 @@ async function loadWorkspaceDetails(workspaceId) {
         if (res.ok && data.success) {
             const ws = data.workspace;
 
-            document.getElementById('workspace-title').textContent = ws.workspace_name || 'Workspace';
-            document.getElementById('workspace-subtitle').textContent = 'Workspace details and configuration';
-            document.getElementById('workspace-id').textContent = ws.workspace_id || '-';
-            document.getElementById('workspace-owner').textContent = ws.username || '-';
-            document.getElementById('workspace-email').textContent = ws.gmail || '-';
-            document.getElementById('workspace-token').textContent = ws.bot_token ? '••••••••' + ws.bot_token.slice(-8) : 'Not set';
-            document.getElementById('workspace-created').textContent = ws.created_at ? new Date(ws.created_at).toLocaleDateString() : '-';
-            document.getElementById('workspace-updated').textContent = ws.updated_at ? new Date(ws.updated_at).toLocaleDateString() : '-';
+            const title = document.getElementById('workspace-title');
+            if (title) title.textContent = ws.workspace_name || 'Workspace';
+
+            const subtitle = document.getElementById('workspace-subtitle');
+            if (subtitle) subtitle.textContent = 'Workspace details and configuration';
+
+            const wsId = document.getElementById('workspace-id');
+            if (wsId) wsId.textContent = ws.workspace_id || '-';
+
+            const owner = document.getElementById('workspace-owner');
+            if (owner) owner.textContent = ws.username || '-';
+
+            const email = document.getElementById('workspace-email');
+            if (email) email.textContent = ws.gmail || '-';
+
+            const token = document.getElementById('workspace-token');
+            if (token) token.textContent = ws.bot_token ? '••••••••' + ws.bot_token.slice(-8) : 'Not set';
+
+            const created = document.getElementById('workspace-created');
+            if (created) created.textContent = ws.created_at ? new Date(ws.created_at).toLocaleDateString() : '-';
+
+            const updated = document.getElementById('workspace-updated');
+            if (updated) updated.textContent = ws.updated_at ? new Date(ws.updated_at).toLocaleDateString() : '-';
         } else {
-            document.getElementById('workspace-subtitle').textContent = 'Workspace not found';
+            const subtitle = document.getElementById('workspace-subtitle');
+            if (subtitle) subtitle.textContent = 'Workspace not found';
         }
     } catch (err) {
-        document.getElementById('workspace-subtitle').textContent = 'Error loading workspace';
+        const subtitle = document.getElementById('workspace-subtitle');
+        if (subtitle) subtitle.textContent = 'Error loading workspace';
     }
 }
 
@@ -251,39 +385,57 @@ async function loadTemplateDetails(templateId) {
             const t = data.template;
             const ac = t.action_chain || {};
 
-            document.getElementById('template-title').textContent = t.template_id || 'Template';
-            document.getElementById('template-subtitle').textContent = 'Template configuration and actions';
-            document.getElementById('template-id').textContent = t.template_id || '-';
-            document.getElementById('template-workspace-id').textContent = t.workspace_id || '-';
+            const title = document.getElementById('template-title');
+            if (title) title.textContent = t.template_id || 'Template';
+
+            const subtitle = document.getElementById('template-subtitle');
+            if (subtitle) subtitle.textContent = 'Template configuration and actions';
+
+            const tId = document.getElementById('template-id');
+            if (tId) tId.textContent = t.template_id || '-';
+
+            const wsId = document.getElementById('template-workspace-id');
+            if (wsId) wsId.textContent = t.workspace_id || '-';
 
             // Trigger
             const trigger = ac.trigger;
-            if (typeof trigger === 'string') {
-                document.getElementById('template-trigger').textContent = trigger;
-            } else if (trigger && trigger.type) {
-                document.getElementById('template-trigger').textContent = trigger.type;
-            } else {
-                document.getElementById('template-trigger').textContent = '-';
+            const triggerEl = document.getElementById('template-trigger');
+            if (triggerEl) {
+                if (typeof trigger === 'string') {
+                    triggerEl.textContent = trigger;
+                } else if (trigger && trigger.type) {
+                    triggerEl.textContent = trigger.type;
+                } else {
+                    triggerEl.textContent = '-';
+                }
             }
 
             // Blocks
-            document.getElementById('template-blocks').textContent = ac.blocks ? ac.blocks.join(' → ') : '-';
+            const blocksEl = document.getElementById('template-blocks');
+            if (blocksEl) blocksEl.textContent = ac.blocks ? ac.blocks.join(' → ') : '-';
 
             // Created
-            document.getElementById('template-created').textContent = t.created_at ? new Date(t.created_at).toLocaleDateString() : '-';
+            const createdEl = document.getElementById('template-created');
+            if (createdEl) createdEl.textContent = t.created_at ? new Date(t.created_at).toLocaleDateString() : '-';
 
             // Message config
             const msg = ac.message || {};
-            if (msg.channel_name) {
-                document.getElementById('template-target').textContent = '#' + msg.channel_name;
-            } else if (msg.users) {
-                document.getElementById('template-target').textContent = msg.users.length + ' user(s)';
-            } else {
-                document.getElementById('template-target').textContent = '-';
+            const targetEl = document.getElementById('template-target');
+            if (targetEl) {
+                if (msg.channel_name) {
+                    targetEl.textContent = '#' + msg.channel_name;
+                } else if (msg.users) {
+                    targetEl.textContent = msg.users.length + ' user(s)';
+                } else {
+                    targetEl.textContent = '-';
+                }
             }
 
-            document.getElementById('template-message').textContent = msg.message || '-';
-            document.getElementById('template-response').textContent = ac.response || '-';
+            const messageEl = document.getElementById('template-message');
+            if (messageEl) messageEl.textContent = msg.message || '-';
+
+            const responseEl = document.getElementById('template-response');
+            if (responseEl) responseEl.textContent = ac.response || '-';
 
             // Store template ID for actions
             const runBtn = document.getElementById('run-template-btn');
@@ -292,10 +444,12 @@ async function loadTemplateDetails(templateId) {
             if (deleteBtn) deleteBtn.dataset.templateId = t.template_id;
 
         } else {
-            document.getElementById('template-subtitle').textContent = 'Template not found';
+            const subtitle = document.getElementById('template-subtitle');
+            if (subtitle) subtitle.textContent = 'Template not found';
         }
     } catch (err) {
-        document.getElementById('template-subtitle').textContent = 'Error loading template';
+        const subtitle = document.getElementById('template-subtitle');
+        if (subtitle) subtitle.textContent = 'Error loading template';
     }
 }
 
