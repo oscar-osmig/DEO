@@ -171,15 +171,6 @@
             color: var(--text-primary);
         }
 
-        .btn-success {
-            background-color: var(--success);
-            cursor: default;
-        }
-
-        .btn-success:hover {
-            background-color: var(--success);
-        }
-
         .status {
             margin-top: 16px;
             font-size: 13px;
@@ -488,6 +479,54 @@
             color: var(--error);
         }
 
+        /* === CARD FOOTER === */
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .submitted-info {
+            font-size: 12px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .submitted-info svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .edit-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .edit-btn:hover {
+            background-color: var(--bg-hover);
+            color: var(--text-primary);
+            border-color: var(--accent);
+        }
+
+        .edit-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
         /* === CHARTS VIEW === */
         .chart-container {
             background-color: var(--bg-secondary);
@@ -653,21 +692,6 @@
             width: 24px;
             height: 24px;
         }
-
-        /* === SUBMITTED INFO === */
-        .submitted-info {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-top: 16px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .submitted-info svg {
-            width: 14px;
-            height: 14px;
-        }
     </style>
 </head>
 <body>
@@ -789,12 +813,21 @@
                         <div class="metrics-display" id="metrics-display">
                             <!-- Populated by JS -->
                         </div>
-                        <div class="submitted-info" id="submitted-time">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <polyline points="12 6 12 12 16 14"></polyline>
-                            </svg>
-                            <span id="submitted-at-text">Submitted this period</span>
+                        <div class="card-footer">
+                            <div class="submitted-info" id="submitted-time">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                                <span id="submitted-at-text">Submitted this period</span>
+                            </div>
+                            <button class="edit-btn" id="edit-metrics-btn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                </svg>
+                                Edit
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -877,48 +910,39 @@
         let currentViewIndex = 0;
         let currentUser = null;
         let hasSubmittedThisPeriod = false;
+        let currentMetrics = {}; // Store current metrics for editing
 
         // === VIEW NAVIGATION ===
         function switchView(viewId) {
             currentViewIndex = views.indexOf(viewId);
             if (currentViewIndex === -1) currentViewIndex = 0;
 
-            // Update sidebar buttons
             document.querySelectorAll('.sidebar-btn[data-view]').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.view === viewId);
             });
 
-            // Update views
             document.querySelectorAll('.view').forEach(view => {
                 view.classList.toggle('active', view.id === 'view-' + viewId);
             });
 
-            // Update nav arrows
             document.getElementById('nav-prev').disabled = currentViewIndex === 0;
             document.getElementById('nav-next').disabled = currentViewIndex === views.length - 1;
 
-            // Load data if needed
             if (viewId === 'leaderboard') {
                 loadLeaderboard();
             }
         }
 
-        // Sidebar navigation
         document.querySelectorAll('.sidebar-btn[data-view]').forEach(btn => {
             btn.addEventListener('click', () => switchView(btn.dataset.view));
         });
 
-        // Arrow navigation
         document.getElementById('nav-prev').addEventListener('click', () => {
-            if (currentViewIndex > 0) {
-                switchView(views[currentViewIndex - 1]);
-            }
+            if (currentViewIndex > 0) switchView(views[currentViewIndex - 1]);
         });
 
         document.getElementById('nav-next').addEventListener('click', () => {
-            if (currentViewIndex < views.length - 1) {
-                switchView(views[currentViewIndex + 1]);
-            }
+            if (currentViewIndex < views.length - 1) switchView(views[currentViewIndex + 1]);
         });
 
         // === LOGIN ===
@@ -942,16 +966,11 @@
                     status.className = 'status success';
                     currentUser = { email, name: data.member_name };
 
-                    // Show dashboard app
                     setTimeout(() => {
                         document.getElementById('login-view').classList.add('hidden');
                         document.getElementById('dashboard-app').classList.add('active');
                         document.getElementById('user-email-display').textContent = email;
-
-                        // Initialize view
                         switchView('metrics');
-
-                        // Check if already submitted
                         checkExistingMetrics();
                     }, 300);
                 } else {
@@ -971,15 +990,15 @@
         function logout() {
             currentUser = null;
             hasSubmittedThisPeriod = false;
+            currentMetrics = {};
             document.getElementById('dashboard-app').classList.remove('active');
             document.getElementById('login-view').classList.remove('hidden');
             document.getElementById('login-form').reset();
             document.getElementById('login-status').textContent = '';
             document.getElementById('metrics-form').reset();
-
-            // Reset metrics view state
             document.getElementById('metrics-form-state').style.display = 'block';
             document.getElementById('metrics-submitted-state').style.display = 'none';
+            document.getElementById('submit-btn').textContent = 'Submit Metrics';
         }
 
         document.getElementById('logout-btn').addEventListener('click', logout);
@@ -992,11 +1011,10 @@
                 const data = await res.json();
 
                 if (res.ok && data.metrics && Object.keys(data.metrics).length > 0) {
-                    // User has already submitted - show read-only view
                     hasSubmittedThisPeriod = true;
+                    currentMetrics = data.metrics;
                     showSubmittedState(data.metrics);
                 } else {
-                    // User hasn't submitted - show form
                     hasSubmittedThisPeriod = false;
                     showFormState();
                 }
@@ -1011,19 +1029,18 @@
             document.getElementById('metrics-form-state').style.display = 'none';
             document.getElementById('metrics-submitted-state').style.display = 'block';
 
-            // Update title
             document.getElementById('metrics-view-title').textContent = 'Your Metrics';
             document.getElementById('metrics-view-subtitle').textContent = 'You have already submitted your metrics for this period.';
 
-            // Build metrics display
             const displayEl = document.getElementById('metrics-display');
             let html = '';
 
             for (const [metricName, valueData] of Object.entries(metrics)) {
+                const value = typeof valueData === 'object' ? valueData.value : valueData;
                 html += `
                     <div class="metric-item">
                         <span class="metric-item-label">${metricName}</span>
-                        <span class="metric-item-value">${valueData.value.toLocaleString()}</span>
+                        <span class="metric-item-value">${Number(value).toLocaleString()}</span>
                     </div>
                 `;
             }
@@ -1036,23 +1053,34 @@
             document.getElementById('metrics-form-state').style.display = 'block';
             document.getElementById('metrics-submitted-state').style.display = 'none';
 
-            // Reset title
             document.getElementById('metrics-view-title').textContent = 'Submit Metrics';
             document.getElementById('metrics-view-subtitle').textContent = 'Enter your metrics for the current {{ reporting_period }} period.';
         }
+
+        // === EDIT METRICS ===
+        document.getElementById('edit-metrics-btn').addEventListener('click', () => {
+            hasSubmittedThisPeriod = false;
+
+            // Pre-fill form with current values
+            for (const [metricName, valueData] of Object.entries(currentMetrics)) {
+                const value = typeof valueData === 'object' ? valueData.value : valueData;
+                const input = document.querySelector(`[data-metric="${metricName}"]`);
+                if (input) {
+                    input.value = value;
+                }
+            }
+
+            showFormState();
+            document.getElementById('submit-btn').textContent = 'Update Metrics';
+        });
 
         // === SUBMIT METRICS ===
         document.getElementById('metrics-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            if (hasSubmittedThisPeriod) {
-                return; // Don't allow re-submission
-            }
-
             const status = document.getElementById('submit-status');
             const btn = document.getElementById('submit-btn');
 
-            // Gather metrics
             const metrics = {};
             document.querySelectorAll('[data-metric]').forEach(input => {
                 const value = parseFloat(input.value);
@@ -1068,8 +1096,9 @@
                 return;
             }
 
-            btn.textContent = 'Submitting...';
             btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = 'Submitting...';
 
             try {
                 const res = await fetch(`/dashboards/${dashboardId}/submit`, {
@@ -1087,16 +1116,16 @@
                     status.textContent = '✓ Metrics submitted successfully!';
                     status.className = 'submit-status success show';
 
-                    // Mark as submitted and switch to read-only view
                     hasSubmittedThisPeriod = true;
 
+                    // Update currentMetrics
+                    for (const [key, value] of Object.entries(metrics)) {
+                        currentMetrics[key] = { value: value };
+                    }
+
                     setTimeout(() => {
-                        // Convert metrics to the format expected by showSubmittedState
-                        const submittedMetrics = {};
-                        for (const [key, value] of Object.entries(metrics)) {
-                            submittedMetrics[key] = { value: value };
-                        }
-                        showSubmittedState(submittedMetrics);
+                        showSubmittedState(currentMetrics);
+                        btn.textContent = 'Submit Metrics';
                     }, 1000);
                 } else {
                     status.textContent = '✗ ' + (data.detail || 'Failed to submit');
@@ -1107,7 +1136,7 @@
                 status.className = 'submit-status error show';
             }
 
-            btn.textContent = 'Submit Metrics';
+            btn.textContent = originalText;
             btn.disabled = false;
 
             setTimeout(() => status.classList.remove('show'), 4000);
@@ -1168,7 +1197,6 @@
             }
         }
 
-        // Initialize arrow states
         document.getElementById('nav-prev').disabled = true;
     </script>
 </body>
