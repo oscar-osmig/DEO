@@ -10,6 +10,8 @@ function initFromHash() {
         setHeaderSection('Workspaces');
     } else if (hash === '#template') {
         setHeaderSection('Templates');
+    } else if (hash === '#dashboards') {
+        setHeaderSection('Dashboards');
     } else {
         setHeaderSection('');
     }
@@ -202,6 +204,8 @@ document.addEventListener('click', (e) => {
             setHeaderSection('Settings');
         } else if (href === '#new-deo') {
             setHeaderSection('New Deo');
+        } else if (href === '#dashboards') {
+            setHeaderSection('Dashboards');
         }
     }
 
