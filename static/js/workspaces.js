@@ -170,7 +170,7 @@ document.addEventListener('click', async (e) => {
         e.preventDefault();
         const workspaceId = workspaceLink.dataset.workspaceId;
         window.location.hash = '#workspace';
-        setHeaderSection('Workspaces');
+        if (typeof setHeaderSection === 'function') setHeaderSection('Workspaces');
         await openWorkspaceTab(workspaceId);
         return;
     }
@@ -207,7 +207,7 @@ document.addEventListener('click', (e) => {
     if (e.target.closest('#sidebar-add-workspace')) {
         e.preventDefault();
         window.location.hash = '#workspace';
-        setHeaderSection('Workspaces');
+        if (typeof setHeaderSection === 'function') setHeaderSection('Workspaces');
         const modal = document.getElementById('create-workspace-modal');
         if (modal) modal.classList.add('active');
     }
@@ -329,99 +329,111 @@ document.addEventListener('click', async (e) => {
 });
 
 // === TOKEN SELECTOR ===
-document.addEventListener('click', async (e) => {
-    // Open token dropdown
-    if (e.target.id === 'select-existing-token') {
-        e.preventDefault();
-        e.stopPropagation();
+let tokenSelectorInitialized = false;
 
-        const dropdown = document.getElementById('token-dropdown');
-        const list = document.getElementById('saved-tokens-list');
+function initTokenSelector() {
+    if (tokenSelectorInitialized) return;
+    tokenSelectorInitialized = true;
 
-        if (!dropdown || !list) return;
+    document.addEventListener('click', async (e) => {
+        // Open token dropdown
+        if (e.target.id === 'select-existing-token') {
+            e.preventDefault();
+            e.stopPropagation();
 
-        if (dropdown.style.display === 'none' || dropdown.style.display === '') {
-            dropdown.style.display = 'block';
-            list.innerHTML = '<p style="padding: 16px; text-align: center; color: #6b6b6b;">Loading...</p>';
+            const dropdown = document.getElementById('token-dropdown');
+            const list = document.getElementById('saved-tokens-list');
 
-            // Fetch saved tokens - NOTE: endpoint is at /workspace/tokens
-            try {
-                const res = await fetch('/workspace/tokens');
+            if (!dropdown || !list) return;
 
-                // Handle non-OK responses gracefully
-                if (!res.ok) {
+            if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+                dropdown.style.display = 'block';
+                list.innerHTML = '<p style="padding: 16px; text-align: center; color: #6b6b6b;">Loading...</p>';
+
+                // Fetch saved tokens - endpoint is at /account/tokens
+                try {
+                    const res = await fetch('/account/tokens', {
+                        credentials: 'same-origin'
+                    });
+
+                    if (!res.ok) {
+                        console.log('Token fetch failed with status:', res.status);
+                        list.innerHTML = `
+                            <div class="token-dropdown-empty">
+                                <p>No saved tokens</p>
+                                <p style="margin-top: 8px; font-size: 12px;">Add tokens in Settings → Slack Tokens</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    const data = await res.json();
+
+                    if (data.tokens && data.tokens.length > 0) {
+                        list.innerHTML = data.tokens.map(token => `
+                            <div class="token-item" data-token="${token.token}">
+                                <span class="token-item-name">${token.name || 'Unnamed Token'}</span>
+                                <span class="token-item-preview">${token.token.substring(0, 15)}...</span>
+                            </div>
+                        `).join('');
+                    } else {
+                        list.innerHTML = `
+                            <div class="token-dropdown-empty">
+                                <p>No saved tokens</p>
+                                <p style="margin-top: 8px; font-size: 12px;">Add tokens in Settings → Slack Tokens</p>
+                            </div>
+                        `;
+                    }
+                } catch (err) {
+                    console.error('Error fetching tokens:', err);
                     list.innerHTML = `
                         <div class="token-dropdown-empty">
                             <p>No saved tokens</p>
                             <p style="margin-top: 8px; font-size: 12px;">Add tokens in Settings → Slack Tokens</p>
                         </div>
                     `;
-                    return;
                 }
-
-                const data = await res.json();
-
-                if (data.tokens && data.tokens.length > 0) {
-                    list.innerHTML = data.tokens.map(token => `
-                        <div class="token-item" data-token="${token.token}">
-                            <span class="token-item-name">${token.name || 'Unnamed Token'}</span>
-                            <span class="token-item-preview">${token.token.substring(0, 15)}...</span>
-                        </div>
-                    `).join('');
-                } else {
-                    list.innerHTML = `
-                        <div class="token-dropdown-empty">
-                            <p>No saved tokens</p>
-                            <p style="margin-top: 8px; font-size: 12px;">Add tokens in Settings → Slack Tokens</p>
-                        </div>
-                    `;
-                }
-            } catch (err) {
-                console.error('Error fetching tokens:', err);
-                list.innerHTML = `
-                    <div class="token-dropdown-empty">
-                        <p>No saved tokens</p>
-                        <p style="margin-top: 8px; font-size: 12px;">Add tokens in Settings → Slack Tokens</p>
-                    </div>
-                `;
+            } else {
+                dropdown.style.display = 'none';
             }
-        } else {
-            dropdown.style.display = 'none';
+            return;
         }
-        return;
-    }
 
-    // Close token dropdown
-    if (e.target.id === 'close-token-dropdown') {
-        e.preventDefault();
-        e.stopPropagation();
-        const dropdown = document.getElementById('token-dropdown');
-        if (dropdown) dropdown.style.display = 'none';
-        return;
-    }
-
-    // Select token from dropdown
-    const tokenItem = e.target.closest('.token-item');
-    if (tokenItem && e.target.closest('#token-dropdown')) {
-        e.preventDefault();
-        e.stopPropagation();
-        const token = tokenItem.dataset.token;
-        const input = document.getElementById('new-workspace-token');
-        const dropdown = document.getElementById('token-dropdown');
-        if (input) input.value = token;
-        if (dropdown) dropdown.style.display = 'none';
-        return;
-    }
-});
-
-// Close dropdown when clicking outside
-document.addEventListener('mousedown', (e) => {
-    const dropdown = document.getElementById('token-dropdown');
-    const selectBtn = document.getElementById('select-existing-token');
-
-    if (dropdown && dropdown.style.display !== 'none' && dropdown.style.display !== '') {
-        if (!dropdown.contains(e.target) && e.target !== selectBtn) {
-            dropdown.style.display = 'none';
+        // Close token dropdown
+        if (e.target.id === 'close-token-dropdown') {
+            e.preventDefault();
+            e.stopPropagation();
+            const dropdown = document.getElementById('token-dropdown');
+            if (dropdown) dropdown.style.display = 'none';
+            return;
         }
-    }
-});
+
+        // Select token from dropdown
+        const tokenItem = e.target.closest('.token-item');
+        if (tokenItem && e.target.closest('#token-dropdown')) {
+            e.preventDefault();
+            e.stopPropagation();
+            const token = tokenItem.dataset.token;
+            const input = document.getElementById('new-workspace-token');
+            const dropdown = document.getElementById('token-dropdown');
+            if (input) input.value = token;
+            if (dropdown) dropdown.style.display = 'none';
+            return;
+        }
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('mousedown', (e) => {
+        const dropdown = document.getElementById('token-dropdown');
+        const selectBtn = document.getElementById('select-existing-token');
+
+        if (dropdown && dropdown.style.display !== 'none' && dropdown.style.display !== '') {
+            if (!dropdown.contains(e.target) && e.target !== selectBtn) {
+                dropdown.style.display = 'none';
+            }
+        }
+    });
+}
+
+// Initialize token selector
+initTokenSelector();

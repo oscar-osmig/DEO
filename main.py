@@ -9,7 +9,7 @@ load_dotenv()
 from orchestra import account_router, workspace_router, oauth_router, templates_router, teams_router, dashboards_router
 
 from fastapi import FastAPI, Request
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.templating import Jinja2Templates
 from contextlib import asynccontextmanager
 
@@ -43,12 +43,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+# Session middleware - configured for HTTPS production
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.getenv("SESSION_SECRET"),
-    max_age=None,
+    max_age=60 * 60 * 24 * 14,  # 14 days
     same_site="lax",
-    https_only=False
+    https_only=True  # Set to True for HTTPS (godeo.app)
 )
 
 
@@ -61,7 +62,6 @@ async def serve_login():
 async def serve_app(request: Request):
     return templates.TemplateResponse("app.html", {"request": request})
 
-from fastapi.responses import HTMLResponse
 
 @app.get("/team-dashboard/{dashboard_id}", response_class=HTMLResponse)
 async def team_dashboard_page(request: Request, dashboard_id: str):
@@ -97,6 +97,7 @@ async def team_dashboard_page(request: Request, dashboard_id: str):
         "metrics": dashboard.get("metrics", []),
         "reporting_period": dashboard.get("reporting_period", "weekly")
     })
+
 
 app.include_router(account_router)
 app.include_router(workspace_router)

@@ -10,9 +10,8 @@ from pydantic import BaseModel
 from database import get_collection
 from datetime import datetime
 from bson import ObjectId
-from datetime import datetime
 
-router = APIRouter(prefix="/workspace", tags=["workspace"])
+router = APIRouter(prefix="/account", tags=["account"])
 
 
 class MakeWorkspaceRequest(BaseModel):
@@ -29,7 +28,7 @@ class MakeWorkspaceRequest(BaseModel):
     workspace_id: str
 
 
-@router.delete("/account/delete-all")
+@router.delete("/delete-all")
 async def delete_account_and_all_data(request: Request):
     """
     Delete account and ALL associated data from every collection.
@@ -130,195 +129,6 @@ async def delete_account_and_all_data(request: Request):
         "deleted": deleted
     }
 
-
-@router.post("/make-workspace")
-async def make_workspace(request: Request, data: MakeWorkspaceRequest):
-    """
-    Create a new workspace for the authenticated user.
-    """
-    try:
-        # Get user from session directly
-        user_email = request.session.get('user_email')
-
-        if not user_email:
-            raise HTTPException(status_code=401, detail="Not authenticated")
-
-        # Retrieve user account from database
-        accounts_collection = get_collection("accounts")
-        account = await accounts_collection.find_one({"gmail": user_email})
-
-        if not account:
-            raise HTTPException(status_code=404, detail="Account not found")
-
-        # Check if workspace ID already exists
-        workspaces_collection = get_collection("workspaces")
-        existing = await workspaces_collection.find_one({"workspace_id": data.workspace_id})
-        if existing:
-            raise HTTPException(status_code=400, detail="Workspace ID already exists")
-
-        # Create workspace document
-        username = account.get("username", "Unknown User")
-
-        workspace_doc = {
-            "username": username,
-            "account_id": str(account["_id"]),
-            "gmail": user_email,
-            "bot_token": data.bot_token,
-            "workspace_name": data.workspace_name,
-            "workspace_id": data.workspace_id,
-            "admins": [str(account["_id"])],
-            "members": [],
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
-        }
-
-        result = await workspaces_collection.insert_one(workspace_doc)
-
-        return {
-            "success": True,
-            "message": "Workspace created successfully",
-            "workspace": {
-                "id": str(result.inserted_id),
-                "workspace_id": data.workspace_id,
-                "workspace_name": data.workspace_name,
-                "username": username,
-                "account_id": str(account["_id"])
-            }
-        }
-    except HTTPException as he:
-        raise he
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=400, detail=f"Error: {str(e)}")
-
-
-class AddMemberRequest(BaseModel):
-    email: str
-
-
-@router.patch("/{workspace_id}/update-token")
-async def update_workspace_token(workspace_id: str, request: Request):
-    """Update a workspace's bot token."""
-    user_email = request.session.get('user_email')
-
-    if not user_email:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
-    body = await request.json()
-    bot_token = body.get("bot_token")
-
-    if not bot_token:
-        raise HTTPException(status_code=400, detail="bot_token required")
-
-    workspaces_collection = get_collection("workspaces")
-    workspace = await workspaces_collection.find_one({"workspace_id": workspace_id})
-
-    if not workspace:
-        raise HTTPException(status_code=404, detail="Workspace not found")
-
-    if workspace.get("gmail") != user_email:
-        raise HTTPException(status_code=403, detail="Not authorized")
-
-    await workspaces_collection.update_one(
-        {"workspace_id": workspace_id},
-        {"$set": {"bot_token": bot_token, "updated_at": datetime.utcnow()}}
-    )
-
-    return {"success": True, "message": "Token updated", "workspace_id": workspace_id}
-
-@router.post("/{workspace_id}/members")
-async def add_member(workspace_id: str, request: Request, data: AddMemberRequest):
-    """Add a member to the workspace."""
-    # Authenticate
-    from orchestra.permissions import is_workspace_admin
-    user_id = await get_authenticated_user_id(request)
-    
-    if not await is_workspace_admin(user_id, workspace_id=workspace_id):
-        raise HTTPException(status_code=403, detail="Not authorized")
-
-    accounts_collection = get_collection("accounts")
-    new_member = await accounts_collection.find_one({"gmail": data.email})
-    if not new_member:
-        raise HTTPException(status_code=404, detail="User not found")
-    
-    new_member_id = str(new_member["_id"])
-    
-    workspaces_collection = get_collection("workspaces")
-    await workspaces_collection.update_one(
-        {"workspace_id": workspace_id},
-        {"$addToSet": {"members": new_member_id}}
-    )
-    
-    return {"success": True, "message": "Member added"}
-
-
-@router.delete("/{workspace_id}/members/{member_id}")
-async def remove_member(workspace_id: str, member_id: str, request: Request):
-    """Remove a member from the workspace."""
-    # Authenticate
-    from orchestra.permissions import is_workspace_admin
-    user_id = await get_authenticated_user_id(request)
-    
-    if not await is_workspace_admin(user_id, workspace_id=workspace_id):
-        raise HTTPException(status_code=403, detail="Not authorized")
-
-    workspaces_collection = get_collection("workspaces")
-    await workspaces_collection.update_one(
-        {"workspace_id": workspace_id},
-        {"$pull": {"members": member_id, "admins": member_id}}
-    )
-    
-    return {"success": True, "message": "Member removed"}
-
-
-@router.get("/{workspace_id}/members")
-async def get_members(workspace_id: str, request: Request):
-    """List all members of the workspace."""
-    # Authenticate (allow any member to view members?)
-    # For now, let's restrict to members or admins
-    from orchestra.permissions import is_workspace_admin
-    user_id = await get_authenticated_user_id(request)
-    
-    workspaces_collection = get_collection("workspaces")
-    workspace = await workspaces_collection.find_one({"workspace_id": workspace_id})
-    if not workspace:
-        raise HTTPException(status_code=404, detail="Workspace not found")
-
-    # Check if user is member or admin
-    is_admin = await is_workspace_admin(user_id, workspace_doc=workspace)
-    is_member = user_id in workspace.get("members", [])
-    
-    if not (is_admin or is_member):
-         raise HTTPException(status_code=403, detail="Not authorized")
-
-    member_ids = workspace.get("members", []) + workspace.get("admins", [])
-    # Deduplicate
-    member_ids = list(set(member_ids))
-    
-    accounts_collection = get_collection("accounts")
-    from bson import ObjectId
-    object_ids = [ObjectId(mid) for mid in member_ids if ObjectId.is_valid(mid)]
-    
-    members = await accounts_collection.find({"_id": {"$in": object_ids}}).to_list(length=1000)
-    
-    return {
-        "success": True,
-        "members": [
-            {
-                "id": str(m["_id"]),
-                "username": m.get("username", "Unknown"),
-                "email": m.get("gmail"),
-                "picture": m.get("picture"),
-                "role": "admin" if str(m["_id"]) in workspace.get("admins", []) else "member"
-            }
-            for m in members
-        ]
-    }
-
-async def get_authenticated_user_id(request: Request):
-    from orchestra.permissions import get_authenticated_account_id
-    return await get_authenticated_account_id(request)
 
 @router.get("/tokens")
 async def get_saved_tokens(request: Request):
