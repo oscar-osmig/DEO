@@ -125,6 +125,12 @@
             color: var(--text-muted);
         }
 
+        .form-input:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            background-color: var(--bg-secondary);
+        }
+
         .btn {
             display: inline-flex;
             align-items: center;
@@ -163,6 +169,15 @@
         .btn-secondary:hover {
             background-color: var(--bg-hover);
             color: var(--text-primary);
+        }
+
+        .btn-success {
+            background-color: var(--success);
+            cursor: default;
+        }
+
+        .btn-success:hover {
+            background-color: var(--success);
         }
 
         .status {
@@ -261,6 +276,7 @@
             font-size: 12px;
             white-space: nowrap;
             z-index: 100;
+            color: var(--text-primary);
         }
 
         /* === HEADER === */
@@ -378,6 +394,55 @@
             font-size: 14px;
             font-weight: 600;
             margin-bottom: 16px;
+            color: var(--text-primary);
+        }
+
+        /* === SUBMITTED BADGE === */
+        .submitted-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            background-color: rgba(74, 222, 128, 0.1);
+            border: 1px solid var(--success);
+            border-radius: 8px;
+            color: var(--success);
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .submitted-badge svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* === METRICS DISPLAY (Read-only) === */
+        .metrics-display {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .metric-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .metric-item-label {
+            font-size: 14px;
+            color: var(--text-secondary);
+            text-transform: capitalize;
+        }
+
+        .metric-item-value {
+            font-size: 18px;
+            font-weight: 600;
             color: var(--text-primary);
         }
 
@@ -588,6 +653,21 @@
             width: 24px;
             height: 24px;
         }
+
+        /* === SUBMITTED INFO === */
+        .submitted-info {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .submitted-info svg {
+            width: 14px;
+            height: 14px;
+        }
     </style>
 </head>
 <body>
@@ -690,24 +770,52 @@
             <!-- Metrics View -->
             <section class="view active" id="view-metrics">
                 <div class="view-header">
-                    <h2 class="view-title">Submit Metrics</h2>
-                    <p class="view-subtitle">Enter your metrics for the current {{ reporting_period }} period.</p>
+                    <h2 class="view-title" id="metrics-view-title">Submit Metrics</h2>
+                    <p class="view-subtitle" id="metrics-view-subtitle">Enter your metrics for the current {{ reporting_period }} period.</p>
                 </div>
 
-                <div class="card">
-                    <div class="card-title">Your Metrics</div>
-                    <form id="metrics-form">
-                        {% for metric in metrics %}
-                        <div class="metric-input-group">
-                            <label class="metric-label" for="metric-{{ metric }}">{{ metric }}</label>
-                            <input type="number" id="metric-{{ metric }}" class="form-input" placeholder="Enter value" data-metric="{{ metric }}" step="any">
+                <!-- Submitted State (shown when already submitted) -->
+                <div id="metrics-submitted-state" style="display: none;">
+                    <div class="submitted-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                        </svg>
+                        Metrics Submitted
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">Your Submitted Metrics</div>
+                        <div class="metrics-display" id="metrics-display">
+                            <!-- Populated by JS -->
                         </div>
-                        {% endfor %}
-                        <div class="submit-section">
-                            <button type="submit" class="btn" id="submit-btn">Submit Metrics</button>
-                            <span class="submit-status" id="submit-status"></span>
+                        <div class="submitted-info" id="submitted-time">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            <span id="submitted-at-text">Submitted this period</span>
                         </div>
-                    </form>
+                    </div>
+                </div>
+
+                <!-- Form State (shown when not submitted) -->
+                <div id="metrics-form-state">
+                    <div class="card">
+                        <div class="card-title">Your Metrics</div>
+                        <form id="metrics-form">
+                            {% for metric in metrics %}
+                            <div class="metric-input-group">
+                                <label class="metric-label" for="metric-{{ metric }}">{{ metric }}</label>
+                                <input type="number" id="metric-{{ metric }}" class="form-input" placeholder="Enter value" data-metric="{{ metric }}" step="any">
+                            </div>
+                            {% endfor %}
+                            <div class="submit-section">
+                                <button type="submit" class="btn" id="submit-btn">Submit Metrics</button>
+                                <span class="submit-status" id="submit-status"></span>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </section>
 
@@ -768,6 +876,7 @@
         const views = ['metrics', 'charts', 'leaderboard'];
         let currentViewIndex = 0;
         let currentUser = null;
+        let hasSubmittedThisPeriod = false;
 
         // === VIEW NAVIGATION ===
         function switchView(viewId) {
@@ -842,8 +951,8 @@
                         // Initialize view
                         switchView('metrics');
 
-                        // Load existing metrics if any
-                        loadExistingMetrics();
+                        // Check if already submitted
+                        checkExistingMetrics();
                     }, 300);
                 } else {
                     status.textContent = '✗ ' + (data.detail || 'Invalid email or passcode');
@@ -861,39 +970,84 @@
         // === LOGOUT ===
         function logout() {
             currentUser = null;
+            hasSubmittedThisPeriod = false;
             document.getElementById('dashboard-app').classList.remove('active');
             document.getElementById('login-view').classList.remove('hidden');
             document.getElementById('login-form').reset();
             document.getElementById('login-status').textContent = '';
             document.getElementById('metrics-form').reset();
+
+            // Reset metrics view state
+            document.getElementById('metrics-form-state').style.display = 'block';
+            document.getElementById('metrics-submitted-state').style.display = 'none';
         }
 
         document.getElementById('logout-btn').addEventListener('click', logout);
         document.getElementById('logout-sidebar-btn').addEventListener('click', logout);
 
-        // === LOAD EXISTING METRICS ===
-        async function loadExistingMetrics() {
+        // === CHECK EXISTING METRICS ===
+        async function checkExistingMetrics() {
             try {
                 const res = await fetch(`/dashboards/${dashboardId}/my-metrics?email=${encodeURIComponent(currentUser.email)}`);
                 const data = await res.json();
 
-                if (res.ok && data.metrics) {
-                    // Fill in existing values
-                    for (const [metric, valueData] of Object.entries(data.metrics)) {
-                        const input = document.querySelector(`[data-metric="${metric}"]`);
-                        if (input && valueData.value !== undefined) {
-                            input.value = valueData.value;
-                        }
-                    }
+                if (res.ok && data.metrics && Object.keys(data.metrics).length > 0) {
+                    // User has already submitted - show read-only view
+                    hasSubmittedThisPeriod = true;
+                    showSubmittedState(data.metrics);
+                } else {
+                    // User hasn't submitted - show form
+                    hasSubmittedThisPeriod = false;
+                    showFormState();
                 }
             } catch (err) {
-                console.log('No existing metrics found');
+                console.log('Error checking metrics:', err);
+                showFormState();
             }
+        }
+
+        // === SHOW SUBMITTED STATE ===
+        function showSubmittedState(metrics) {
+            document.getElementById('metrics-form-state').style.display = 'none';
+            document.getElementById('metrics-submitted-state').style.display = 'block';
+
+            // Update title
+            document.getElementById('metrics-view-title').textContent = 'Your Metrics';
+            document.getElementById('metrics-view-subtitle').textContent = 'You have already submitted your metrics for this period.';
+
+            // Build metrics display
+            const displayEl = document.getElementById('metrics-display');
+            let html = '';
+
+            for (const [metricName, valueData] of Object.entries(metrics)) {
+                html += `
+                    <div class="metric-item">
+                        <span class="metric-item-label">${metricName}</span>
+                        <span class="metric-item-value">${valueData.value.toLocaleString()}</span>
+                    </div>
+                `;
+            }
+
+            displayEl.innerHTML = html;
+        }
+
+        // === SHOW FORM STATE ===
+        function showFormState() {
+            document.getElementById('metrics-form-state').style.display = 'block';
+            document.getElementById('metrics-submitted-state').style.display = 'none';
+
+            // Reset title
+            document.getElementById('metrics-view-title').textContent = 'Submit Metrics';
+            document.getElementById('metrics-view-subtitle').textContent = 'Enter your metrics for the current {{ reporting_period }} period.';
         }
 
         // === SUBMIT METRICS ===
         document.getElementById('metrics-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            if (hasSubmittedThisPeriod) {
+                return; // Don't allow re-submission
+            }
 
             const status = document.getElementById('submit-status');
             const btn = document.getElementById('submit-btn');
@@ -932,6 +1086,18 @@
                 if (res.ok && data.success) {
                     status.textContent = '✓ Metrics submitted successfully!';
                     status.className = 'submit-status success show';
+
+                    // Mark as submitted and switch to read-only view
+                    hasSubmittedThisPeriod = true;
+
+                    setTimeout(() => {
+                        // Convert metrics to the format expected by showSubmittedState
+                        const submittedMetrics = {};
+                        for (const [key, value] of Object.entries(metrics)) {
+                            submittedMetrics[key] = { value: value };
+                        }
+                        showSubmittedState(submittedMetrics);
+                    }, 1000);
                 } else {
                     status.textContent = '✗ ' + (data.detail || 'Failed to submit');
                     status.className = 'submit-status error show';
