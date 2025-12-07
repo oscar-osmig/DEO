@@ -109,8 +109,17 @@
                     <input type="text" id="new-dashboard-name" class="form-input" placeholder="Weekly Team Metrics" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="new-dashboard-team">Team ID</label>
-                    <input type="text" id="new-dashboard-team" class="form-input" placeholder="Enter team ID" required>
+                    <div class="form-label-row">
+                        <label class="form-label" for="new-dashboard-team">Team ID</label>
+                        <span class="info-icon" data-tooltip="Enter the MongoDB ObjectId of the team. You can find this in your team settings or database. Example: 507f1f77bcf86cd799439011">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="16" x2="12" y2="12"></line>
+                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                            </svg>
+                        </span>
+                    </div>
+                    <input type="text" id="new-dashboard-team" class="form-input" placeholder="507f1f77bcf86cd799439011" required>
                     <p class="form-hint">The team this dashboard is for</p>
                 </div>
                 <div class="form-group">
@@ -119,7 +128,16 @@
                     <p class="form-hint">Enter metric names separated by commas</p>
                 </div>
                 <div class="form-group">
-                    <label class="form-label" for="new-dashboard-period">Reporting Period</label>
+                    <div class="form-label-row">
+                        <label class="form-label" for="new-dashboard-period">Reporting Period</label>
+                        <span class="info-icon" data-tooltip="Daily: Team members submit metrics every day. Weekly: Submit once per week (Monday-Sunday). Monthly: Submit once per month.">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="16" x2="12" y2="12"></line>
+                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                            </svg>
+                        </span>
+                    </div>
                     <select id="new-dashboard-period" class="form-input">
                         <option value="daily">Daily</option>
                         <option value="weekly" selected>Weekly</option>
