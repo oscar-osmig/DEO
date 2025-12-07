@@ -1,5 +1,28 @@
-// Reset to home on page load/refresh
-history.replaceState(null, '', window.location.pathname);
+// Check if there's a hash in URL and set header section accordingly
+function initFromHash() {
+    const hash = window.location.hash;
+    if (hash === '#settings') {
+        setHeaderSection('Settings');
+    } else if (hash === '#new-deo') {
+        setHeaderSection('New Deo');
+    } else if (hash === '#workspace') {
+        setHeaderSection('Workspaces');
+    } else if (hash === '#template') {
+        setHeaderSection('Templates');
+    } else {
+        setHeaderSection('');
+    }
+}
+
+// Run on page load
+window.addEventListener('DOMContentLoaded', () => {
+    initFromHash();
+});
+
+// Also handle back/forward navigation
+window.addEventListener('hashchange', () => {
+    initFromHash();
+});
 
 // Store user data globally
 let currentUser = null;
