@@ -2,6 +2,10 @@
 let openWorkspaceTabs = [];
 let activeWorkspaceTab = null;
 
+// Track open template tabs
+let openTemplateTabs = [];
+let activeTemplateTab = null;
+
 // Store user data globally
 let currentUser = null;
 
@@ -74,9 +78,30 @@ function renderWorkspaceTabs() {
     tabsBar.innerHTML = openWorkspaceTabs.map(tab => {
         const isActive = tab.id === activeWorkspaceTab;
         return `
-            <div class="tab ${isActive ? 'active' : ''}" data-tab-id="${tab.id}">
+            <div class="tab ${isActive ? 'active' : ''}" data-tab-id="${tab.id}" data-tab-type="workspace">
                 <span class="tab-name">${tab.name}</span>
-                <span class="tab-close" data-close-tab="${tab.id}">
+                <span class="tab-close" data-close-tab="${tab.id}" data-close-type="workspace">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </span>
+            </div>
+        `;
+    }).join('');
+}
+
+// Render template tabs
+function renderTemplateTabs() {
+    const tabsBar = document.getElementById('template-tabs');
+    if (!tabsBar) return;
+
+    tabsBar.innerHTML = openTemplateTabs.map(tab => {
+        const isActive = tab.id === activeTemplateTab;
+        return `
+            <div class="tab ${isActive ? 'active' : ''}" data-tab-id="${tab.id}" data-tab-type="template">
+                <span class="tab-name">${tab.name}</span>
+                <span class="tab-close" data-close-tab="${tab.id}" data-close-type="template">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -123,6 +148,42 @@ async function openWorkspaceTab(workspaceId) {
     }
 }
 
+// Open template in tab
+async function openTemplateTab(templateId) {
+    // Check if tab already exists
+    const existingTab = openTemplateTabs.find(tab => tab.id === templateId);
+
+    if (existingTab) {
+        // Just switch to it
+        activeTemplateTab = templateId;
+        renderTemplateTabs();
+        await loadTemplateDetails(templateId);
+        return;
+    }
+
+    // Fetch template data
+    try {
+        const res = await fetch(`/templates/by-id/${encodeURIComponent(templateId)}`);
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            const t = data.template;
+
+            // Add new tab
+            openTemplateTabs.push({
+                id: templateId,
+                name: t.template_id || 'Template'
+            });
+
+            activeTemplateTab = templateId;
+            renderTemplateTabs();
+            await loadTemplateDetails(templateId);
+        }
+    } catch (err) {
+        console.error('Error opening template tab:', err);
+    }
+}
+
 // Close workspace tab
 function closeWorkspaceTab(workspaceId) {
     const index = openWorkspaceTabs.findIndex(tab => tab.id === workspaceId);
@@ -146,6 +207,31 @@ function closeWorkspaceTab(workspaceId) {
     }
 
     renderWorkspaceTabs();
+}
+
+// Close template tab
+function closeTemplateTab(templateId) {
+    const index = openTemplateTabs.findIndex(tab => tab.id === templateId);
+    if (index === -1) return;
+
+    openTemplateTabs.splice(index, 1);
+
+    // If closing active tab, switch to another
+    if (activeTemplateTab === templateId) {
+        if (openTemplateTabs.length > 0) {
+            // Switch to previous tab or first available
+            const newIndex = Math.max(0, index - 1);
+            activeTemplateTab = openTemplateTabs[newIndex].id;
+            loadTemplateDetails(activeTemplateTab);
+        } else {
+            // No tabs left, go to home
+            activeTemplateTab = null;
+            window.location.hash = '#home';
+            setHeaderSection('');
+        }
+    }
+
+    renderTemplateTabs();
 }
 
 // Load user data
@@ -256,7 +342,7 @@ if (tokenForm) {
     });
 }
 
-// Workspace click handler
+// Workspace and Template click handlers
 document.addEventListener('click', async (e) => {
     // Handle workspace sidebar link
     const workspaceLink = e.target.closest('[data-workspace-id]');
@@ -269,33 +355,53 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // Handle tab click (switch tabs)
-    const tab = e.target.closest('.tab[data-tab-id]');
-    if (tab && !e.target.closest('.tab-close')) {
-        const tabId = tab.dataset.tabId;
+    // Handle template sidebar link
+    const templateLink = e.target.closest('[data-template-id]');
+    if (templateLink && !e.target.closest('.tab')) {
+        e.preventDefault();
+        const templateId = templateLink.dataset.templateId;
+        window.location.hash = '#template';
+        setHeaderSection('Templates');
+        await openTemplateTab(templateId);
+        return;
+    }
+
+    // Handle workspace tab click (switch tabs)
+    const workspaceTab = e.target.closest('.tab[data-tab-type="workspace"]');
+    if (workspaceTab && !e.target.closest('.tab-close')) {
+        const tabId = workspaceTab.dataset.tabId;
         activeWorkspaceTab = tabId;
         renderWorkspaceTabs();
         await loadWorkspaceDetails(tabId);
         return;
     }
 
-    // Handle tab close
-    const closeBtn = e.target.closest('.tab-close[data-close-tab]');
-    if (closeBtn) {
+    // Handle template tab click (switch tabs)
+    const templateTab = e.target.closest('.tab[data-tab-type="template"]');
+    if (templateTab && !e.target.closest('.tab-close')) {
+        const tabId = templateTab.dataset.tabId;
+        activeTemplateTab = tabId;
+        renderTemplateTabs();
+        await loadTemplateDetails(tabId);
+        return;
+    }
+
+    // Handle workspace tab close
+    const closeWorkspaceBtn = e.target.closest('.tab-close[data-close-type="workspace"]');
+    if (closeWorkspaceBtn) {
         e.stopPropagation();
-        const tabId = closeBtn.dataset.closeTab;
+        const tabId = closeWorkspaceBtn.dataset.closeTab;
         closeWorkspaceTab(tabId);
         return;
     }
-});
 
-// Template click handler
-document.addEventListener('click', async (e) => {
-    const templateLink = e.target.closest('[data-template-id]');
-    if (templateLink) {
-        const templateId = templateLink.dataset.templateId;
-        setHeaderSection('Templates');
-        await loadTemplateDetails(templateId);
+    // Handle template tab close
+    const closeTemplateBtn = e.target.closest('.tab-close[data-close-type="template"]');
+    if (closeTemplateBtn) {
+        e.stopPropagation();
+        const tabId = closeTemplateBtn.dataset.closeTab;
+        closeTemplateTab(tabId);
+        return;
     }
 });
 
@@ -454,9 +560,8 @@ async function loadTemplateDetails(templateId) {
 }
 
 // Run template button
-const runBtn = document.getElementById('run-template-btn');
-if (runBtn) {
-    runBtn.addEventListener('click', async (e) => {
+document.addEventListener('click', async (e) => {
+    if (e.target.id === 'run-template-btn') {
         const templateId = e.target.dataset.templateId;
         const status = document.getElementById('template-action-status');
 
@@ -490,13 +595,12 @@ if (runBtn) {
         e.target.disabled = false;
 
         setTimeout(() => { status.textContent = ''; }, 3000);
-    });
-}
+    }
+});
 
 // Delete template button
-const deleteBtn = document.getElementById('delete-template-btn');
-if (deleteBtn) {
-    deleteBtn.addEventListener('click', async (e) => {
+document.addEventListener('click', async (e) => {
+    if (e.target.id === 'delete-template-btn') {
         const templateId = e.target.dataset.templateId;
         const status = document.getElementById('template-action-status');
 
@@ -517,7 +621,12 @@ if (deleteBtn) {
             if (res.ok && data.success) {
                 status.textContent = '✓ Deleted';
                 status.style.color = '#4ade80';
-                setTimeout(() => { window.location.hash = '#home'; location.reload(); }, 1000);
+
+                // Close the tab
+                closeTemplateTab(templateId);
+
+                // Refresh page after short delay
+                setTimeout(() => { location.reload(); }, 1000);
             } else {
                 status.textContent = '✗ ' + (data.detail || 'Failed');
                 status.style.color = '#f87171';
@@ -529,8 +638,8 @@ if (deleteBtn) {
 
         e.target.textContent = 'Delete';
         e.target.disabled = false;
-    });
-}
+    }
+});
 
 // Create Workspace Modal
 document.addEventListener('click', (e) => {
@@ -557,12 +666,17 @@ document.addEventListener('click', (e) => {
     if (e.target.classList.contains('modal-overlay')) {
         e.target.classList.remove('active');
     }
+
+    // Create template button (placeholder - does nothing for now)
+    if (e.target.closest('#create-template-btn')) {
+        // TODO: Implement template creation modal
+        console.log('Create template clicked');
+    }
 });
 
 // Create Workspace Form Submission
-const createWorkspaceForm = document.getElementById('create-workspace-form');
-if (createWorkspaceForm) {
-    createWorkspaceForm.addEventListener('submit', async (e) => {
+document.addEventListener('submit', async (e) => {
+    if (e.target.id === 'create-workspace-form') {
         e.preventDefault();
 
         const workspaceName = document.getElementById('new-workspace-name').value;
@@ -607,7 +721,7 @@ if (createWorkspaceForm) {
                     if (modal) modal.classList.remove('active');
 
                     // Reset form
-                    createWorkspaceForm.reset();
+                    e.target.reset();
                     status.textContent = '';
 
                     // Open the new workspace in a tab
@@ -635,5 +749,5 @@ if (createWorkspaceForm) {
 
         submitBtn.textContent = 'Create';
         submitBtn.disabled = false;
-    });
-}
+    }
+});

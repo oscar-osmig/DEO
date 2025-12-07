@@ -103,11 +103,20 @@
     background-color: var(--bg-primary);
 }
 
-.workspace-details {
+.workspace-details,
+.template-details {
     max-width: 600px;
 }
 
-#workspace {
+.template-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-top: 24px;
+}
+
+#workspace,
+#template {
     max-width: none;
     position: absolute;
     top: 0;
