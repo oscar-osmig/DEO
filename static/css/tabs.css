@@ -8,9 +8,8 @@
 .tabs-bar {
     display: flex;
     gap: 4px;
-    padding-bottom: 16px;
+    padding: 0 0 0 0;
     border-bottom: 1px solid var(--border-color);
-    margin-bottom: 24px;
     overflow-x: auto;
     min-height: 40px;
 }
@@ -23,10 +22,10 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 12px;
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    padding: 10px 16px;
+    background-color: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
     color: var(--text-secondary);
     font-size: 13px;
     cursor: pointer;
@@ -35,14 +34,13 @@
 }
 
 .tab:hover {
-    background-color: var(--bg-hover);
     color: var(--text-primary);
+    background-color: var(--bg-hover);
 }
 
 .tab.active {
-    background-color: var(--bg-tertiary);
-    border-color: var(--text-muted);
     color: var(--text-primary);
+    border-bottom: 2px solid var(--text-primary);
 }
 
 .tab-close {
@@ -57,7 +55,7 @@
 }
 
 .tab-close:hover {
-    background-color: var(--bg-hover);
+    background-color: var(--bg-tertiary);
     color: var(--text-primary);
 }
 
@@ -69,6 +67,7 @@
 .tabs-content {
     flex: 1;
     overflow-y: auto;
+    padding-top: 24px;
 }
 
 .workspace-details {
