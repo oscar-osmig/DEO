@@ -931,3 +931,35 @@ async def get_dashboard_leaderboard(dashboard_id: str):
         "leaderboard": leaderboard,
         "period": period
     }
+
+@router.get("/{dashboard_id}/my-metrics")
+async def get_my_metrics(dashboard_id: str, email: str):
+    """Get current user's submitted metrics for this period."""
+    dashboard_data = get_collection("dashboard_data")
+
+    period = get_current_week()
+
+    data_doc = await dashboard_data.find_one({
+        "dashboard_id": dashboard_id,
+        "reporting_period": period
+    })
+
+    if not data_doc:
+        return {"success": True, "metrics": {}}
+
+    # Extract this user's metrics
+    metrics_data = data_doc.get("metrics_data", {})
+    user_metrics = {}
+
+    email_clean = email.lower().strip()
+
+    for metric_name, metric_values in metrics_data.items():
+        for user_email, value_data in metric_values.items():
+            if user_email.lower().strip() == email_clean:
+                user_metrics[metric_name] = value_data
+
+    return {
+        "success": True,
+        "metrics": user_metrics,
+        "period": period
+    }

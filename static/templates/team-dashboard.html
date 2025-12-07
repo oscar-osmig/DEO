@@ -32,14 +32,20 @@
             background-color: var(--bg-primary);
             color: var(--text-primary);
             min-height: 100vh;
+            overflow: hidden;
         }
 
         /* === LOGIN VIEW === */
-        .login-container {
+        .login-view {
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 20px;
+        }
+
+        .login-view.hidden {
+            display: none;
         }
 
         .login-card {
@@ -75,7 +81,7 @@
             margin-bottom: 8px;
         }
 
-        .dashboard-name {
+        .dashboard-name-title {
             font-size: 24px;
             font-weight: 600;
             margin-bottom: 8px;
@@ -120,8 +126,11 @@
         }
 
         .btn {
-            width: 100%;
-            padding: 14px 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
             background-color: var(--accent);
             border: none;
             border-radius: 8px;
@@ -139,6 +148,10 @@
         .btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+        }
+
+        .btn-full {
+            width: 100%;
         }
 
         .btn-secondary {
@@ -172,10 +185,11 @@
             color: var(--text-muted);
         }
 
-        /* === DASHBOARD APP VIEW === */
+        /* === DASHBOARD APP === */
         .dashboard-app {
             display: none;
             height: 100vh;
+            width: 100vw;
         }
 
         .dashboard-app.active {
@@ -201,6 +215,7 @@
         .sidebar-top, .sidebar-bottom {
             display: flex;
             flex-direction: column;
+            align-items: center;
             gap: 4px;
         }
 
@@ -209,13 +224,14 @@
             height: 40px;
             border: none;
             background: transparent;
-            color: var(--text-secondary);
+            color: var(--text-muted);
             cursor: pointer;
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all 0.2s ease;
+            position: relative;
         }
 
         .sidebar-btn:hover {
@@ -233,6 +249,20 @@
             height: 20px;
         }
 
+        .sidebar-btn[title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            left: 100%;
+            margin-left: 8px;
+            padding: 6px 10px;
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 100;
+        }
+
         /* === HEADER === */
         .header {
             grid-area: header;
@@ -247,12 +277,29 @@
         .header-left {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 16px;
         }
 
         .header-title {
             font-size: 16px;
             font-weight: 600;
+        }
+
+        .period-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .period-badge svg {
+            width: 14px;
+            height: 14px;
         }
 
         .header-right {
@@ -266,13 +313,17 @@
             color: var(--text-secondary);
         }
 
+        .user-info strong {
+            color: var(--text-primary);
+        }
+
         .logout-btn {
             padding: 8px 16px;
             background-color: transparent;
             border: 1px solid var(--border-color);
             border-radius: 6px;
             color: var(--text-secondary);
-            font-size: 12px;
+            font-size: 13px;
             cursor: pointer;
             transition: all 0.2s ease;
         }
@@ -292,15 +343,15 @@
 
         .view {
             display: none;
+            max-width: 800px;
         }
 
         .view.active {
             display: block;
         }
 
-        /* === METRICS FORM VIEW === */
-        .metrics-view {
-            max-width: 600px;
+        .view-header {
+            margin-bottom: 24px;
         }
 
         .view-title {
@@ -312,9 +363,9 @@
         .view-subtitle {
             font-size: 14px;
             color: var(--text-secondary);
-            margin-bottom: 24px;
         }
 
+        /* === CARDS === */
         .card {
             background-color: var(--bg-secondary);
             border: 1px solid var(--border-color);
@@ -330,11 +381,12 @@
             color: var(--text-primary);
         }
 
+        /* === METRICS FORM === */
         .metric-input-group {
             margin-bottom: 16px;
         }
 
-        .metric-input-group:last-child {
+        .metric-input-group:last-of-type {
             margin-bottom: 0;
         }
 
@@ -346,128 +398,201 @@
             text-transform: capitalize;
         }
 
-        .submit-btn {
+        .submit-section {
             margin-top: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
         }
 
         .submit-status {
-            margin-top: 16px;
-            padding: 12px;
-            border-radius: 8px;
             font-size: 13px;
-            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
         .submit-status.show {
-            display: block;
+            opacity: 1;
         }
 
         .submit-status.success {
-            background-color: rgba(74, 222, 128, 0.1);
-            border: 1px solid var(--success);
             color: var(--success);
         }
 
         .submit-status.error {
-            background-color: rgba(248, 113, 113, 0.1);
-            border: 1px solid var(--error);
             color: var(--error);
         }
 
-        /* === CHART VIEW === */
-        .chart-placeholder {
-            height: 300px;
+        /* === CHARTS VIEW === */
+        .chart-container {
             background-color: var(--bg-secondary);
             border: 1px solid var(--border-color);
             border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--text-muted);
+            padding: 24px;
             margin-bottom: 16px;
         }
 
-        /* === LEADERBOARD VIEW === */
+        .chart-placeholder {
+            height: 250px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+        }
+
+        .chart-placeholder svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        /* === LEADERBOARD === */
+        .leaderboard-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
         .leaderboard-item {
             display: flex;
             align-items: center;
             gap: 16px;
             padding: 16px;
-            background-color: var(--bg-secondary);
+            background-color: var(--bg-tertiary);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            margin-bottom: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .leaderboard-item:hover {
+            border-color: var(--accent);
+        }
+
+        .leaderboard-item.current-user {
+            border-color: var(--accent);
+            background-color: rgba(59, 130, 246, 0.1);
         }
 
         .leaderboard-rank {
-            width: 32px;
-            height: 32px;
+            width: 36px;
+            height: 36px;
             border-radius: 50%;
-            background-color: var(--bg-tertiary);
+            background-color: var(--bg-secondary);
             display: flex;
             align-items: center;
             justify-content: center;
             font-weight: 600;
             font-size: 14px;
+            flex-shrink: 0;
         }
 
         .leaderboard-rank.gold {
-            background-color: #fbbf24;
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
             color: #000;
         }
 
         .leaderboard-rank.silver {
-            background-color: #9ca3af;
+            background: linear-gradient(135deg, #e5e7eb, #9ca3af);
             color: #000;
         }
 
         .leaderboard-rank.bronze {
-            background-color: #d97706;
+            background: linear-gradient(135deg, #f59e0b, #d97706);
             color: #fff;
         }
 
         .leaderboard-info {
             flex: 1;
+            min-width: 0;
         }
 
         .leaderboard-name {
             font-size: 14px;
             font-weight: 500;
+            margin-bottom: 2px;
         }
 
         .leaderboard-email {
             font-size: 12px;
             color: var(--text-muted);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .leaderboard-score {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 600;
             color: var(--accent);
         }
 
-        /* === PERIOD INFO === */
-        .period-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 12px;
-            background-color: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            font-size: 12px;
-            color: var(--text-secondary);
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
         }
 
-        .period-badge svg {
-            width: 14px;
-            height: 14px;
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.3;
+        }
+
+        .empty-state p {
+            margin-bottom: 8px;
+        }
+
+        .empty-state .hint {
+            font-size: 13px;
+        }
+
+        /* === BOTTOM NAV ARROW === */
+        .bottom-nav {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .nav-arrow {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background-color: var(--accent);
+            border: none;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .nav-arrow:hover {
+            background-color: var(--accent-hover);
+            transform: scale(1.05);
+        }
+
+        .nav-arrow:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .nav-arrow svg {
+            width: 24px;
+            height: 24px;
         }
     </style>
 </head>
 <body>
     <!-- Login View -->
-    <div class="login-container" id="login-view">
+    <div class="login-view" id="login-view">
         <div class="login-card">
             <div class="logo">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -478,7 +603,7 @@
                 </svg>
             </div>
             <p class="welcome-text">Welcome to</p>
-            <h1 class="dashboard-name">{{ dashboard_name }}</h1>
+            <h1 class="dashboard-name-title">{{ dashboard_name }}</h1>
             <p class="team-name">{{ team_name }} Dashboard</p>
 
             <form id="login-form">
@@ -490,7 +615,7 @@
                     <label class="form-label" for="passcode">Passcode</label>
                     <input type="text" id="passcode" class="form-input" placeholder="Enter your passcode" required>
                 </div>
-                <button type="submit" class="btn" id="login-btn">Sign In</button>
+                <button type="submit" class="btn btn-full" id="login-btn">Sign In</button>
                 <p class="status" id="login-status"></p>
             </form>
 
@@ -500,36 +625,37 @@
         </div>
     </div>
 
-    <!-- Dashboard App View -->
+    <!-- Dashboard App -->
     <div class="dashboard-app" id="dashboard-app">
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-top">
-                <button class="sidebar-btn active" id="nav-metrics" title="Submit Metrics">
+                <button class="sidebar-btn active" data-view="metrics" title="Submit Metrics">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 20V10"></path>
-                        <path d="M18 20V4"></path>
-                        <path d="M6 20v-4"></path>
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                     </svg>
                 </button>
-                <button class="sidebar-btn" id="nav-charts" title="Charts">
+                <button class="sidebar-btn" data-view="charts" title="Charts">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="20" x2="18" y2="10"></line>
                         <line x1="12" y1="20" x2="12" y2="4"></line>
                         <line x1="6" y1="20" x2="6" y2="14"></line>
                     </svg>
                 </button>
-                <button class="sidebar-btn" id="nav-leaderboard" title="Leaderboard">
+                <button class="sidebar-btn" data-view="leaderboard" title="Leaderboard">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M8 21v-6a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v6"></path>
-                        <path d="M4 21v-4a2 2 0 0 1 2-2h2"></path>
-                        <path d="M20 21v-4a2 2 0 0 0-2-2h-2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
+                        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                        <path d="M4 22h16"></path>
+                        <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
+                        <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
+                        <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
                     </svg>
                 </button>
             </div>
             <div class="sidebar-bottom">
-                <button class="sidebar-btn" id="nav-logout" title="Logout">
+                <button class="sidebar-btn" id="logout-sidebar-btn" title="Logout">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                         <polyline points="16 17 21 12 16 7"></polyline>
@@ -562,9 +688,11 @@
         <!-- Content -->
         <main class="content">
             <!-- Metrics View -->
-            <div class="view active" id="view-metrics">
-                <h2 class="view-title">Submit Metrics</h2>
-                <p class="view-subtitle">Enter your metrics for the current {{ reporting_period }} period.</p>
+            <section class="view active" id="view-metrics">
+                <div class="view-header">
+                    <h2 class="view-title">Submit Metrics</h2>
+                    <p class="view-subtitle">Enter your metrics for the current {{ reporting_period }} period.</p>
+                </div>
 
                 <div class="card">
                     <div class="card-title">Your Metrics</div>
@@ -572,92 +700,119 @@
                         {% for metric in metrics %}
                         <div class="metric-input-group">
                             <label class="metric-label" for="metric-{{ metric }}">{{ metric }}</label>
-                            <input type="number" id="metric-{{ metric }}" class="form-input" placeholder="Enter value" data-metric="{{ metric }}" required>
+                            <input type="number" id="metric-{{ metric }}" class="form-input" placeholder="Enter value" data-metric="{{ metric }}" step="any">
                         </div>
                         {% endfor %}
-                        <button type="submit" class="btn submit-btn" id="submit-btn">Submit Metrics</button>
-                        <div class="submit-status" id="submit-status"></div>
+                        <div class="submit-section">
+                            <button type="submit" class="btn" id="submit-btn">Submit Metrics</button>
+                            <span class="submit-status" id="submit-status"></span>
+                        </div>
                     </form>
                 </div>
-            </div>
+            </section>
 
             <!-- Charts View -->
-            <div class="view" id="view-charts">
-                <h2 class="view-title">Charts & Analytics</h2>
-                <p class="view-subtitle">View team performance over time.</p>
+            <section class="view" id="view-charts">
+                <div class="view-header">
+                    <h2 class="view-title">Charts & Analytics</h2>
+                    <p class="view-subtitle">View your performance and team trends over time.</p>
+                </div>
 
-                <div class="chart-placeholder">
-                    <div style="text-align: center;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width: 48px; height: 48px; margin-bottom: 12px;">
+                <div class="chart-container">
+                    <div class="card-title">Performance Over Time</div>
+                    <div class="chart-placeholder">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                             <line x1="18" y1="20" x2="18" y2="10"></line>
                             <line x1="12" y1="20" x2="12" y2="4"></line>
                             <line x1="6" y1="20" x2="6" y2="14"></line>
                         </svg>
                         <p>Charts coming soon</p>
-                        <p style="font-size: 12px; margin-top: 4px;">Historical data visualization</p>
+                        <p class="hint">Historical data visualization will appear here</p>
                     </div>
                 </div>
-            </div>
+            </section>
 
             <!-- Leaderboard View -->
-            <div class="view" id="view-leaderboard">
-                <h2 class="view-title">Leaderboard</h2>
-                <p class="view-subtitle">See how you rank against your team.</p>
+            <section class="view" id="view-leaderboard">
+                <div class="view-header">
+                    <h2 class="view-title">Leaderboard</h2>
+                    <p class="view-subtitle">See how you rank against your team this period.</p>
+                </div>
 
                 <div class="card">
-                    <div class="card-title">This Period's Rankings</div>
-                    <div id="leaderboard-list">
-                        <div class="leaderboard-item">
-                            <div class="leaderboard-rank gold">1</div>
-                            <div class="leaderboard-info">
-                                <div class="leaderboard-name">Loading...</div>
-                                <div class="leaderboard-email">-</div>
-                            </div>
-                            <div class="leaderboard-score">-</div>
-                        </div>
+                    <div class="card-title">Current Rankings</div>
+                    <div class="leaderboard-list" id="leaderboard-list">
+                        <!-- Populated by JS -->
                     </div>
                 </div>
-            </div>
+            </section>
         </main>
+
+        <!-- Bottom Navigation Arrows -->
+        <div class="bottom-nav">
+            <button class="nav-arrow" id="nav-prev" title="Previous">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </button>
+            <button class="nav-arrow" id="nav-next" title="Next">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+            </button>
+        </div>
     </div>
 
     <script>
         const dashboardId = '{{ dashboard_id }}';
+        const views = ['metrics', 'charts', 'leaderboard'];
+        let currentViewIndex = 0;
         let currentUser = null;
 
-        // Navigation
-        const navBtns = document.querySelectorAll('.sidebar-btn[id^="nav-"]');
-        const views = document.querySelectorAll('.view');
-
+        // === VIEW NAVIGATION ===
         function switchView(viewId) {
-            // Update buttons
-            navBtns.forEach(btn => btn.classList.remove('active'));
-            const activeBtn = document.getElementById('nav-' + viewId);
-            if (activeBtn) activeBtn.classList.add('active');
+            currentViewIndex = views.indexOf(viewId);
+            if (currentViewIndex === -1) currentViewIndex = 0;
+
+            // Update sidebar buttons
+            document.querySelectorAll('.sidebar-btn[data-view]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.view === viewId);
+            });
 
             // Update views
-            views.forEach(view => view.classList.remove('active'));
-            const activeView = document.getElementById('view-' + viewId);
-            if (activeView) activeView.classList.add('active');
+            document.querySelectorAll('.view').forEach(view => {
+                view.classList.toggle('active', view.id === 'view-' + viewId);
+            });
 
-            // Load data for specific views
+            // Update nav arrows
+            document.getElementById('nav-prev').disabled = currentViewIndex === 0;
+            document.getElementById('nav-next').disabled = currentViewIndex === views.length - 1;
+
+            // Load data if needed
             if (viewId === 'leaderboard') {
                 loadLeaderboard();
             }
         }
 
-        navBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const viewId = btn.id.replace('nav-', '');
-                if (viewId === 'logout') {
-                    logout();
-                } else {
-                    switchView(viewId);
-                }
-            });
+        // Sidebar navigation
+        document.querySelectorAll('.sidebar-btn[data-view]').forEach(btn => {
+            btn.addEventListener('click', () => switchView(btn.dataset.view));
         });
 
-        // Login form
+        // Arrow navigation
+        document.getElementById('nav-prev').addEventListener('click', () => {
+            if (currentViewIndex > 0) {
+                switchView(views[currentViewIndex - 1]);
+            }
+        });
+
+        document.getElementById('nav-next').addEventListener('click', () => {
+            if (currentViewIndex < views.length - 1) {
+                switchView(views[currentViewIndex + 1]);
+            }
+        });
+
+        // === LOGIN ===
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -680,10 +835,16 @@
 
                     // Show dashboard app
                     setTimeout(() => {
-                        document.getElementById('login-view').style.display = 'none';
+                        document.getElementById('login-view').classList.add('hidden');
                         document.getElementById('dashboard-app').classList.add('active');
                         document.getElementById('user-email-display').textContent = email;
-                    }, 500);
+
+                        // Initialize view
+                        switchView('metrics');
+
+                        // Load existing metrics if any
+                        loadExistingMetrics();
+                    }, 300);
                 } else {
                     status.textContent = '✗ ' + (data.detail || 'Invalid email or passcode');
                     status.className = 'status error';
@@ -697,19 +858,40 @@
             btn.disabled = false;
         });
 
-        // Logout
+        // === LOGOUT ===
         function logout() {
             currentUser = null;
             document.getElementById('dashboard-app').classList.remove('active');
-            document.getElementById('login-view').style.display = 'flex';
+            document.getElementById('login-view').classList.remove('hidden');
             document.getElementById('login-form').reset();
             document.getElementById('login-status').textContent = '';
-            switchView('metrics');
+            document.getElementById('metrics-form').reset();
         }
 
         document.getElementById('logout-btn').addEventListener('click', logout);
+        document.getElementById('logout-sidebar-btn').addEventListener('click', logout);
 
-        // Submit metrics
+        // === LOAD EXISTING METRICS ===
+        async function loadExistingMetrics() {
+            try {
+                const res = await fetch(`/dashboards/${dashboardId}/my-metrics?email=${encodeURIComponent(currentUser.email)}`);
+                const data = await res.json();
+
+                if (res.ok && data.metrics) {
+                    // Fill in existing values
+                    for (const [metric, valueData] of Object.entries(data.metrics)) {
+                        const input = document.querySelector(`[data-metric="${metric}"]`);
+                        if (input && valueData.value !== undefined) {
+                            input.value = valueData.value;
+                        }
+                    }
+                }
+            } catch (err) {
+                console.log('No existing metrics found');
+            }
+        }
+
+        // === SUBMIT METRICS ===
         document.getElementById('metrics-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -719,8 +901,18 @@
             // Gather metrics
             const metrics = {};
             document.querySelectorAll('[data-metric]').forEach(input => {
-                metrics[input.dataset.metric] = parseFloat(input.value) || 0;
+                const value = parseFloat(input.value);
+                if (!isNaN(value)) {
+                    metrics[input.dataset.metric] = value;
+                }
             });
+
+            if (Object.keys(metrics).length === 0) {
+                status.textContent = '✗ Please enter at least one metric';
+                status.className = 'submit-status error show';
+                setTimeout(() => status.classList.remove('show'), 3000);
+                return;
+            }
 
             btn.textContent = 'Submitting...';
             btn.disabled = true;
@@ -752,14 +944,13 @@
             btn.textContent = 'Submit Metrics';
             btn.disabled = false;
 
-            setTimeout(() => {
-                status.classList.remove('show');
-            }, 5000);
+            setTimeout(() => status.classList.remove('show'), 4000);
         });
 
-        // Load leaderboard
+        // === LEADERBOARD ===
         async function loadLeaderboard() {
             const list = document.getElementById('leaderboard-list');
+            list.innerHTML = '<div class="empty-state"><p>Loading...</p></div>';
 
             try {
                 const res = await fetch(`/dashboards/${dashboardId}/leaderboard`);
@@ -772,33 +963,47 @@
                         else if (index === 1) rankClass = 'silver';
                         else if (index === 2) rankClass = 'bronze';
 
+                        const isCurrentUser = currentUser && member.email.toLowerCase() === currentUser.email.toLowerCase();
+
                         return `
-                            <div class="leaderboard-item">
+                            <div class="leaderboard-item ${isCurrentUser ? 'current-user' : ''}">
                                 <div class="leaderboard-rank ${rankClass}">${index + 1}</div>
                                 <div class="leaderboard-info">
-                                    <div class="leaderboard-name">${member.name || 'Unknown'}</div>
+                                    <div class="leaderboard-name">${member.name || 'Unknown'}${isCurrentUser ? ' (You)' : ''}</div>
                                     <div class="leaderboard-email">${member.email}</div>
                                 </div>
-                                <div class="leaderboard-score">${member.total || 0}</div>
+                                <div class="leaderboard-score">${member.total.toLocaleString()}</div>
                             </div>
                         `;
                     }).join('');
                 } else {
                     list.innerHTML = `
-                        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+                                <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+                                <path d="M4 22h16"></path>
+                                <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
+                                <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
+                                <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
+                            </svg>
                             <p>No data yet</p>
-                            <p style="font-size: 12px; margin-top: 4px;">Submit metrics to appear on the leaderboard</p>
+                            <p class="hint">Submit metrics to appear on the leaderboard</p>
                         </div>
                     `;
                 }
             } catch (err) {
                 list.innerHTML = `
-                    <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+                    <div class="empty-state">
                         <p>Could not load leaderboard</p>
+                        <p class="hint">Please try again later</p>
                     </div>
                 `;
             }
         }
+
+        // Initialize arrow states
+        document.getElementById('nav-prev').disabled = true;
     </script>
 </body>
 </html>
