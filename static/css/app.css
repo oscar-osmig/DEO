@@ -542,3 +542,21 @@ body {
     background: var(--border-color);
     border-radius: 4px;
 }
+
+/* === HOME CONTENT === */
+.home-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-height: 60vh;
+}
+
+.home-content .template-title {
+    margin-top: 24px;
+}
+
+.home-content .template-subtitle {
+    margin-top: 8px;
+}
