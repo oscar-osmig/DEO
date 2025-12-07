@@ -683,3 +683,19 @@ body {
 #new-deo .deo-builder {
     height: 100%;
 }
+
+.canvas-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    padding: 12px 24px;
+}
+
+.canvas-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.canvas-actions .btn {
+    padding: 8px 16px;
+    font-size: 13px;
+}
