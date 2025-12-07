@@ -531,3 +531,109 @@ if (deleteBtn) {
         e.target.disabled = false;
     });
 }
+
+// Create Workspace Modal
+document.addEventListener('click', (e) => {
+    // Open modal
+    if (e.target.closest('#create-workspace-btn')) {
+        const modal = document.getElementById('create-workspace-modal');
+        if (modal) modal.classList.add('active');
+    }
+
+    // Close modal
+    if (e.target.closest('#close-workspace-modal') || e.target.closest('#cancel-workspace-btn')) {
+        const modal = document.getElementById('create-workspace-modal');
+        if (modal) {
+            modal.classList.remove('active');
+            // Reset form
+            const form = document.getElementById('create-workspace-form');
+            if (form) form.reset();
+            const status = document.getElementById('create-workspace-status');
+            if (status) status.textContent = '';
+        }
+    }
+
+    // Close modal on overlay click
+    if (e.target.classList.contains('modal-overlay')) {
+        e.target.classList.remove('active');
+    }
+});
+
+// Create Workspace Form Submission
+const createWorkspaceForm = document.getElementById('create-workspace-form');
+if (createWorkspaceForm) {
+    createWorkspaceForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const workspaceName = document.getElementById('new-workspace-name').value;
+        const botToken = document.getElementById('new-workspace-token').value;
+        const status = document.getElementById('create-workspace-status');
+        const submitBtn = document.getElementById('submit-workspace-btn');
+
+        if (!workspaceName || !botToken) {
+            status.textContent = 'All fields are required';
+            status.className = 'modal-status error';
+            return;
+        }
+
+        submitBtn.textContent = 'Creating...';
+        submitBtn.disabled = true;
+
+        try {
+            // Generate workspace ID
+            const workspaceId = 'workspace-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+
+            const res = await fetch('/workspace/make-workspace', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    username: currentUser?.username || 'User',
+                    account_id: currentUser?.email || 'unknown',
+                    bot_token: botToken,
+                    workspace_name: workspaceName,
+                    workspace_id: workspaceId
+                })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                status.textContent = '✓ Workspace created!';
+                status.className = 'modal-status success';
+
+                // Close modal after short delay
+                setTimeout(async () => {
+                    const modal = document.getElementById('create-workspace-modal');
+                    if (modal) modal.classList.remove('active');
+
+                    // Reset form
+                    createWorkspaceForm.reset();
+                    status.textContent = '';
+
+                    // Open the new workspace in a tab
+                    await openWorkspaceTab(workspaceId);
+
+                    // Refresh sidebar workspaces list
+                    const workspacesList = document.getElementById('workspaces-list');
+                    if (workspacesList) {
+                        const existingItems = workspacesList.innerHTML;
+                        if (existingItems.includes('+ Add workspace') || existingItems.includes('No workspace')) {
+                            workspacesList.innerHTML = `<a href="#workspace" class="sidebar-submenu-item" data-workspace-id="${workspaceId}">${workspaceName}</a>`;
+                        } else {
+                            workspacesList.innerHTML += `<a href="#workspace" class="sidebar-submenu-item" data-workspace-id="${workspaceId}">${workspaceName}</a>`;
+                        }
+                    }
+                }, 1000);
+            } else {
+                status.textContent = '✗ ' + (data.detail || 'Failed to create workspace');
+                status.className = 'modal-status error';
+            }
+        } catch (err) {
+            status.textContent = '✗ Connection error';
+            status.className = 'modal-status error';
+        }
+
+        submitBtn.textContent = 'Create';
+        submitBtn.disabled = false;
+    });
+}
