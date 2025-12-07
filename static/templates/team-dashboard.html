@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ dashboard_name }} - Team Dashboard</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #141414;
+            --bg-tertiary: #1a1a1a;
+            --text-primary: #ffffff;
+            --text-secondary: #a1a1a1;
+            --text-muted: #6b6b6b;
+            --border-color: #2a2a2a;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --error: #f87171;
+            --success: #4ade80;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+        }
+
+        .login-card {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 40px 32px;
+            text-align: center;
+        }
+
+        .logo {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 24px;
+            background-color: var(--bg-tertiary);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo svg {
+            width: 32px;
+            height: 32px;
+            color: var(--accent);
+        }
+
+        .welcome-text {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .dashboard-name {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .team-name {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 16px;
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px 24px;
+            background-color: var(--accent);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background-color: var(--accent-hover);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin-top: 16px;
+            font-size: 13px;
+            min-height: 20px;
+        }
+
+        .status.error {
+            color: var(--error);
+        }
+
+        .status.success {
+            color: var(--success);
+        }
+
+        .help-text {
+            margin-top: 24px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .help-text a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .help-text a:hover {
+            text-decoration: underline;
+        }
+
+        /* Dashboard view (hidden initially) */
+        .dashboard-view {
+            display: none;
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .user-info {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .logout-btn {
+            padding: 8px 16px;
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .logout-btn:hover {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .metrics-form {
+            text-align: left;
+        }
+
+        .metric-input-group {
+            margin-bottom: 16px;
+        }
+
+        .metric-label {
+            display: block;
+            font-size: 14px;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            text-transform: capitalize;
+        }
+
+        .submit-status {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 13px;
+            display: none;
+        }
+
+        .submit-status.success {
+            background-color: rgba(74, 222, 128, 0.1);
+            border: 1px solid var(--success);
+            color: var(--success);
+            display: block;
+        }
+
+        .submit-status.error {
+            background-color: rgba(248, 113, 113, 0.1);
+            border: 1px solid var(--error);
+            color: var(--error);
+            display: block;
+        }
+
+        .period-info {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+            padding: 12px;
+            background-color: var(--bg-tertiary);
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Login View -->
+        <div class="login-card" id="login-view">
+            <div class="logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                    <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                    <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                    <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+                </svg>
+            </div>
+            <p class="welcome-text">Welcome to</p>
+            <h1 class="dashboard-name">{{ dashboard_name }}</h1>
+            <p class="team-name">{{ team_name }} Dashboard</p>
+
+            <form id="login-form">
+                <div class="form-group">
+                    <label class="form-label" for="email">Email</label>
+                    <input type="email" id="email" class="form-input" placeholder="you@example.com" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="passcode">Passcode</label>
+                    <input type="text" id="passcode" class="form-input" placeholder="Enter your passcode" required>
+                </div>
+                <button type="submit" class="btn" id="login-btn">Sign In</button>
+                <p class="status" id="login-status"></p>
+            </form>
+
+            <p class="help-text">
+                Don't have a passcode? Contact your team administrator.
+            </p>
+        </div>
+
+        <!-- Dashboard View (shown after login) -->
+        <div class="login-card dashboard-view" id="dashboard-view">
+            <div class="dashboard-header">
+                <div>
+                    <h2 class="dashboard-name" style="font-size: 18px; margin-bottom: 4px;">{{ dashboard_name }}</h2>
+                    <p class="user-info">Logged in as <span id="user-email"></span></p>
+                </div>
+                <button class="logout-btn" id="logout-btn">Logout</button>
+            </div>
+
+            <div class="period-info">
+                <strong>Reporting Period:</strong> {{ reporting_period | capitalize }}<br>
+                Submit your metrics for the current period.
+            </div>
+
+            <form class="metrics-form" id="metrics-form">
+                {% for metric in metrics %}
+                <div class="metric-input-group">
+                    <label class="metric-label" for="metric-{{ metric }}">{{ metric }}</label>
+                    <input type="number" id="metric-{{ metric }}" class="form-input" placeholder="Enter value" data-metric="{{ metric }}" required>
+                </div>
+                {% endfor %}
+                <button type="submit" class="btn" id="submit-btn">Submit Metrics</button>
+                <div class="submit-status" id="submit-status"></div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const dashboardId = '{{ dashboard_id }}';
+        let currentUser = null;
+
+        // Login form
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const passcode = document.getElementById('passcode').value;
+            const status = document.getElementById('login-status');
+            const btn = document.getElementById('login-btn');
+
+            btn.textContent = 'Signing in...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`/dashboards/login/check?dashboard_id=${dashboardId}&email=${encodeURIComponent(email)}&passcode=${encodeURIComponent(passcode)}`);
+                const data = await res.json();
+
+                if (res.ok && data.access_granted) {
+                    status.textContent = '✓ Access granted';
+                    status.className = 'status success';
+                    currentUser = { email, name: data.member_name };
+
+                    // Show dashboard view
+                    setTimeout(() => {
+                        document.getElementById('login-view').style.display = 'none';
+                        document.getElementById('dashboard-view').style.display = 'block';
+                        document.getElementById('user-email').textContent = email;
+                    }, 500);
+                } else {
+                    status.textContent = '✗ ' + (data.detail || 'Invalid email or passcode');
+                    status.className = 'status error';
+                }
+            } catch (err) {
+                status.textContent = '✗ Connection error';
+                status.className = 'status error';
+            }
+
+            btn.textContent = 'Sign In';
+            btn.disabled = false;
+        });
+
+        // Logout
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            currentUser = null;
+            document.getElementById('login-view').style.display = 'block';
+            document.getElementById('dashboard-view').style.display = 'none';
+            document.getElementById('login-form').reset();
+            document.getElementById('login-status').textContent = '';
+        });
+
+        // Submit metrics
+        document.getElementById('metrics-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const status = document.getElementById('submit-status');
+            const btn = document.getElementById('submit-btn');
+
+            // Gather metrics
+            const metrics = {};
+            document.querySelectorAll('[data-metric]').forEach(input => {
+                metrics[input.dataset.metric] = parseFloat(input.value) || 0;
+            });
+
+            btn.textContent = 'Submitting...';
+            btn.disabled = true;
+
+            try {
+                const res = await fetch(`/dashboards/${dashboardId}/submit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: currentUser.email,
+                        metrics: metrics
+                    })
+                });
+
+                const data = await res.json();
+
+                if (res.ok && data.success) {
+                    status.textContent = '✓ Metrics submitted successfully!';
+                    status.className = 'submit-status success';
+                } else {
+                    status.textContent = '✗ ' + (data.detail || 'Failed to submit');
+                    status.className = 'submit-status error';
+                }
+            } catch (err) {
+                status.textContent = '✗ Connection error';
+                status.className = 'submit-status error';
+            }
+
+            btn.textContent = 'Submit Metrics';
+            btn.disabled = false;
+
+            setTimeout(() => {
+                status.style.display = 'none';
+                status.className = 'submit-status';
+            }, 5000);
+        });
+    </script>
+</body>
+</html>

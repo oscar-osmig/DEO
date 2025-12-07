@@ -61,6 +61,42 @@ async def serve_login():
 async def serve_app(request: Request):
     return templates.TemplateResponse("app.html", {"request": request})
 
+from fastapi.responses import HTMLResponse
+
+@app.get("/team-dashboard/{dashboard_id}", response_class=HTMLResponse)
+async def team_dashboard_page(request: Request, dashboard_id: str):
+    """Serve the team dashboard login/metrics page."""
+    from database import get_collection
+    from bson import ObjectId
+
+    # Get dashboard info (public, no auth required)
+    dashboard_templates = get_collection("dashboard_templates")
+    dashboard_logins = get_collection("dashboard_logins")
+
+    try:
+        dashboard = await dashboard_templates.find_one({"_id": ObjectId(dashboard_id)})
+    except:
+        return templates.TemplateResponse("error.html", {
+            "request": request,
+            "error": "Invalid dashboard ID"
+        })
+
+    if not dashboard:
+        return templates.TemplateResponse("error.html", {
+            "request": request,
+            "error": "Dashboard not found"
+        })
+
+    login_doc = await dashboard_logins.find_one({"dashboard_id": dashboard_id})
+
+    return templates.TemplateResponse("team-dashboard.html", {
+        "request": request,
+        "dashboard_id": dashboard_id,
+        "dashboard_name": dashboard.get("dashboard_name", "Dashboard"),
+        "team_name": dashboard.get("team_name", "Team"),
+        "metrics": dashboard.get("metrics", []),
+        "reporting_period": dashboard.get("reporting_period", "weekly")
+    })
 
 app.include_router(account_router)
 app.include_router(workspace_router)

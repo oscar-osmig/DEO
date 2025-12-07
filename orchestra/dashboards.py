@@ -773,3 +773,132 @@ async def delete_dashboard(request: Request, dashboard_id: str):
         "dashboard_name": dashboard.get("dashboard_name"),
         "deleted_count": result.deleted_count
     }
+
+
+@router.post("/{dashboard_id}/sync-members")
+async def sync_dashboard_members(request: Request, dashboard_id: str):
+    """
+    Sync team members to dashboard - generates passcodes for new members.
+
+    Call this after adding members to a team to update dashboard access.
+    """
+    user_email = request.session.get('user_email')
+    if not user_email:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    dashboard_templates = get_collection("dashboard_templates")
+    dashboard_logins = get_collection("dashboard_logins")
+    teams_collection = get_collection("teams")
+
+    try:
+        dashboard = await dashboard_templates.find_one({"_id": ObjectId(dashboard_id)})
+    except:
+        raise HTTPException(status_code=400, detail="Invalid dashboard ID")
+
+    if not dashboard:
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+
+    if dashboard.get("owner_email") != user_email:
+        raise HTTPException(status_code=403, detail="You don't own this dashboard")
+
+    # Get team
+    team_id = dashboard.get("team_id")
+    try:
+        team = await teams_collection.find_one({"_id": ObjectId(team_id)})
+    except:
+        raise HTTPException(status_code=400, detail="Invalid team ID")
+
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    # Get current dashboard login doc
+    login_doc = await dashboard_logins.find_one({"dashboard_id": dashboard_id})
+
+    if not login_doc:
+        raise HTTPException(status_code=404, detail="Dashboard login config not found")
+
+    # Get existing members (by email)
+    existing_members = {m.get("email"): m for m in login_doc.get("members", [])}
+
+    # Get team members
+    team_members = team.get("members", [])
+
+    # Build updated members list
+    updated_members = []
+    new_count = 0
+
+    for member in team_members:
+        email = member.get("email")
+        if email in existing_members:
+            # Keep existing member with their passcode
+            updated_members.append(existing_members[email])
+        else:
+            # New member - generate passcode
+            passcode = secrets.token_urlsafe(8)
+            updated_members.append({
+                "email": email,
+                "name": member.get("name"),
+                "slack_user_id": member.get("slack_user_id"),
+                "passcode": passcode,
+                "can_access": True
+            })
+            new_count += 1
+
+    # Update dashboard logins
+    await dashboard_logins.update_one(
+        {"dashboard_id": dashboard_id},
+        {
+            "$set": {
+                "members": updated_members,
+                "updated_at": datetime.utcnow()
+            }
+        }
+    )
+
+    return {
+        "success": True,
+        "dashboard_id": dashboard_id,
+        "total_members": len(updated_members),
+        "new_members_added": new_count,
+        "member_passcodes": [
+            {
+                "name": m["name"],
+                "email": m["email"],
+                "passcode": m["passcode"]
+            }
+            for m in updated_members
+        ]
+    }
+
+
+@router.get("/{dashboard_id}/login-info")
+async def get_dashboard_login_info(request: Request, dashboard_id: str):
+    """Get dashboard login info including member passcodes (owner only)."""
+    user_email = request.session.get('user_email')
+    if not user_email:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    dashboard_templates = get_collection("dashboard_templates")
+    dashboard_logins = get_collection("dashboard_logins")
+
+    try:
+        dashboard = await dashboard_templates.find_one({"_id": ObjectId(dashboard_id)})
+    except:
+        raise HTTPException(status_code=400, detail="Invalid dashboard ID")
+
+    if not dashboard:
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+
+    if dashboard.get("owner_email") != user_email:
+        raise HTTPException(status_code=403, detail="You don't own this dashboard")
+
+    login_doc = await dashboard_logins.find_one({"dashboard_id": dashboard_id})
+
+    if not login_doc:
+        return {"success": True, "members": []}
+
+    return {
+        "success": True,
+        "dashboard_id": dashboard_id,
+        "members": login_doc.get("members", [])
+    }

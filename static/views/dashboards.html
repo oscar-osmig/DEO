@@ -79,7 +79,18 @@
                         <span class="detail-label">Public URL</span>
                         <span class="detail-value" id="dashboard-url">-</span>
                     </div>
-                    <button class="btn btn-small" id="copy-dashboard-url">Copy URL</button>
+                    <div class="btn-row">
+                        <button class="btn btn-small" id="copy-dashboard-url">Copy URL</button>
+                        <button class="btn btn-small btn-secondary" id="sync-members-btn">Sync Members</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Member Access</div>
+                    <p class="card-subtitle">Share these passcodes with team members so they can access the dashboard.</p>
+                    <div class="members-access-list" id="dashboard-members-access">
+                        <p class="text-muted">No members with access</p>
+                    </div>
                 </div>
 
                 <div class="template-actions">
@@ -111,7 +122,7 @@
                 <div class="form-group">
                     <div class="form-label-row">
                         <label class="form-label" for="new-dashboard-team">Team ID</label>
-                        <span class="info-icon" data-tooltip="Enter the MongoDB ObjectId of the team. You can find this in your team settings or database. Example: 507f1f77bcf86cd799439011">
+                        <span class="info-icon" data-tooltip="Enter the MongoDB ObjectId of the team. You can find this in your Teams section by clicking on a team. Example: 507f1f77bcf86cd799439011">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <line x1="12" y1="16" x2="12" y2="12"></line>

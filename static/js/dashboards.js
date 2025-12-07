@@ -152,10 +152,18 @@ async function loadDashboardDetails(dashboardId) {
             const viewBtn = document.getElementById('view-dashboard-btn');
             const deleteBtn = document.getElementById('delete-dashboard-btn');
             const copyBtn = document.getElementById('copy-dashboard-url');
-            if (viewBtn) viewBtn.dataset.dashboardId = db._id;
-            if (viewBtn) viewBtn.dataset.dashboardUrl = db.url;
+            const syncBtn = document.getElementById('sync-members-btn');
+
+            if (viewBtn) {
+                viewBtn.dataset.dashboardId = db._id;
+                viewBtn.dataset.dashboardUrl = db.url;
+            }
             if (deleteBtn) deleteBtn.dataset.dashboardId = db._id;
             if (copyBtn) copyBtn.dataset.dashboardUrl = db.url;
+            if (syncBtn) syncBtn.dataset.dashboardId = db._id;
+
+            // Load member access info
+            await loadDashboardMembersAccess(dashboardId);
 
         } else {
             const subtitle = document.getElementById('dashboard-subtitle');
@@ -164,6 +172,42 @@ async function loadDashboardDetails(dashboardId) {
     } catch (err) {
         const subtitle = document.getElementById('dashboard-subtitle');
         if (subtitle) subtitle.textContent = 'Error loading dashboard';
+    }
+}
+
+// Load member access info with passcodes
+async function loadDashboardMembersAccess(dashboardId) {
+    const membersAccessEl = document.getElementById('dashboard-members-access');
+    if (!membersAccessEl) return;
+
+    try {
+        const loginRes = await fetch(`/dashboards/${dashboardId}/login-info`);
+        const loginData = await loginRes.json();
+
+        if (loginRes.ok && loginData.members && loginData.members.length > 0) {
+            membersAccessEl.innerHTML = loginData.members.map(m => `
+                <div class="member-access-item">
+                    <div class="member-info">
+                        <span class="member-name">${m.name || 'Unknown'}</span>
+                        <span class="member-email">${m.email}</span>
+                    </div>
+                    <div class="member-passcode">
+                        <span class="passcode-label">Passcode:</span>
+                        <code class="passcode-value">${m.passcode}</code>
+                        <button class="copy-passcode-btn" data-passcode="${m.passcode}" title="Copy passcode">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            membersAccessEl.innerHTML = '<p class="text-muted">No members with access. Click "Sync Members" to add team members.</p>';
+        }
+    } catch (err) {
+        membersAccessEl.innerHTML = '<p class="text-muted">Could not load member access</p>';
     }
 }
 
@@ -325,37 +369,87 @@ document.addEventListener('submit', async (e) => {
 // Dashboard action buttons
 document.addEventListener('click', async (e) => {
     // View dashboard
-    if (e.target.id === 'view-dashboard-btn') {
-        const url = e.target.dataset.dashboardUrl;
+    if (e.target.id === 'view-dashboard-btn' || e.target.closest('#view-dashboard-btn')) {
+        const btn = e.target.id === 'view-dashboard-btn' ? e.target : e.target.closest('#view-dashboard-btn');
+        const url = btn.dataset.dashboardUrl;
         if (url) {
             window.open(url, '_blank');
         }
     }
 
     // Copy URL
-    if (e.target.id === 'copy-dashboard-url') {
-        const url = e.target.dataset.dashboardUrl;
+    if (e.target.id === 'copy-dashboard-url' || e.target.closest('#copy-dashboard-url')) {
+        const btn = e.target.id === 'copy-dashboard-url' ? e.target : e.target.closest('#copy-dashboard-url');
+        const url = btn.dataset.dashboardUrl;
         if (url) {
             navigator.clipboard.writeText(url).then(() => {
-                e.target.textContent = 'Copied!';
+                btn.textContent = 'Copied!';
                 setTimeout(() => {
-                    e.target.textContent = 'Copy URL';
+                    btn.textContent = 'Copy URL';
                 }, 2000);
             });
         }
     }
 
+    // Copy passcode
+    if (e.target.closest('.copy-passcode-btn')) {
+        const btn = e.target.closest('.copy-passcode-btn');
+        const passcode = btn.dataset.passcode;
+        if (passcode) {
+            navigator.clipboard.writeText(passcode).then(() => {
+                btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                setTimeout(() => {
+                    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+                }, 2000);
+            });
+        }
+    }
+
+    // Sync members
+    if (e.target.id === 'sync-members-btn' || e.target.closest('#sync-members-btn')) {
+        const btn = e.target.id === 'sync-members-btn' ? e.target : e.target.closest('#sync-members-btn');
+        const dashboardId = btn.dataset.dashboardId;
+        if (!dashboardId) return;
+
+        btn.textContent = 'Syncing...';
+        btn.disabled = true;
+
+        try {
+            const res = await fetch(`/dashboards/${dashboardId}/sync-members`, {
+                method: 'POST'
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                btn.textContent = '✓ Synced!';
+                // Reload dashboard details to show updated members
+                await loadDashboardDetails(dashboardId);
+            } else {
+                btn.textContent = '✗ Failed';
+            }
+        } catch (err) {
+            btn.textContent = '✗ Error';
+        }
+
+        setTimeout(() => {
+            btn.textContent = 'Sync Members';
+            btn.disabled = false;
+        }, 2000);
+    }
+
     // Delete dashboard
-    if (e.target.id === 'delete-dashboard-btn') {
-        const dashboardId = e.target.dataset.dashboardId;
+    if (e.target.id === 'delete-dashboard-btn' || e.target.closest('#delete-dashboard-btn')) {
+        const btn = e.target.id === 'delete-dashboard-btn' ? e.target : e.target.closest('#delete-dashboard-btn');
+        const dashboardId = btn.dataset.dashboardId;
         const status = document.getElementById('dashboard-action-status');
 
         if (!dashboardId) return;
 
         if (!confirm('Delete this dashboard? This action cannot be undone.')) return;
 
-        e.target.textContent = 'Deleting...';
-        e.target.disabled = true;
+        btn.textContent = 'Deleting...';
+        btn.disabled = true;
 
         try {
             const res = await fetch(`/dashboards/${encodeURIComponent(dashboardId)}`, {
@@ -379,7 +473,7 @@ document.addEventListener('click', async (e) => {
             status.style.color = '#f87171';
         }
 
-        e.target.textContent = 'Delete';
-        e.target.disabled = false;
+        btn.textContent = 'Delete';
+        btn.disabled = false;
     }
 });
