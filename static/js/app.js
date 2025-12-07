@@ -5,6 +5,7 @@ function initFromHash() {
         setHeaderSection('Settings');
     } else if (hash === '#new-deo') {
         setHeaderSection('New Deo');
+        initNewDeo();
     } else if (hash === '#workspace') {
         setHeaderSection('Workspaces');
     } else if (hash === '#template') {
@@ -13,6 +14,17 @@ function initFromHash() {
         setHeaderSection('');
     }
 }
+
+// Handle New Deo click to generate fresh template name
+document.addEventListener('click', (e) => {
+    const newDeoLink = e.target.closest('a[href="#new-deo"]');
+    if (newDeoLink) {
+        const templateNameInput = document.getElementById('template-name-input');
+        if (templateNameInput) {
+            templateNameInput.value = generateTemplateName();
+        }
+    }
+});
 
 // Run on page load
 window.addEventListener('DOMContentLoaded', () => {
@@ -26,6 +38,24 @@ window.addEventListener('hashchange', () => {
 
 // Store user data globally
 let currentUser = null;
+
+// Generate random template name
+function generateTemplateName() {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    let id = '';
+    for (let i = 0; i < 6; i++) {
+        id += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return `Template-${id}`;
+}
+
+// Initialize template name when navigating to new-deo
+function initNewDeo() {
+    const templateNameInput = document.getElementById('template-name-input');
+    if (templateNameInput && !templateNameInput.value) {
+        templateNameInput.value = generateTemplateName();
+    }
+}
 
 // Helper function to set header section
 function setHeaderSection(text) {

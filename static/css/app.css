@@ -686,8 +686,33 @@ body {
 
 .canvas-toolbar {
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
+    align-items: center;
     padding: 12px 24px;
+}
+
+.template-name-wrapper {
+    flex: 1;
+    max-width: 300px;
+}
+
+.template-name-input {
+    width: 100%;
+    padding: 8px 12px;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.template-name-input:focus {
+    outline: none;
+    border-color: var(--text-secondary);
+}
+
+.template-name-input::placeholder {
+    color: var(--text-muted);
 }
 
 .canvas-actions {
