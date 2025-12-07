@@ -208,71 +208,45 @@ async def create_dashboard(request: Request, data: CreateDashboardRequest):
 async def check_dashboard_access(dashboard_id: str, email: str, passcode: str):
     """
     Check if a user can access a dashboard with email and passcode.
-
-    Used by frontend when team member visits dashboard URL.
-
-    Args:
-        dashboard_id (str): Dashboard ID from URL
-        email (str): User's email
-        passcode (str): User's unique passcode
-
-    Returns:
-        dict: Access status and dashboard info if authorized
-
-    Raises:
-        HTTPException: 404 if dashboard not found
     """
     dashboard_logins = get_collection("dashboard_logins")
 
     login_doc = await dashboard_logins.find_one({"dashboard_id": dashboard_id})
 
     if not login_doc:
-        raise HTTPException(status_code=404, detail="Dashboard not found")
+        return {
+            "access_granted": False,
+            "detail": "Dashboard not found"
+        }
 
-    # Check if email and passcode match
+    # Check if email and passcode match (case-insensitive email, strip whitespace)
     members = login_doc.get("members", [])
     user_member = None
 
+    email_clean = email.lower().strip()
+    passcode_clean = passcode.strip()
+
     for member in members:
-        if (member.get("email") == email and
-            member.get("passcode") == passcode and
+        member_email = (member.get("email") or "").lower().strip()
+        member_passcode = (member.get("passcode") or "").strip()
+
+        if (member_email == email_clean and
+            member_passcode == passcode_clean and
             member.get("can_access")):
             user_member = member
             break
 
     if not user_member:
         return {
-            "success": False,
-            "can_access": False,
-            "error": "Invalid email or passcode"
+            "access_granted": False,
+            "detail": "Invalid email or passcode"
         }
-
-    # Get dashboard template details
-    dashboard_templates = get_collection("dashboard_templates")
-
-    try:
-        template = await dashboard_templates.find_one({"_id": ObjectId(dashboard_id)})
-    except:
-        raise HTTPException(status_code=400, detail="Invalid dashboard ID")
-
-    if not template:
-        raise HTTPException(status_code=404, detail="Dashboard template not found")
 
     return {
-        "success": True,
-        "can_access": True,
-        "dashboard": {
-            "dashboard_id": dashboard_id,
-            "dashboard_name": template.get("dashboard_name"),
-            "team_name": template.get("team_name"),
-            "metrics": template.get("metrics"),
-            "reporting_period": template.get("reporting_period")
-        },
-        "user": {
-            "email": user_member.get("email"),
-            "name": user_member.get("name"),
-            "slack_user_id": user_member.get("slack_user_id")
-        }
+        "access_granted": True,
+        "member_name": user_member.get("name"),
+        "member_email": user_member.get("email"),
+        "dashboard_name": login_doc.get("dashboard_name")
     }
 
 
