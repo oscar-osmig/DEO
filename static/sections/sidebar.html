@@ -3,6 +3,7 @@
     <input type="checkbox" id="sidebar-toggle" class="sidebar-checkbox">
     <input type="checkbox" id="workspaces-toggle" class="submenu-checkbox">
     <input type="checkbox" id="templates-toggle" class="submenu-checkbox">
+    <input type="checkbox" id="dashboards-toggle" class="submenu-checkbox">
 
     <nav class="sidebar">
         <div class="sidebar-top">
@@ -20,15 +21,25 @@
                 </svg>
                 <span class="sidebar-label">New Deo</span>
             </a>
-            <a href="#dashboards" class="sidebar-btn" title="Dashboards">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="3" width="7" height="7" rx="1"></rect>
-                    <rect x="14" y="3" width="7" height="7" rx="1"></rect>
-                    <rect x="3" y="14" width="7" height="7" rx="1"></rect>
-                    <rect x="14" y="14" width="7" height="7" rx="1"></rect>
-                </svg>
-                <span class="sidebar-label">Dashboards</span>
-            </a>
+
+            <!-- Dashboards with submenu -->
+            <div class="sidebar-group" id="dashboards-group">
+                <label for="dashboards-toggle" class="sidebar-btn" title="Dashboards">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                        <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                        <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                        <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+                    </svg>
+                    <span class="sidebar-label">Dashboards</span>
+                    <svg class="sidebar-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </label>
+                <div class="sidebar-submenu" id="dashboards-list">
+                    <a href="#" class="sidebar-submenu-item">Loading...</a>
+                </div>
+            </div>
 
             <!-- Workspaces with submenu -->
             <div class="sidebar-group" id="workspaces-group">

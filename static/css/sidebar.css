@@ -99,6 +99,14 @@
     color: var(--text-primary);
 }
 
+#dashboards-toggle:checked ~ .sidebar #dashboards-group .sidebar-submenu {
+    max-height: 200px;
+}
+
+#dashboards-toggle:checked ~ .sidebar #dashboards-group .sidebar-chevron {
+    transform: rotate(180deg);
+}
+
 /* === EXPANDED STATE === */
 .sidebar-checkbox:checked ~ .sidebar {
     width: var(--sidebar-width-expanded);

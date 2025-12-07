@@ -47,6 +47,7 @@ fetch('/auth/me').then(r => {
     // Load sidebar data
     loadWorkspacesSidebar(u.email);
     loadTemplatesSidebar(u.workspace_id);
+    loadDashboardsSidebar();
 
 }).catch(() => {
     window.location.href = '/login';

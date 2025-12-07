@@ -1,14 +1,137 @@
 <!-- VIEW: DASHBOARDS -->
 <section class="view" id="dashboards">
-    <div class="dashboards-empty">
-        <div class="empty-state">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="empty-icon">
-                <rect x="3" y="3" width="7" height="7" rx="1"></rect>
-                <rect x="14" y="3" width="7" height="7" rx="1"></rect>
-                <rect x="3" y="14" width="7" height="7" rx="1"></rect>
-                <rect x="14" y="14" width="7" height="7" rx="1"></rect>
-            </svg>
-            <p class="empty-text">No dashboards created yet, make one!</p>
+    <div class="tabs-container">
+        <div class="tabs-bar-wrapper">
+            <div class="tabs-bar" id="dashboard-tabs">
+                <!-- Tabs will be added dynamically -->
+            </div>
+            <button class="btn-create" id="create-dashboard-btn">+ Create</button>
+        </div>
+        <div class="tabs-content" id="dashboard-content">
+            <!-- Empty state - shown when no tabs open -->
+            <div class="empty-state-container" id="dashboard-empty-state">
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" class="empty-icon" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                        <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                        <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                        <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+                    </svg>
+                    <p class="empty-text">No dashboard selected</p>
+                    <p class="empty-subtext">Select a dashboard from the sidebar or create a new one</p>
+                </div>
+            </div>
+
+            <!-- Dashboard details - shown when a tab is active -->
+            <div class="dashboard-details" id="dashboard-details" style="display: none;">
+                <h2 class="template-title" id="dashboard-title">Dashboard</h2>
+                <p class="template-subtitle" id="dashboard-subtitle">Loading...</p>
+
+                <div class="card">
+                    <div class="card-title">Dashboard Details</div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">Dashboard ID</span>
+                        <span class="detail-value" id="dashboard-id">-</span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">Team</span>
+                        <span class="detail-value" id="dashboard-team">-</span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">Owner</span>
+                        <span class="detail-value" id="dashboard-owner">-</span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">Reporting Period</span>
+                        <span class="detail-value" id="dashboard-period">-</span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">Members</span>
+                        <span class="detail-value" id="dashboard-members">-</span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">Status</span>
+                        <span class="detail-value" id="dashboard-status">-</span>
+                    </div>
+
+                    <div class="detail-row">
+                        <span class="detail-label">Created</span>
+                        <span class="detail-value" id="dashboard-created">-</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Metrics</div>
+                    <div class="metrics-list" id="dashboard-metrics">
+                        <p class="text-muted">No metrics configured</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Dashboard URL</div>
+                    <div class="detail-row">
+                        <span class="detail-label">Public URL</span>
+                        <span class="detail-value" id="dashboard-url">-</span>
+                    </div>
+                    <button class="btn btn-small" id="copy-dashboard-url">Copy URL</button>
+                </div>
+
+                <div class="template-actions">
+                    <button class="btn" id="view-dashboard-btn">View Dashboard</button>
+                    <button class="btn btn-secondary" id="delete-dashboard-btn">Delete</button>
+                    <span id="dashboard-action-status"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Dashboard Modal -->
+    <div class="modal-overlay" id="create-dashboard-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Create Dashboard</h3>
+                <button class="modal-close" id="close-dashboard-modal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <form id="create-dashboard-form">
+                <div class="form-group">
+                    <label class="form-label" for="new-dashboard-name">Dashboard Name</label>
+                    <input type="text" id="new-dashboard-name" class="form-input" placeholder="Weekly Team Metrics" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="new-dashboard-team">Team ID</label>
+                    <input type="text" id="new-dashboard-team" class="form-input" placeholder="Enter team ID" required>
+                    <p class="form-hint">The team this dashboard is for</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="new-dashboard-metrics">Metrics (comma separated)</label>
+                    <input type="text" id="new-dashboard-metrics" class="form-input" placeholder="sales, calls, meetings" required>
+                    <p class="form-hint">Enter metric names separated by commas</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="new-dashboard-period">Reporting Period</label>
+                    <select id="new-dashboard-period" class="form-input">
+                        <option value="daily">Daily</option>
+                        <option value="weekly" selected>Weekly</option>
+                        <option value="monthly">Monthly</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-dashboard-btn">Cancel</button>
+                    <button type="submit" class="btn" id="submit-dashboard-btn">Create</button>
+                </div>
+                <p class="modal-status" id="create-dashboard-status"></p>
+            </form>
         </div>
     </div>
 </section>
