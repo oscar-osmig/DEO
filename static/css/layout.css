@@ -1,0 +1,68 @@
+/* === LAYOUT GRID === */
+.app-layout {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: var(--header-height) 1fr;
+    grid-template-areas:
+        "sidebar header"
+        "sidebar content";
+    min-height: 100vh;
+}
+
+/* === SECTION: SIDEBAR === */
+.section-sidebar {
+    grid-area: sidebar;
+    background-color: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    width: var(--sidebar-width);
+    transition: width 0.2s ease;
+    overflow: hidden;
+}
+
+/* === SECTION: HEADER === */
+.section-header {
+    grid-area: header;
+    background-color: var(--bg-primary);
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+/* === SECTION: CONTENT === */
+.section-content {
+    grid-area: content;
+    background-color: var(--bg-primary);
+    overflow-y: auto;
+}
+
+/* === CONTENT STYLES === */
+.content {
+    padding: 48px;
+    position: relative;
+    min-height: calc(100vh - var(--header-height));
+}
+
+/* === VIEW SYSTEM === */
+.view {
+    display: none;
+    max-width: 600px;
+}
+
+.view-home {
+    display: block;
+    max-width: none;
+    position: relative;
+    height: calc(100vh - var(--header-height) - 96px);
+}
+
+.view:target {
+    display: block;
+}
+
+.view:target ~ .view-home {
+    display: none;
+}

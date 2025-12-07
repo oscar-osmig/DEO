@@ -1,0 +1,148 @@
+/* === DEO BUILDER === */
+#new-deo {
+    max-width: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 0;
+}
+
+#new-deo .deo-builder {
+    height: 100%;
+}
+
+.deo-builder {
+    display: flex;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    margin: 0;
+}
+
+.blocks-sidebar {
+    width: 200px;
+    background-color: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    padding: 16px 0;
+    flex-shrink: 0;
+    height: 100%;
+}
+
+.blocks-header {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    padding: 8px 16px 16px;
+}
+
+.blocks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0 8px;
+}
+
+.block-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: grab;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+}
+
+.block-item:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.block-item:active {
+    cursor: grabbing;
+}
+
+.block-item svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.block-item span {
+    font-size: 14px;
+}
+
+.deo-canvas-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.canvas-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 24px;
+}
+
+.template-name-wrapper {
+    flex: 1;
+    max-width: 300px;
+}
+
+.template-name-input {
+    width: 100%;
+    padding: 8px 12px;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.template-name-input:focus {
+    outline: none;
+    border-color: var(--text-secondary);
+}
+
+.template-name-input::placeholder {
+    color: var(--text-muted);
+}
+
+.canvas-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.canvas-actions .btn {
+    padding: 8px 16px;
+    font-size: 13px;
+}
+
+.deo-canvas {
+    flex: 1;
+    padding: 12px 24px 24px 24px;
+    overflow-y: auto;
+    display: flex;
+}
+
+.canvas-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    border: 2px dashed var(--border-color);
+    border-radius: 12px;
+}
+
+.canvas-placeholder p {
+    color: var(--text-muted);
+    font-size: 14px;
+}
