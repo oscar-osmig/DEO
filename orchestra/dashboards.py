@@ -456,7 +456,6 @@ async def submit_metrics(dashboard_id: str, data: SubmitMetricsRequest):
         "metrics_submitted": list(data.metrics.keys())
     }
 
-
 @router.get("/{dashboard_id}/data")
 async def get_dashboard_data(dashboard_id: str, period: Optional[str] = None):
     """
@@ -537,7 +536,6 @@ async def get_dashboard_data(dashboard_id: str, period: Optional[str] = None):
         "data": metrics_data
     }
 
-
 @router.get("/list")
 async def list_dashboards(request: Request):
     """
@@ -577,7 +575,6 @@ async def list_dashboards(request: Request):
         "dashboards": dashboards,
         "count": len(dashboards)
     }
-
 
 @router.get("/{dashboard_id}")
 async def get_dashboard(request: Request, dashboard_id: str):
@@ -627,7 +624,6 @@ async def get_dashboard(request: Request, dashboard_id: str):
         "success": True,
         "dashboard": dashboard
     }
-
 
 @router.put("/{dashboard_id}")
 async def update_dashboard(request: Request, dashboard_id: str, data: UpdateDashboardRequest):
@@ -695,7 +691,6 @@ async def update_dashboard(request: Request, dashboard_id: str, data: UpdateDash
         "modified_count": result.modified_count
     }
 
-
 @router.delete("/{dashboard_id}")
 async def delete_dashboard(request: Request, dashboard_id: str):
     """
@@ -747,7 +742,6 @@ async def delete_dashboard(request: Request, dashboard_id: str):
         "dashboard_name": dashboard.get("dashboard_name"),
         "deleted_count": result.deleted_count
     }
-
 
 @router.post("/{dashboard_id}/sync-members")
 async def sync_dashboard_members(request: Request, dashboard_id: str):
@@ -844,7 +838,6 @@ async def sync_dashboard_members(request: Request, dashboard_id: str):
         ]
     }
 
-
 @router.get("/{dashboard_id}/login-info")
 async def get_dashboard_login_info(request: Request, dashboard_id: str):
     """Get dashboard login info including member passcodes (owner only)."""
@@ -875,4 +868,66 @@ async def get_dashboard_login_info(request: Request, dashboard_id: str):
         "success": True,
         "dashboard_id": dashboard_id,
         "members": login_doc.get("members", [])
+    }
+
+@router.get("/{dashboard_id}/leaderboard")
+async def get_dashboard_leaderboard(dashboard_id: str):
+    """Get leaderboard data for the current period."""
+    dashboard_templates = get_collection("dashboard_templates")
+    dashboard_data = get_collection("dashboard_data")
+    dashboard_logins = get_collection("dashboard_logins")
+
+    try:
+        dashboard = await dashboard_templates.find_one({"_id": ObjectId(dashboard_id)})
+    except:
+        raise HTTPException(status_code=400, detail="Invalid dashboard ID")
+
+    if not dashboard:
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+
+    # Get current period
+    period = get_current_week()
+
+    # Get dashboard data for current period
+    data_doc = await dashboard_data.find_one({
+        "dashboard_id": dashboard_id,
+        "reporting_period": period
+    })
+
+    if not data_doc:
+        return {"success": True, "leaderboard": []}
+
+    # Get login doc for member names
+    login_doc = await dashboard_logins.find_one({"dashboard_id": dashboard_id})
+    members_map = {}
+    if login_doc:
+        for m in login_doc.get("members", []):
+            members_map[m.get("email")] = m.get("name", "Unknown")
+
+    # Calculate totals per member
+    metrics_data = data_doc.get("metrics_data", {})
+    member_totals = {}
+
+    for metric_name, metric_values in metrics_data.items():
+        for email, value_data in metric_values.items():
+            if email not in member_totals:
+                member_totals[email] = 0
+            member_totals[email] += value_data.get("value", 0)
+
+    # Build leaderboard
+    leaderboard = []
+    for email, total in member_totals.items():
+        leaderboard.append({
+            "email": email,
+            "name": members_map.get(email, "Unknown"),
+            "total": total
+        })
+
+    # Sort by total descending
+    leaderboard.sort(key=lambda x: x["total"], reverse=True)
+
+    return {
+        "success": True,
+        "leaderboard": leaderboard,
+        "period": period
     }
