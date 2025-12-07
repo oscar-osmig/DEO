@@ -70,26 +70,26 @@ async def team_dashboard_page(request: Request, dashboard_id: str):
     from bson import ObjectId
 
     # Get dashboard info (public, no auth required)
-    dashboard_templates = get_collection("dashboard_templates")
+    dashboard_templates_collection = get_collection("dashboard_templates")
     dashboard_logins = get_collection("dashboard_logins")
 
     try:
-        dashboard = await dashboard_templates.find_one({"_id": ObjectId(dashboard_id)})
+        dashboard = await dashboard_templates_collection.find_one({"_id": ObjectId(dashboard_id)})
     except:
-        return templates.TemplateResponse("error.html", {
+        return templates.TemplateResponse("templates/error.html", {
             "request": request,
             "error": "Invalid dashboard ID"
         })
 
     if not dashboard:
-        return templates.TemplateResponse("error.html", {
+        return templates.TemplateResponse("templates/error.html", {
             "request": request,
             "error": "Dashboard not found"
         })
 
     login_doc = await dashboard_logins.find_one({"dashboard_id": dashboard_id})
 
-    return templates.TemplateResponse("team-dashboard.html", {
+    return templates.TemplateResponse("templates/team-dashboard.html", {
         "request": request,
         "dashboard_id": dashboard_id,
         "dashboard_name": dashboard.get("dashboard_name", "Dashboard"),
