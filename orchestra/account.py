@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from database import get_collection
 from datetime import datetime
 from bson import ObjectId
+from datetime import datetime
 
 router = APIRouter(prefix="/workspace", tags=["workspace"])
 
@@ -318,3 +319,82 @@ async def get_members(workspace_id: str, request: Request):
 async def get_authenticated_user_id(request: Request):
     from orchestra.permissions import get_authenticated_account_id
     return await get_authenticated_account_id(request)
+
+@router.get("/tokens")
+async def get_saved_tokens(request: Request):
+    """Get user's saved Slack tokens."""
+    user_email = request.session.get('user_email')
+    if not user_email:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    accounts_collection = get_collection("accounts")
+    account = await accounts_collection.find_one({"gmail": user_email})
+
+    if not account:
+        raise HTTPException(status_code=404, detail="Account not found")
+
+    tokens = account.get("slack_tokens", [])
+
+    return {
+        "success": True,
+        "tokens": tokens
+    }
+
+
+@router.post("/tokens")
+async def save_token(request: Request):
+    """Save a new Slack token."""
+    user_email = request.session.get('user_email')
+    if not user_email:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    data = await request.json()
+    token = data.get("token")
+    name = data.get("name", "Unnamed Token")
+
+    if not token:
+        raise HTTPException(status_code=400, detail="Token is required")
+
+    accounts_collection = get_collection("accounts")
+
+    await accounts_collection.update_one(
+        {"gmail": user_email},
+        {
+            "$push": {
+                "slack_tokens": {
+                    "token": token,
+                    "name": name,
+                    "created_at": datetime.utcnow()
+                }
+            }
+        }
+    )
+
+    return {"success": True}
+
+
+@router.delete("/tokens")
+async def delete_token(request: Request):
+    """Delete a saved Slack token."""
+    user_email = request.session.get('user_email')
+    if not user_email:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    data = await request.json()
+    token = data.get("token")
+
+    if not token:
+        raise HTTPException(status_code=400, detail="Token is required")
+
+    accounts_collection = get_collection("accounts")
+
+    await accounts_collection.update_one(
+        {"gmail": user_email},
+        {
+            "$pull": {
+                "slack_tokens": {"token": token}
+            }
+        }
+    )
+
+    return {"success": True}
