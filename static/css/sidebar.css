@@ -99,12 +99,13 @@
     color: var(--text-primary);
 }
 
-#dashboards-toggle:checked ~ .sidebar #dashboards-group .sidebar-submenu {
-    max-height: 200px;
+.sidebar-submenu-item.add-new {
+    color: var(--text-muted);
+    font-style: italic;
 }
 
-#dashboards-toggle:checked ~ .sidebar #dashboards-group .sidebar-chevron {
-    transform: rotate(180deg);
+.sidebar-submenu-item.add-new:hover {
+    color: var(--text-primary);
 }
 
 /* === EXPANDED STATE === */
@@ -150,6 +151,15 @@
 
 .sidebar-checkbox:checked ~ .sidebar .sidebar-chevron {
     display: block;
+}
+
+/* === DASHBOARDS SUBMENU === */
+.sidebar-checkbox:checked ~ #dashboards-toggle:checked ~ .sidebar #dashboards-group .sidebar-submenu {
+    display: flex;
+}
+
+.sidebar-checkbox:checked ~ #dashboards-toggle:checked ~ .sidebar #dashboards-group .sidebar-chevron {
+    transform: rotate(180deg);
 }
 
 /* === WORKSPACES SUBMENU === */
