@@ -550,13 +550,9 @@ body {
     align-items: center;
     justify-content: center;
     text-align: center;
-    min-height: 60vh;
+    height: calc(100vh - var(--header-height) - 96px);
 }
 
 .home-content .template-title {
-    margin-top: 24px;
-}
-
-.home-content .template-subtitle {
-    margin-top: 8px;
+    margin-bottom: 32px;
 }
