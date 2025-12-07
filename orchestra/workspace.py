@@ -89,3 +89,19 @@ async def get_workspace_by_name(workspace_name: str):
         "success": True,
         "workspace": workspace
     }
+
+@router.get("/by-account/{account_id}")
+async def get_workspaces_by_account(account_id: str):
+    """Get all workspaces for an account."""
+    workspaces_collection = get_collection("workspaces")
+
+    cursor = workspaces_collection.find({"account_id": account_id})
+    workspaces = await cursor.to_list(length=100)
+
+    for ws in workspaces:
+        ws['_id'] = str(ws['_id'])
+
+    return {
+        "success": True,
+        "workspaces": workspaces
+    }

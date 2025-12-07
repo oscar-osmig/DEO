@@ -70,6 +70,34 @@ window.addEventListener('hashchange', () => {
     initFromHash();
 });
 
+// Show/hide workspace empty state
+function updateWorkspaceView() {
+    const emptyState = document.getElementById('workspace-empty-state');
+    const details = document.getElementById('workspace-details');
+
+    if (openWorkspaceTabs.length === 0) {
+        if (emptyState) emptyState.style.display = 'flex';
+        if (details) details.style.display = 'none';
+    } else {
+        if (emptyState) emptyState.style.display = 'none';
+        if (details) details.style.display = 'block';
+    }
+}
+
+// Show/hide template empty state
+function updateTemplateView() {
+    const emptyState = document.getElementById('template-empty-state');
+    const details = document.getElementById('template-details');
+
+    if (openTemplateTabs.length === 0) {
+        if (emptyState) emptyState.style.display = 'flex';
+        if (details) details.style.display = 'none';
+    } else {
+        if (emptyState) emptyState.style.display = 'none';
+        if (details) details.style.display = 'block';
+    }
+}
+
 // Render workspace tabs
 function renderWorkspaceTabs() {
     const tabsBar = document.getElementById('workspace-tabs');
@@ -89,6 +117,8 @@ function renderWorkspaceTabs() {
             </div>
         `;
     }).join('');
+
+    updateWorkspaceView();
 }
 
 // Render template tabs
@@ -110,6 +140,8 @@ function renderTemplateTabs() {
             </div>
         `;
     }).join('');
+
+    updateTemplateView();
 }
 
 // Open workspace in tab
@@ -199,10 +231,8 @@ function closeWorkspaceTab(workspaceId) {
             activeWorkspaceTab = openWorkspaceTabs[newIndex].id;
             loadWorkspaceDetails(activeWorkspaceTab);
         } else {
-            // No tabs left, go to home
+            // No tabs left, show empty state
             activeWorkspaceTab = null;
-            window.location.hash = '#home';
-            setHeaderSection('');
         }
     }
 
@@ -224,10 +254,8 @@ function closeTemplateTab(templateId) {
             activeTemplateTab = openTemplateTabs[newIndex].id;
             loadTemplateDetails(activeTemplateTab);
         } else {
-            // No tabs left, go to home
+            // No tabs left, show empty state
             activeTemplateTab = null;
-            window.location.hash = '#home';
-            setHeaderSection('');
         }
     }
 
@@ -263,14 +291,22 @@ fetch('/auth/me').then(r => {
         slackToken.value = u.bot_token;
     }
 
-    // Load workspaces
+    // Load ALL workspaces for this user
     const workspacesList = document.getElementById('workspaces-list');
-    if (workspacesList) {
-        if (u.has_workspace && u.workspace_name) {
-            workspacesList.innerHTML = `<a href="#workspace" class="sidebar-submenu-item" data-workspace-id="${u.workspace_id}">${u.workspace_name}</a>`;
-        } else {
-            workspacesList.innerHTML = '<a href="#settings" class="sidebar-submenu-item">+ Add workspace</a>';
-        }
+    if (workspacesList && u.email) {
+        fetch(`/workspace/by-account/${encodeURIComponent(u.email)}`).then(r => r.json()).then(data => {
+            if (data.workspaces && data.workspaces.length > 0) {
+                workspacesList.innerHTML = data.workspaces.map(ws =>
+                    `<a href="#workspace" class="sidebar-submenu-item" data-workspace-id="${ws.workspace_id}">${ws.workspace_name}</a>`
+                ).join('');
+            } else {
+                workspacesList.innerHTML = '<a href="#workspace" class="sidebar-submenu-item">+ Add workspace</a>';
+            }
+        }).catch(() => {
+            workspacesList.innerHTML = '<a href="#workspace" class="sidebar-submenu-item">+ Add workspace</a>';
+        });
+    } else if (workspacesList) {
+        workspacesList.innerHTML = '<a href="#workspace" class="sidebar-submenu-item">+ Add workspace</a>';
     }
 
     // Load templates by workspace_id
@@ -282,13 +318,13 @@ fetch('/auth/me').then(r => {
                     `<a href="#template" class="sidebar-submenu-item" data-template-id="${t.template_id}">${t.template_id}</a>`
                 ).join('');
             } else {
-                templatesList.innerHTML = '<a href="#" class="sidebar-submenu-item">No templates yet</a>';
+                templatesList.innerHTML = '<a href="#template" class="sidebar-submenu-item">No templates yet</a>';
             }
         }).catch(() => {
-            templatesList.innerHTML = '<a href="#" class="sidebar-submenu-item">No templates yet</a>';
+            templatesList.innerHTML = '<a href="#template" class="sidebar-submenu-item">No templates yet</a>';
         });
     } else if (templatesList) {
-        templatesList.innerHTML = '<a href="#" class="sidebar-submenu-item">No workspace</a>';
+        templatesList.innerHTML = '<a href="#template" class="sidebar-submenu-item">No workspace</a>';
     }
 }).catch(() => {
     // Redirect to login if not authenticated

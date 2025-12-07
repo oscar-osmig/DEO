@@ -8,7 +8,20 @@
             <button class="btn-create" id="create-template-btn">+ Create</button>
         </div>
         <div class="tabs-content" id="template-content">
-            <div class="template-details">
+            <!-- Empty state - shown when no tabs open -->
+            <div class="empty-state-container" id="template-empty-state">
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" class="empty-icon" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                        <path d="M7 7h10M7 12h10M7 17h6"></path>
+                    </svg>
+                    <p class="empty-text">No template selected</p>
+                    <p class="empty-subtext">Select a template from the sidebar or create a new one</p>
+                </div>
+            </div>
+
+            <!-- Template details - shown when a tab is active -->
+            <div class="template-details" id="template-details" style="display: none;">
                 <h2 class="template-title" id="template-title">Template</h2>
                 <p class="template-subtitle" id="template-subtitle">Loading...</p>
 
