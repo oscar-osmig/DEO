@@ -112,7 +112,7 @@ async function loadWorkspaceDetails(workspaceId) {
             if (wsId) wsId.textContent = ws._id || '-';
 
             const owner = document.getElementById('workspace-owner');
-            if (owner) owner.textContent = ws.owner_name || ws.owner_email || '-';
+            if (owner) owner.textContent = ws.owner_name || ws.owner_email || ws.username || '-';
 
             const created = document.getElementById('workspace-created');
             if (created) created.textContent = ws.created_at ? new Date(ws.created_at).toLocaleDateString() : '-';
@@ -333,19 +333,35 @@ document.addEventListener('click', async (e) => {
     // Open token dropdown
     if (e.target.id === 'select-existing-token') {
         e.preventDefault();
+        e.stopPropagation();
+
         const dropdown = document.getElementById('token-dropdown');
         const list = document.getElementById('saved-tokens-list');
 
-        if (dropdown.style.display === 'none') {
-            dropdown.style.display = 'block';
-            list.innerHTML = '<p class="text-muted" style="padding: 16px; text-align: center;">Loading...</p>';
+        if (!dropdown || !list) return;
 
-            // Fetch saved tokens
+        if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+            dropdown.style.display = 'block';
+            list.innerHTML = '<p style="padding: 16px; text-align: center; color: #6b6b6b;">Loading...</p>';
+
+            // Fetch saved tokens - NOTE: endpoint is at /workspace/tokens
             try {
-                const res = await fetch('/account/tokens');
+                const res = await fetch('/workspace/tokens');
+
+                // Handle non-OK responses gracefully
+                if (!res.ok) {
+                    list.innerHTML = `
+                        <div class="token-dropdown-empty">
+                            <p>No saved tokens</p>
+                            <p style="margin-top: 8px; font-size: 12px;">Add tokens in Settings → Slack Tokens</p>
+                        </div>
+                    `;
+                    return;
+                }
+
                 const data = await res.json();
 
-                if (res.ok && data.tokens && data.tokens.length > 0) {
+                if (data.tokens && data.tokens.length > 0) {
                     list.innerHTML = data.tokens.map(token => `
                         <div class="token-item" data-token="${token.token}">
                             <span class="token-item-name">${token.name || 'Unnamed Token'}</span>
@@ -361,24 +377,40 @@ document.addEventListener('click', async (e) => {
                     `;
                 }
             } catch (err) {
-                list.innerHTML = '<p class="text-muted" style="padding: 16px; text-align: center;">Failed to load tokens</p>';
+                console.error('Error fetching tokens:', err);
+                list.innerHTML = `
+                    <div class="token-dropdown-empty">
+                        <p>No saved tokens</p>
+                        <p style="margin-top: 8px; font-size: 12px;">Add tokens in Settings → Slack Tokens</p>
+                    </div>
+                `;
             }
         } else {
             dropdown.style.display = 'none';
         }
+        return;
     }
 
     // Close token dropdown
     if (e.target.id === 'close-token-dropdown') {
-        document.getElementById('token-dropdown').style.display = 'none';
+        e.preventDefault();
+        e.stopPropagation();
+        const dropdown = document.getElementById('token-dropdown');
+        if (dropdown) dropdown.style.display = 'none';
+        return;
     }
 
     // Select token from dropdown
     const tokenItem = e.target.closest('.token-item');
     if (tokenItem && e.target.closest('#token-dropdown')) {
+        e.preventDefault();
+        e.stopPropagation();
         const token = tokenItem.dataset.token;
-        document.getElementById('new-workspace-token').value = token;
-        document.getElementById('token-dropdown').style.display = 'none';
+        const input = document.getElementById('new-workspace-token');
+        const dropdown = document.getElementById('token-dropdown');
+        if (input) input.value = token;
+        if (dropdown) dropdown.style.display = 'none';
+        return;
     }
 });
 
@@ -387,7 +419,7 @@ document.addEventListener('mousedown', (e) => {
     const dropdown = document.getElementById('token-dropdown');
     const selectBtn = document.getElementById('select-existing-token');
 
-    if (dropdown && dropdown.style.display !== 'none') {
+    if (dropdown && dropdown.style.display !== 'none' && dropdown.style.display !== '') {
         if (!dropdown.contains(e.target) && e.target !== selectBtn) {
             dropdown.style.display = 'none';
         }
