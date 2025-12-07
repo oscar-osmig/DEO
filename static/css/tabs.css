@@ -3,15 +3,21 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
 }
 
 .tabs-bar {
     display: flex;
     gap: 4px;
-    padding: 0 0 0 0;
+    padding: 0;
     border-bottom: 1px solid var(--border-color);
     overflow-x: auto;
     min-height: 40px;
+    flex-shrink: 0;
 }
 
 .tabs-bar:empty {
@@ -67,9 +73,20 @@
 .tabs-content {
     flex: 1;
     overflow-y: auto;
-    padding-top: 24px;
+    padding: 24px;
+    background-color: var(--bg-primary);
 }
 
 .workspace-details {
     max-width: 600px;
+}
+
+#workspace {
+    max-width: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 0;
 }
