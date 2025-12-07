@@ -147,6 +147,8 @@ document.addEventListener('click', (e) => {
             setHeaderSection('');
         } else if (href === '#settings') {
             setHeaderSection('Settings');
+        } else if (href === '#new-deo') {
+            setHeaderSection('New Deo');
         }
     }
 
