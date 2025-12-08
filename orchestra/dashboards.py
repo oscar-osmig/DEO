@@ -872,7 +872,7 @@ async def get_dashboard_login_info(request: Request, dashboard_id: str):
 
 @router.get("/{dashboard_id}/leaderboard")
 async def get_dashboard_leaderboard(dashboard_id: str):
-    """Get leaderboard data for the current period."""
+    """Get leaderboard data for the current period with individual metric values."""
     dashboard_templates = get_collection("dashboard_templates")
     dashboard_data = get_collection("dashboard_data")
     dashboard_logins = get_collection("dashboard_logins")
@@ -895,32 +895,57 @@ async def get_dashboard_leaderboard(dashboard_id: str):
     })
 
     if not data_doc:
-        return {"success": True, "leaderboard": []}
+        return {"success": True, "leaderboard": [], "period": period}
 
     # Get login doc for member names
     login_doc = await dashboard_logins.find_one({"dashboard_id": dashboard_id})
     members_map = {}
     if login_doc:
         for m in login_doc.get("members", []):
-            members_map[m.get("email")] = m.get("name", "Unknown")
+            members_map[m.get("email", "").lower().strip()] = m.get("name", "Unknown")
 
-    # Calculate totals per member
+    # Get metrics list from dashboard
+    metrics_list = dashboard.get("metrics", [])
+
+    # Calculate totals and individual metrics per member
     metrics_data = data_doc.get("metrics_data", {})
-    member_totals = {}
+    member_data = {}
 
+    # Initialize: go through each metric and each user who submitted
     for metric_name, metric_values in metrics_data.items():
         for email, value_data in metric_values.items():
-            if email not in member_totals:
-                member_totals[email] = 0
-            member_totals[email] += value_data.get("value", 0)
+            email_lower = email.lower().strip()
+
+            # Get value (handle both dict and direct value formats)
+            if isinstance(value_data, dict):
+                value = value_data.get("value", 0)
+            else:
+                value = value_data
+
+            # Initialize member if not exists
+            if email_lower not in member_data:
+                member_data[email_lower] = {
+                    "email": email,
+                    "total": 0,
+                    "metrics": {}
+                }
+
+            # Add to total
+            member_data[email_lower]["total"] += value
+
+            # Store individual metric value
+            member_data[email_lower]["metrics"][metric_name] = {
+                "value": value
+            }
 
     # Build leaderboard
     leaderboard = []
-    for email, total in member_totals.items():
+    for email_lower, data in member_data.items():
         leaderboard.append({
-            "email": email,
-            "name": members_map.get(email, "Unknown"),
-            "total": total
+            "email": data["email"],
+            "name": members_map.get(email_lower, "Unknown"),
+            "total": data["total"],
+            "metrics": data["metrics"]
         })
 
     # Sort by total descending
@@ -929,7 +954,8 @@ async def get_dashboard_leaderboard(dashboard_id: str):
     return {
         "success": True,
         "leaderboard": leaderboard,
-        "period": period
+        "period": period,
+        "metrics": metrics_list
     }
 
 @router.get("/{dashboard_id}/my-metrics")
@@ -962,4 +988,64 @@ async def get_my_metrics(dashboard_id: str, email: str):
         "success": True,
         "metrics": user_metrics,
         "period": period
+    }
+
+@router.get("/{dashboard_id}/aggregate")
+async def get_dashboard_aggregate(request: Request, dashboard_id: str):
+    """
+    Get aggregated metrics totals for the current period.
+    Returns total value and submission count for each metric.
+    """
+    user_email = request.session.get('user_email')
+    if not user_email:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    dashboard_templates = get_collection("dashboard_templates")
+    dashboard_data = get_collection("dashboard_data")
+
+    try:
+        dashboard = await dashboard_templates.find_one({"_id": ObjectId(dashboard_id)})
+    except:
+        raise HTTPException(status_code=400, detail="Invalid dashboard ID")
+
+    if not dashboard:
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+
+    if dashboard.get("owner_email") != user_email:
+        raise HTTPException(status_code=403, detail="You don't own this dashboard")
+
+    # Get current period
+    period = get_current_week()
+
+    # Get dashboard data for current period
+    data_doc = await dashboard_data.find_one({
+        "dashboard_id": dashboard_id,
+        "reporting_period": period
+    })
+
+    aggregates = {}
+    metrics = dashboard.get("metrics", [])
+
+    # Initialize all metrics with zero
+    for metric in metrics:
+        aggregates[metric] = {"total": 0, "count": 0}
+
+    if data_doc:
+        metrics_data = data_doc.get("metrics_data", {})
+
+        for metric_name, metric_values in metrics_data.items():
+            if metric_name in aggregates:
+                total = 0
+                count = 0
+                for email, value_data in metric_values.items():
+                    value = value_data.get("value", 0) if isinstance(value_data, dict) else value_data
+                    total += value
+                    count += 1
+                aggregates[metric_name] = {"total": total, "count": count}
+
+    return {
+        "success": True,
+        "dashboard_id": dashboard_id,
+        "period": period,
+        "aggregates": aggregates
     }

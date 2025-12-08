@@ -25,81 +25,124 @@
                 </div>
             </div>
 
-            <!-- Dashboard details - shown when a tab is active -->
-            <div class="dashboard-details" id="dashboard-details" style="display: none;">
-                <h2 class="template-title" id="dashboard-title">Dashboard</h2>
-                <p class="template-subtitle" id="dashboard-subtitle">Loading...</p>
+            <!-- Dashboard view wrapper - shown when a tab is active -->
+            <div class="dashboard-view-wrapper" id="dashboard-details" style="display: none;">
 
-                <div class="card">
-                    <div class="card-title">Dashboard Details</div>
-
-                    <div class="detail-row">
-                        <span class="detail-label">Dashboard ID</span>
-                        <span class="detail-value" id="dashboard-id">-</span>
+                <!-- NEW: Metrics View (shown by default) -->
+                <div class="dashboard-metrics-view" id="dashboard-metrics-view">
+                    <div class="dashboard-header">
+                        <div class="dashboard-header-left">
+                            <h2 class="dashboard-title" id="metrics-view-title">Dashboard</h2>
+                            <p class="dashboard-subtitle" id="metrics-view-subtitle">Overview of your metrics</p>
+                        </div>
+                        <div class="dashboard-header-right">
+                            <span class="dashboard-period-badge" id="dashboard-period-badge">Weekly</span>
+                            <button class="btn btn-secondary btn-small" id="show-details-btn">Show Details</button>
+                        </div>
                     </div>
 
-                    <div class="detail-row">
-                        <span class="detail-label">Team</span>
-                        <span class="detail-value" id="dashboard-team">-</span>
+                    <!-- Metric Cards Grid -->
+                    <div class="metrics-grid" id="metrics-grid">
+                        <div class="metric-card-placeholder">
+                            <p>Loading metrics...</p>
+                        </div>
                     </div>
 
-                    <div class="detail-row">
-                        <span class="detail-label">Owner</span>
-                        <span class="detail-value" id="dashboard-owner">-</span>
-                    </div>
-
-                    <div class="detail-row">
-                        <span class="detail-label">Reporting Period</span>
-                        <span class="detail-value" id="dashboard-period">-</span>
-                    </div>
-
-                    <div class="detail-row">
-                        <span class="detail-label">Members</span>
-                        <span class="detail-value" id="dashboard-members">-</span>
-                    </div>
-
-                    <div class="detail-row">
-                        <span class="detail-label">Status</span>
-                        <span class="detail-value" id="dashboard-status">-</span>
-                    </div>
-
-                    <div class="detail-row">
-                        <span class="detail-label">Created</span>
-                        <span class="detail-value" id="dashboard-created">-</span>
+                    <!-- Leaderboard Section -->
+                    <div class="dashboard-section">
+                        <div class="section-header">
+                            <h3 class="section-title">Leaderboard</h3>
+                            <span class="section-badge" id="leaderboard-count">0 members</span>
+                        </div>
+                        <div class="leaderboard-table" id="dashboard-leaderboard">
+                            <div class="leaderboard-empty">
+                                <p>No submissions yet</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="card">
-                    <div class="card-title">Metrics</div>
-                    <div class="metrics-list" id="dashboard-metrics">
-                        <p class="text-muted">No metrics configured</p>
+                <!-- OLD: Details View (shown when Show Details clicked) - EXACT SAME AS BEFORE -->
+                <div class="dashboard-details" id="dashboard-details-view" style="display: none;">
+                    <div class="details-header-row">
+                        <div>
+                            <h2 class="template-title" id="dashboard-title">Dashboard</h2>
+                            <p class="template-subtitle" id="dashboard-subtitle">Loading...</p>
+                        </div>
+                        <button class="btn btn-secondary btn-small" id="hide-details-btn">← Back to Dashboard</button>
                     </div>
-                </div>
 
-                <div class="card">
-                    <div class="card-title">Dashboard URL</div>
-                    <div class="detail-row">
-                        <span class="detail-label">Public URL</span>
-                        <span class="detail-value" id="dashboard-url">-</span>
-                    </div>
-                    <div class="btn-row">
-                        <button class="btn btn-small" id="copy-dashboard-url">Copy URL</button>
-                        <button class="btn btn-small btn-secondary" id="sync-members-btn">Sync Members</button>
-                    </div>
-                </div>
+                    <div class="card">
+                        <div class="card-title">Dashboard Details</div>
 
-                <div class="card">
-                    <div class="card-title">Member Access</div>
-                    <p class="card-subtitle">Share these passcodes with team members so they can access the dashboard.</p>
-                    <div class="members-access-list" id="dashboard-members-access">
-                        <p class="text-muted">No members with access</p>
-                    </div>
-                </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Dashboard ID</span>
+                            <span class="detail-value" id="dashboard-id">-</span>
+                        </div>
 
-                <div class="template-actions">
-                    <button class="btn" id="view-dashboard-btn">View Dashboard</button>
-                    <button class="btn btn-secondary" id="delete-dashboard-btn">Delete</button>
-                    <span id="dashboard-action-status"></span>
+                        <div class="detail-row">
+                            <span class="detail-label">Team</span>
+                            <span class="detail-value" id="dashboard-team">-</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span class="detail-label">Owner</span>
+                            <span class="detail-value" id="dashboard-owner">-</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span class="detail-label">Reporting Period</span>
+                            <span class="detail-value" id="dashboard-period">-</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span class="detail-label">Members</span>
+                            <span class="detail-value" id="dashboard-members">-</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span class="detail-label">Status</span>
+                            <span class="detail-value" id="dashboard-status">-</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span class="detail-label">Created</span>
+                            <span class="detail-value" id="dashboard-created">-</span>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">Metrics</div>
+                        <div class="metrics-list" id="dashboard-metrics">
+                            <p class="text-muted">No metrics configured</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">Dashboard URL</div>
+                        <div class="detail-row">
+                            <span class="detail-label">Public URL</span>
+                            <span class="detail-value" id="dashboard-url">-</span>
+                        </div>
+                        <div class="btn-row">
+                            <button class="btn btn-small" id="copy-dashboard-url">Copy URL</button>
+                            <button class="btn btn-small btn-secondary" id="sync-members-btn">Sync Members</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">Member Access</div>
+                        <p class="card-subtitle">Share these passcodes with team members so they can access the dashboard.</p>
+                        <div class="members-access-list" id="dashboard-members-access">
+                            <p class="text-muted">No members with access</p>
+                        </div>
+                    </div>
+
+                    <div class="template-actions">
+                        <button class="btn" id="view-dashboard-btn">View Dashboard</button>
+                        <button class="btn btn-secondary" id="delete-dashboard-btn">Delete</button>
+                        <span id="dashboard-action-status"></span>
+                    </div>
                 </div>
             </div>
         </div>
