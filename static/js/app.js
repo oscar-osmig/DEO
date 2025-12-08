@@ -52,10 +52,111 @@ fetch('/auth/me', {
     loadDashboardsSidebar();
     loadTeamsSidebar();
 
+    // Load empty state lists
+    loadWorkspaceEmptyList();
+    loadTemplateEmptyList(u.workspace_id);
+    loadDashboardEmptyList();
+    loadTeamEmptyList();
+
 }).catch((err) => {
     console.error('Auth check failed:', err);
     window.location.href = '/login';
 });
+
+// === EMPTY STATE LIST LOADERS ===
+
+// Load workspace empty list
+function loadWorkspaceEmptyList() {
+    const list = document.getElementById('workspace-empty-list');
+    if (!list) return;
+
+    list.innerHTML = '<div class="empty-state-list-title">Workspaces</div><div class="empty-state-list-empty">Loading...</div>';
+
+    fetch('/workspace/list', { credentials: 'same-origin' }).then(r => r.json()).then(data => {
+        let html = '<div class="empty-state-list-title">Workspaces</div>';
+        if (data.workspaces && data.workspaces.length > 0) {
+            html += data.workspaces.map(ws =>
+                `<a class="empty-state-list-item" data-workspace-id="${ws._id}">${ws.workspace_name}</a>`
+            ).join('');
+        } else {
+            html += '<div class="empty-state-list-empty">No workspaces yet</div>';
+        }
+        list.innerHTML = html;
+    }).catch(() => {
+        list.innerHTML = '<div class="empty-state-list-title">Workspaces</div><div class="empty-state-list-empty">No workspaces yet</div>';
+    });
+}
+
+// Load template empty list
+function loadTemplateEmptyList(workspaceId) {
+    const list = document.getElementById('template-empty-list');
+    if (!list) return;
+
+    list.innerHTML = '<div class="empty-state-list-title">Templates</div><div class="empty-state-list-empty">Loading...</div>';
+
+    if (!workspaceId) {
+        list.innerHTML = '<div class="empty-state-list-title">Templates</div><div class="empty-state-list-empty">No workspace selected</div>';
+        return;
+    }
+
+    fetch(`/templates?workspace_id=${workspaceId}`).then(r => r.json()).then(data => {
+        let html = '<div class="empty-state-list-title">Templates</div>';
+        if (data.templates && data.templates.length > 0) {
+            html += data.templates.map(t =>
+                `<a class="empty-state-list-item" data-template-id="${t.template_id}">${t.template_id}</a>`
+            ).join('');
+        } else {
+            html += '<div class="empty-state-list-empty">No templates yet</div>';
+        }
+        list.innerHTML = html;
+    }).catch(() => {
+        list.innerHTML = '<div class="empty-state-list-title">Templates</div><div class="empty-state-list-empty">No templates yet</div>';
+    });
+}
+
+// Load dashboard empty list
+function loadDashboardEmptyList() {
+    const list = document.getElementById('dashboard-empty-list');
+    if (!list) return;
+
+    list.innerHTML = '<div class="empty-state-list-title">Dashboards</div><div class="empty-state-list-empty">Loading...</div>';
+
+    fetch('/dashboards/list', { credentials: 'same-origin' }).then(r => r.json()).then(data => {
+        let html = '<div class="empty-state-list-title">Dashboards</div>';
+        if (data.dashboards && data.dashboards.length > 0) {
+            html += data.dashboards.map(d =>
+                `<a class="empty-state-list-item" data-dashboard-id="${d._id}">${d.dashboard_name}</a>`
+            ).join('');
+        } else {
+            html += '<div class="empty-state-list-empty">No dashboards yet</div>';
+        }
+        list.innerHTML = html;
+    }).catch(() => {
+        list.innerHTML = '<div class="empty-state-list-title">Dashboards</div><div class="empty-state-list-empty">No dashboards yet</div>';
+    });
+}
+
+// Load team empty list
+function loadTeamEmptyList() {
+    const list = document.getElementById('team-empty-list');
+    if (!list) return;
+
+    list.innerHTML = '<div class="empty-state-list-title">Teams</div><div class="empty-state-list-empty">Loading...</div>';
+
+    fetch('/teams/list', { credentials: 'same-origin' }).then(r => r.json()).then(data => {
+        let html = '<div class="empty-state-list-title">Teams</div>';
+        if (data.teams && data.teams.length > 0) {
+            html += data.teams.map(t =>
+                `<a class="empty-state-list-item" data-team-id="${t._id}">${t.team_name}</a>`
+            ).join('');
+        } else {
+            html += '<div class="empty-state-list-empty">No teams yet</div>';
+        }
+        list.innerHTML = html;
+    }).catch(() => {
+        list.innerHTML = '<div class="empty-state-list-title">Teams</div><div class="empty-state-list-empty">No teams yet</div>';
+    });
+}
 
 // Token form submission
 const tokenForm = document.getElementById('token-form');
@@ -115,7 +216,7 @@ document.addEventListener('click', (e) => {
         } else if (href === '#settings') {
             setHeaderSection('Settings');
         } else if (href === '#new-deo') {
-            setHeaderSection('New Deo');
+            setHeaderSection('Canvas');
         } else if (href === '#dashboards') {
             setHeaderSection('Dashboards');
         } else if (href === '#teams') {
@@ -140,3 +241,44 @@ document.addEventListener('click', (e) => {
         }
     }
 });
+
+// Handle collapsed sidebar clicks - navigate to views
+document.addEventListener('click', (e) => {
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    const isCollapsed = sidebarToggle && !sidebarToggle.checked;
+
+    // Only handle when sidebar is collapsed
+    if (!isCollapsed) return;
+
+    const sidebarBtn = e.target.closest('.sidebar-group .sidebar-btn');
+    if (!sidebarBtn) return;
+
+    // Determine which group was clicked
+    const group = sidebarBtn.closest('.sidebar-group');
+    if (!group) return;
+
+    const groupId = group.id;
+
+    // Navigate to appropriate view
+    if (groupId === 'dashboards-group') {
+        e.preventDefault();
+        window.location.hash = '#dashboards';
+        setHeaderSection('Dashboards');
+    } else if (groupId === 'teams-group') {
+        e.preventDefault();
+        window.location.hash = '#teams';
+        setHeaderSection('Teams');
+    } else if (groupId === 'workspaces-group') {
+        e.preventDefault();
+        window.location.hash = '#workspace';
+        setHeaderSection('Workspaces');
+    } else if (groupId === 'templates-group') {
+        e.preventDefault();
+        window.location.hash = '#template';
+        setHeaderSection('Templates');
+    }
+});
+
+// NOTE: Click handlers for [data-workspace-id], [data-template-id],
+// [data-dashboard-id], [data-team-id] are in tabs.js
+// Do NOT add duplicate handlers here!

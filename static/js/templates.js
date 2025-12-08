@@ -165,8 +165,8 @@ document.addEventListener('click', async (e) => {
                 status.style.color = '#4ade80';
 
                 closeTemplateTab(templateId);
-
-                setTimeout(() => { location.reload(); }, 1000);
+                loadTemplatesSidebar(currentUser?.workspace_id);
+                loadTemplateEmptyList(currentUser?.workspace_id);
             } else {
                 status.textContent = '✗ ' + (data.detail || 'Failed');
                 status.style.color = '#f87171';
@@ -181,9 +181,10 @@ document.addEventListener('click', async (e) => {
     }
 });
 
-// Create template button (placeholder)
+// Create template button - navigate to canvas
 document.addEventListener('click', (e) => {
     if (e.target.closest('#create-template-btn')) {
-        console.log('Create template clicked');
+        window.location.hash = '#new-deo';
+        if (typeof setHeaderSection === 'function') setHeaderSection('Canvas');
     }
 });

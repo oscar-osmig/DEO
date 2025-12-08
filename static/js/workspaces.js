@@ -1,94 +1,5 @@
 // === WORKSPACE FUNCTIONS ===
 
-// Show/hide workspace empty state
-function updateWorkspaceView() {
-    const emptyState = document.getElementById('workspace-empty-state');
-    const details = document.getElementById('workspace-details');
-
-    if (openWorkspaceTabs.length === 0) {
-        if (emptyState) emptyState.style.display = 'flex';
-        if (details) details.style.display = 'none';
-    } else {
-        if (emptyState) emptyState.style.display = 'none';
-        if (details) details.style.display = 'block';
-    }
-}
-
-// Render workspace tabs
-function renderWorkspaceTabs() {
-    const tabsBar = document.getElementById('workspace-tabs');
-    if (!tabsBar) return;
-
-    tabsBar.innerHTML = openWorkspaceTabs.map(tab => {
-        const isActive = tab.id === activeWorkspaceTab;
-        return `
-            <div class="tab ${isActive ? 'active' : ''}" data-tab-id="${tab.id}" data-tab-type="workspace">
-                <span class="tab-name">${tab.name}</span>
-                <span class="tab-close" data-close-tab="${tab.id}" data-close-type="workspace">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </span>
-            </div>
-        `;
-    }).join('');
-
-    updateWorkspaceView();
-}
-
-// Open workspace in tab
-async function openWorkspaceTab(workspaceId) {
-    const existingTab = openWorkspaceTabs.find(tab => tab.id === workspaceId);
-
-    if (existingTab) {
-        activeWorkspaceTab = workspaceId;
-        renderWorkspaceTabs();
-        await loadWorkspaceDetails(workspaceId);
-        return;
-    }
-
-    try {
-        const res = await fetch(`/workspace/${encodeURIComponent(workspaceId)}`);
-        const data = await res.json();
-
-        if (res.ok && data.workspace) {
-            const ws = data.workspace;
-
-            openWorkspaceTabs.push({
-                id: workspaceId,
-                name: ws.workspace_name || 'Workspace'
-            });
-
-            activeWorkspaceTab = workspaceId;
-            renderWorkspaceTabs();
-            await loadWorkspaceDetails(workspaceId);
-        }
-    } catch (err) {
-        console.error('Error opening workspace tab:', err);
-    }
-}
-
-// Close workspace tab
-function closeWorkspaceTab(workspaceId) {
-    const index = openWorkspaceTabs.findIndex(tab => tab.id === workspaceId);
-    if (index === -1) return;
-
-    openWorkspaceTabs.splice(index, 1);
-
-    if (activeWorkspaceTab === workspaceId) {
-        if (openWorkspaceTabs.length > 0) {
-            const newIndex = Math.max(0, index - 1);
-            activeWorkspaceTab = openWorkspaceTabs[newIndex].id;
-            loadWorkspaceDetails(activeWorkspaceTab);
-        } else {
-            activeWorkspaceTab = null;
-        }
-    }
-
-    renderWorkspaceTabs();
-}
-
 // Load workspace details by ID
 async function loadWorkspaceDetails(workspaceId) {
     try {
@@ -144,7 +55,7 @@ function loadWorkspacesSidebar() {
     const workspacesList = document.getElementById('workspaces-list');
     if (!workspacesList) return;
 
-    fetch('/workspace/list').then(r => r.json()).then(data => {
+    fetch('/workspace/list', { credentials: 'same-origin' }).then(r => r.json()).then(data => {
         let html = '<a href="#workspace" class="sidebar-submenu-item add-new" id="sidebar-add-workspace">+ Add workspace</a>';
         if (data.workspaces && data.workspaces.length > 0) {
             html += data.workspaces.map(ws =>
@@ -157,39 +68,6 @@ function loadWorkspacesSidebar() {
         workspacesList.innerHTML = '<a href="#workspace" class="sidebar-submenu-item add-new" id="sidebar-add-workspace">+ Add workspace</a>';
     });
 }
-
-// Workspace tab click handlers
-document.addEventListener('click', async (e) => {
-    // Handle workspace sidebar link
-    const workspaceLink = e.target.closest('[data-workspace-id]');
-    if (workspaceLink && !e.target.closest('.tab')) {
-        e.preventDefault();
-        const workspaceId = workspaceLink.dataset.workspaceId;
-        window.location.hash = '#workspace';
-        if (typeof setHeaderSection === 'function') setHeaderSection('Workspaces');
-        await openWorkspaceTab(workspaceId);
-        return;
-    }
-
-    // Handle workspace tab click (switch tabs)
-    const workspaceTab = e.target.closest('.tab[data-tab-type="workspace"]');
-    if (workspaceTab && !e.target.closest('.tab-close')) {
-        const tabId = workspaceTab.dataset.tabId;
-        activeWorkspaceTab = tabId;
-        renderWorkspaceTabs();
-        await loadWorkspaceDetails(tabId);
-        return;
-    }
-
-    // Handle workspace tab close
-    const closeWorkspaceBtn = e.target.closest('.tab-close[data-close-type="workspace"]');
-    if (closeWorkspaceBtn) {
-        e.stopPropagation();
-        const tabId = closeWorkspaceBtn.dataset.closeTab;
-        closeWorkspaceTab(tabId);
-        return;
-    }
-});
 
 // Workspace modal handlers
 document.addEventListener('click', (e) => {
@@ -209,15 +87,23 @@ document.addEventListener('click', (e) => {
     }
 
     // Close modal
-    if (e.target.closest('#close-workspace-modal') || e.target.closest('#cancel-workspace-btn')) {
+    if (e.target.id === 'close-workspace-modal' || e.target.id === 'cancel-workspace-btn') {
         const modal = document.getElementById('create-workspace-modal');
         if (modal) modal.classList.remove('active');
     }
 });
 
-// Create workspace form submission
-document.addEventListener('submit', async (e) => {
-    if (e.target.id === 'create-workspace-form') {
+// Close modal on overlay click
+document.addEventListener('click', (e) => {
+    if (e.target.id === 'create-workspace-modal') {
+        e.target.classList.remove('active');
+    }
+});
+
+// Create workspace form
+const createWorkspaceForm = document.getElementById('create-workspace-form');
+if (createWorkspaceForm) {
+    createWorkspaceForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const workspaceName = document.getElementById('new-workspace-name').value;
@@ -238,6 +124,7 @@ document.addEventListener('submit', async (e) => {
             const res = await fetch('/workspace/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
                 body: JSON.stringify({
                     workspace_name: workspaceName,
                     bot_token: botToken
@@ -254,11 +141,12 @@ document.addEventListener('submit', async (e) => {
                     const modal = document.getElementById('create-workspace-modal');
                     if (modal) modal.classList.remove('active');
 
-                    e.target.reset();
+                    createWorkspaceForm.reset();
                     status.textContent = '';
 
                     await openWorkspaceTab(data.workspace_id);
                     loadWorkspacesSidebar();
+                    loadWorkspaceEmptyList();
                 }, 1000);
             } else {
                 status.textContent = '✗ ' + (data.detail || 'Failed to create workspace');
@@ -271,8 +159,8 @@ document.addEventListener('submit', async (e) => {
 
         submitBtn.textContent = 'Create';
         submitBtn.disabled = false;
-    }
-});
+    });
+}
 
 // Delete workspace handler
 document.addEventListener('click', async (e) => {
@@ -290,7 +178,8 @@ document.addEventListener('click', async (e) => {
 
         try {
             const res = await fetch(`/workspace/${encodeURIComponent(workspaceId)}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                credentials: 'same-origin'
             });
 
             const data = await res.json();
@@ -301,6 +190,7 @@ document.addEventListener('click', async (e) => {
 
                 closeWorkspaceTab(workspaceId);
                 loadWorkspacesSidebar();
+                loadWorkspaceEmptyList();
             } else {
                 status.textContent = '✗ ' + (data.detail || 'Failed');
                 status.style.color = '#f87171';
@@ -316,63 +206,44 @@ document.addEventListener('click', async (e) => {
 });
 
 // === TOKEN SELECTOR ===
-let tokenSelectorInitialized = false;
+document.addEventListener('click', async (e) => {
+    // Open token dropdown
+    if (e.target.id === 'select-existing-token') {
+        e.preventDefault();
+        e.stopPropagation();
 
-function initTokenSelector() {
-    if (tokenSelectorInitialized) return;
-    tokenSelectorInitialized = true;
+        const dropdown = document.getElementById('token-dropdown');
+        const list = document.getElementById('saved-tokens-list');
 
-    document.addEventListener('click', async (e) => {
-        // Open token dropdown
-        if (e.target.id === 'select-existing-token') {
-            e.preventDefault();
-            e.stopPropagation();
+        if (!dropdown || !list) return;
 
-            const dropdown = document.getElementById('token-dropdown');
-            const list = document.getElementById('saved-tokens-list');
+        if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+            dropdown.style.display = 'block';
+            list.innerHTML = '<p style="padding: 16px; text-align: center; color: #6b6b6b;">Loading...</p>';
 
-            if (!dropdown || !list) return;
+            try {
+                const res = await fetch('/account/tokens', { credentials: 'same-origin' });
 
-            if (dropdown.style.display === 'none' || dropdown.style.display === '') {
-                dropdown.style.display = 'block';
-                list.innerHTML = '<p style="padding: 16px; text-align: center; color: #6b6b6b;">Loading...</p>';
+                if (!res.ok) {
+                    list.innerHTML = `
+                        <div class="token-dropdown-empty">
+                            <p>No saved tokens</p>
+                            <p style="margin-top: 8px; font-size: 12px;">Add tokens in Settings → Slack Tokens</p>
+                        </div>
+                    `;
+                    return;
+                }
 
-                // Fetch saved tokens - endpoint is at /account/tokens
-                try {
-                    const res = await fetch('/account/tokens', {
-                        credentials: 'same-origin'
-                    });
+                const data = await res.json();
 
-                    if (!res.ok) {
-                        console.log('Token fetch failed with status:', res.status);
-                        list.innerHTML = `
-                            <div class="token-dropdown-empty">
-                                <p>No saved tokens</p>
-                                <p style="margin-top: 8px; font-size: 12px;">Add tokens in Settings → Slack Tokens</p>
-                            </div>
-                        `;
-                        return;
-                    }
-
-                    const data = await res.json();
-
-                    if (data.tokens && data.tokens.length > 0) {
-                        list.innerHTML = data.tokens.map(token => `
-                            <div class="token-item" data-token="${token.token}">
-                                <span class="token-item-name">${token.name || 'Unnamed Token'}</span>
-                                <span class="token-item-preview">${token.token.substring(0, 15)}...</span>
-                            </div>
-                        `).join('');
-                    } else {
-                        list.innerHTML = `
-                            <div class="token-dropdown-empty">
-                                <p>No saved tokens</p>
-                                <p style="margin-top: 8px; font-size: 12px;">Add tokens in Settings → Slack Tokens</p>
-                            </div>
-                        `;
-                    }
-                } catch (err) {
-                    console.error('Error fetching tokens:', err);
+                if (data.tokens && data.tokens.length > 0) {
+                    list.innerHTML = data.tokens.map(token => `
+                        <div class="token-item" data-token="${token.token}">
+                            <span class="token-item-name">${token.name || 'Unnamed Token'}</span>
+                            <span class="token-item-preview">${token.token.substring(0, 15)}...</span>
+                        </div>
+                    `).join('');
+                } else {
                     list.innerHTML = `
                         <div class="token-dropdown-empty">
                             <p>No saved tokens</p>
@@ -380,47 +251,51 @@ function initTokenSelector() {
                         </div>
                     `;
                 }
-            } else {
-                dropdown.style.display = 'none';
+            } catch (err) {
+                list.innerHTML = `
+                    <div class="token-dropdown-empty">
+                        <p>No saved tokens</p>
+                        <p style="margin-top: 8px; font-size: 12px;">Add tokens in Settings → Slack Tokens</p>
+                    </div>
+                `;
             }
-            return;
+        } else {
+            dropdown.style.display = 'none';
         }
+        return;
+    }
 
-        // Close token dropdown
-        if (e.target.id === 'close-token-dropdown') {
-            e.preventDefault();
-            e.stopPropagation();
-            const dropdown = document.getElementById('token-dropdown');
-            if (dropdown) dropdown.style.display = 'none';
-            return;
-        }
-
-        // Select token from dropdown
-        const tokenItem = e.target.closest('.token-item');
-        if (tokenItem && e.target.closest('#token-dropdown')) {
-            e.preventDefault();
-            e.stopPropagation();
-            const token = tokenItem.dataset.token;
-            const input = document.getElementById('new-workspace-token');
-            const dropdown = document.getElementById('token-dropdown');
-            if (input) input.value = token;
-            if (dropdown) dropdown.style.display = 'none';
-            return;
-        }
-    });
-
-    // Close dropdown when clicking outside
-    document.addEventListener('mousedown', (e) => {
+    // Close token dropdown
+    if (e.target.id === 'close-token-dropdown') {
+        e.preventDefault();
+        e.stopPropagation();
         const dropdown = document.getElementById('token-dropdown');
-        const selectBtn = document.getElementById('select-existing-token');
+        if (dropdown) dropdown.style.display = 'none';
+        return;
+    }
 
-        if (dropdown && dropdown.style.display !== 'none' && dropdown.style.display !== '') {
-            if (!dropdown.contains(e.target) && e.target !== selectBtn) {
-                dropdown.style.display = 'none';
-            }
+    // Select token from dropdown
+    const tokenItem = e.target.closest('.token-item');
+    if (tokenItem && e.target.closest('#token-dropdown')) {
+        e.preventDefault();
+        e.stopPropagation();
+        const token = tokenItem.dataset.token;
+        const input = document.getElementById('new-workspace-token');
+        const dropdown = document.getElementById('token-dropdown');
+        if (input) input.value = token;
+        if (dropdown) dropdown.style.display = 'none';
+        return;
+    }
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('mousedown', (e) => {
+    const dropdown = document.getElementById('token-dropdown');
+    const selectBtn = document.getElementById('select-existing-token');
+
+    if (dropdown && dropdown.style.display !== 'none' && dropdown.style.display !== '') {
+        if (!dropdown.contains(e.target) && e.target !== selectBtn) {
+            dropdown.style.display = 'none';
         }
-    });
-}
-
-// Initialize token selector
-initTokenSelector();
+    }
+});

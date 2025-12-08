@@ -129,20 +129,72 @@
     padding: 0;
 }
 
-/* Empty state for tabs */
+/* Empty state for tabs - with list inside dotted border */
 .empty-state-container {
     display: flex;
-    align-items: center;
-    justify-content: center;
     height: 100%;
     min-height: 400px;
+    border: 2px dashed var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
 }
 
+/* List on the left side inside dotted border */
+.empty-state-list {
+    width: 220px;
+    min-width: 220px;
+    border-right: 1px solid var(--border-color);
+    padding: 16px;
+    overflow-y: auto;
+    background-color: var(--bg-secondary);
+}
+
+.empty-state-list-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    padding: 0 4px;
+}
+
+.empty-state-list-item {
+    display: block;
+    padding: 10px 12px;
+    margin-bottom: 4px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.empty-state-list-item:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.empty-state-list-empty {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-style: italic;
+    padding: 8px 4px;
+}
+
+/* Empty state message on the right */
 .empty-state {
+    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     text-align: center;
+    padding: 24px;
 }
 
 .empty-icon {

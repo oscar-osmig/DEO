@@ -38,7 +38,7 @@ function initFromHash() {
     if (hash === '#settings') {
         setHeaderSection('Settings');
     } else if (hash === '#new-deo') {
-        setHeaderSection('New Deo');
+        setHeaderSection('Canvas');
         initNewDeo();
     } else if (hash === '#workspace') {
         setHeaderSection('Workspaces');
