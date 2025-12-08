@@ -5,10 +5,11 @@ This module provides an alternative workspace creation endpoint that doesn't
 require session-based authentication. Useful for direct API access.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from database import get_collection
 from datetime import datetime
+from bson import ObjectId
 
 router = APIRouter(prefix="/workspace", tags=["workspace"])
 
@@ -23,6 +24,29 @@ class CreateWorkspaceRequest(BaseModel):
     bot_token: str
     workspace_name: str
     workspace_id: str
+
+
+@router.get("/list")
+async def list_workspaces(request: Request):
+    """Get all workspaces for the current authenticated user."""
+    user_email = request.session.get('user_email')
+
+    if not user_email:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    workspaces_collection = get_collection("workspaces")
+
+    cursor = workspaces_collection.find({"gmail": user_email})
+    workspaces = await cursor.to_list(length=100)
+
+    for ws in workspaces:
+        ws['_id'] = str(ws['_id'])
+
+    return {
+        "success": True,
+        "workspaces": workspaces
+    }
+
 
 @router.post("/make-workspace")
 async def make_workspace(request: CreateWorkspaceRequest):
@@ -54,6 +78,7 @@ async def make_workspace(request: CreateWorkspaceRequest):
         "workspace_id": request.workspace_id,
         "id": str(result.inserted_id)
     }
+
 
 @router.get("/by-id/{workspace_id}")
 async def get_workspace_by_id(workspace_id: str):
@@ -90,6 +115,7 @@ async def get_workspace_by_name(workspace_name: str):
         "workspace": workspace
     }
 
+
 @router.get("/by-account/{account_id}")
 async def get_workspaces_by_account(account_id: str):
     """Get all workspaces for an account (by account_id or gmail)."""
@@ -110,4 +136,25 @@ async def get_workspaces_by_account(account_id: str):
     return {
         "success": True,
         "workspaces": workspaces
+    }
+
+
+@router.get("/{workspace_id}")
+async def get_workspace(workspace_id: str):
+    """Get workspace by MongoDB _id."""
+    workspaces_collection = get_collection("workspaces")
+
+    try:
+        workspace = await workspaces_collection.find_one({"_id": ObjectId(workspace_id)})
+    except:
+        raise HTTPException(status_code=400, detail="Invalid workspace ID")
+
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+
+    workspace['_id'] = str(workspace['_id'])
+
+    return {
+        "success": True,
+        "workspace": workspace
     }

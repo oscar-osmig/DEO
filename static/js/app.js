@@ -14,7 +14,9 @@ window.addEventListener('hashchange', () => {
 });
 
 // Load user data
-fetch('/auth/me').then(r => {
+fetch('/auth/me', {
+    credentials: 'same-origin'
+}).then(r => {
     if (!r.ok) throw new Error('Not authenticated');
     return r.json();
 }).then(u => {
@@ -50,7 +52,8 @@ fetch('/auth/me').then(r => {
     loadDashboardsSidebar();
     loadTeamsSidebar();
 
-}).catch(() => {
+}).catch((err) => {
+    console.error('Auth check failed:', err);
     window.location.href = '/login';
 });
 
@@ -77,6 +80,7 @@ if (tokenForm) {
             const res = await fetch('/auth/update-token', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
                 body: JSON.stringify({ bot_token: token })
             });
 

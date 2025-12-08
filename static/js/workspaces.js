@@ -1,9 +1,5 @@
 // === WORKSPACE FUNCTIONS ===
 
-// Track open workspace tabs
-let openWorkspaceTabs = [];
-let activeWorkspaceTab = null;
-
 // Show/hide workspace empty state
 function updateWorkspaceView() {
     const emptyState = document.getElementById('workspace-empty-state');
@@ -215,20 +211,11 @@ document.addEventListener('click', (e) => {
     // Close modal
     if (e.target.closest('#close-workspace-modal') || e.target.closest('#cancel-workspace-btn')) {
         const modal = document.getElementById('create-workspace-modal');
-        if (modal) {
-            modal.classList.remove('active');
-            const form = document.getElementById('create-workspace-form');
-            if (form) form.reset();
-            const status = document.getElementById('create-workspace-status');
-            if (status) status.textContent = '';
-            // Close token dropdown if open
-            const dropdown = document.getElementById('token-dropdown');
-            if (dropdown) dropdown.style.display = 'none';
-        }
+        if (modal) modal.classList.remove('active');
     }
 });
 
-// Create Workspace Form Submission
+// Create workspace form submission
 document.addEventListener('submit', async (e) => {
     if (e.target.id === 'create-workspace-form') {
         e.preventDefault();

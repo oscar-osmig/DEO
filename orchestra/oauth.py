@@ -22,9 +22,17 @@ templates = Jinja2Templates(directory="static")
 # Google OAuth2 Configuration
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-REDIRECT_URI = "https://godeo.app/auth/callback"
-APP_URL = "https://godeo.app"
 
+# Dynamic URLs based on environment
+# If ENVIRONMENT is not set or is "production", use production URLs
+IS_DEVELOPMENT = os.getenv("ENVIRONMENT") == "development"
+
+if IS_DEVELOPMENT:
+    REDIRECT_URI = "http://127.0.0.1:8000/auth/callback"
+    APP_URL = "http://127.0.0.1:8000"
+else:
+    REDIRECT_URI = "https://godeo.app/auth/callback"
+    APP_URL = "https://godeo.app"
 
 @router.get("/login")
 async def login(request: Request):

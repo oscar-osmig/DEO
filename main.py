@@ -25,6 +25,20 @@ import asyncio
 
 templates = Jinja2Templates(directory="static")
 
+# Check if running in production
+IS_PRODUCTION = os.getenv("ENVIRONMENT", "development") == "production"
+
+
+# Custom StaticFiles that disables caching in development
+class NoCacheStaticFiles(StaticFiles):
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        if not IS_PRODUCTION:
+            response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -43,13 +57,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# Session middleware - configured for HTTPS production
+# Session middleware - adapts to environment
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.getenv("SESSION_SECRET"),
     max_age=60 * 60 * 24 * 14,  # 14 days
     same_site="lax",
-    https_only=True  # Set to True for HTTPS (godeo.app)
+    https_only=IS_PRODUCTION  # True for production (HTTPS), False for local (HTTP)
 )
 
 
@@ -106,7 +120,8 @@ app.include_router(templates_router)
 app.include_router(teams_router)
 app.include_router(dashboards_router)
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Use NoCacheStaticFiles in development, regular StaticFiles in production
+app.mount("/static", NoCacheStaticFiles(directory="static"), name="static")
 
 if __name__ == "__main__":
     import uvicorn
