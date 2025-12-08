@@ -59,6 +59,16 @@
 .sidebar-expand { display: flex; }
 .sidebar-settings-row { display: none; }
 
+/* === PANEL TOGGLE (top icon) === */
+.sidebar-panel-toggle {
+    margin-bottom: 8px;
+}
+
+/* Hide label for panel toggle always */
+.sidebar-panel-toggle .sidebar-label {
+    display: none !important;
+}
+
 /* === SIDEBAR GROUP === */
 .sidebar-group {
     width: 100%;
@@ -151,6 +161,14 @@
 
 .sidebar-checkbox:checked ~ .sidebar .sidebar-chevron {
     display: block;
+}
+
+/* Panel toggle moves to right when expanded */
+.sidebar-checkbox:checked ~ .sidebar .sidebar-panel-toggle {
+    width: 40px;
+    padding: 0;
+    justify-content: center;
+    align-self: flex-end;
 }
 
 /* === DASHBOARDS SUBMENU === */
