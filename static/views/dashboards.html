@@ -28,7 +28,7 @@
             <!-- Dashboard view wrapper - shown when a tab is active -->
             <div class="dashboard-view-wrapper" id="dashboard-details" style="display: none;">
 
-                <!-- NEW: Metrics View (shown by default) -->
+                <!-- Metrics View (shown by default) -->
                 <div class="dashboard-metrics-view" id="dashboard-metrics-view">
                     <div class="dashboard-header">
                         <div class="dashboard-header-left">
@@ -62,49 +62,42 @@
                     </div>
                 </div>
 
-                <!-- OLD: Details View (shown when Show Details clicked) - EXACT SAME AS BEFORE -->
+                <!-- Details View - FULL WIDTH - NO GRID -->
                 <div class="dashboard-details" id="dashboard-details-view" style="display: none;">
                     <div class="details-header-row">
                         <div>
                             <h2 class="template-title" id="dashboard-title">Dashboard</h2>
-                            <p class="template-subtitle" id="dashboard-subtitle">Loading...</p>
+                            <p class="template-subtitle" id="dashboard-subtitle">Dashboard configuration and member access</p>
                         </div>
                         <button class="btn btn-secondary btn-small" id="hide-details-btn">← Back to Dashboard</button>
                     </div>
 
                     <div class="card">
                         <div class="card-title">Dashboard Details</div>
-
                         <div class="detail-row">
                             <span class="detail-label">Dashboard ID</span>
                             <span class="detail-value" id="dashboard-id">-</span>
                         </div>
-
                         <div class="detail-row">
                             <span class="detail-label">Team</span>
                             <span class="detail-value" id="dashboard-team">-</span>
                         </div>
-
                         <div class="detail-row">
                             <span class="detail-label">Owner</span>
                             <span class="detail-value" id="dashboard-owner">-</span>
                         </div>
-
                         <div class="detail-row">
                             <span class="detail-label">Reporting Period</span>
                             <span class="detail-value" id="dashboard-period">-</span>
                         </div>
-
                         <div class="detail-row">
                             <span class="detail-label">Members</span>
                             <span class="detail-value" id="dashboard-members">-</span>
                         </div>
-
                         <div class="detail-row">
                             <span class="detail-label">Status</span>
                             <span class="detail-value" id="dashboard-status">-</span>
                         </div>
-
                         <div class="detail-row">
                             <span class="detail-label">Created</span>
                             <span class="detail-value" id="dashboard-created">-</span>
@@ -126,7 +119,7 @@
                         </div>
                         <div class="btn-row">
                             <button class="btn btn-small" id="copy-dashboard-url">Copy URL</button>
-                            <button class="btn btn-small btn-secondary" id="sync-members-btn">Sync Members</button>
+                            <button class="btn btn-small btn-secondary" id="view-dashboard-btn">View Dashboard</button>
                         </div>
                     </div>
 
@@ -136,12 +129,16 @@
                         <div class="members-access-list" id="dashboard-members-access">
                             <p class="text-muted">No members with access</p>
                         </div>
+                        <div class="btn-row">
+                            <button class="btn btn-small btn-secondary" id="sync-members-btn">Sync Members from Team</button>
+                        </div>
                     </div>
 
-                    <div class="template-actions">
-                        <button class="btn" id="view-dashboard-btn">View Dashboard</button>
-                        <button class="btn btn-secondary" id="delete-dashboard-btn">Delete</button>
-                        <span id="dashboard-action-status"></span>
+                    <div class="card card-danger">
+                        <div class="card-title">Danger Zone</div>
+                        <p class="card-subtitle">Permanently delete this dashboard and all associated data.</p>
+                        <button class="btn btn-small btn-danger" id="delete-dashboard-btn">Delete Dashboard</button>
+                        <span id="dashboard-action-status" class="action-status"></span>
                     </div>
                 </div>
             </div>
@@ -168,7 +165,7 @@
                 <div class="form-group">
                     <div class="form-label-row">
                         <label class="form-label" for="new-dashboard-team">Team ID</label>
-                        <span class="info-icon" data-tooltip="Enter the MongoDB ObjectId of the team. You can find this in your Teams section by clicking on a team. Example: 507f1f77bcf86cd799439011">
+                        <span class="info-icon" data-tooltip="Enter the MongoDB ObjectId of the team.">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <line x1="12" y1="16" x2="12" y2="12"></line>
@@ -187,7 +184,7 @@
                 <div class="form-group">
                     <div class="form-label-row">
                         <label class="form-label" for="new-dashboard-period">Reporting Period</label>
-                        <span class="info-icon" data-tooltip="Daily: Team members submit metrics every day. Weekly: Submit once per week (Monday-Sunday). Monthly: Submit once per month.">
+                        <span class="info-icon" data-tooltip="Daily: Submit every day. Weekly: Submit once per week. Monthly: Submit once per month.">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <line x1="12" y1="16" x2="12" y2="12"></line>

@@ -13,27 +13,107 @@
 .dashboard-view-wrapper {
     height: 100%;
     overflow: hidden;
+    width: 100%;
 }
 
-/* Metrics View (new) */
+/* Metrics View */
 .dashboard-metrics-view {
     height: 100%;
     padding: 24px;
     overflow-y: auto;
+    width: 100%;
 }
 
-/* Details View (old) */
+/* Details View - Full Width */
 .dashboard-details {
     padding: 24px;
     overflow-y: auto;
     height: 100%;
+    width: 100% !important;
+    max-width: none !important;
+}
+
+/* Force full width for details view - override global styles */
+#dashboard-details-view {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+#dashboard-details-view .card {
+    width: 100% !important;
+    max-width: none !important;
 }
 
 .details-header-row {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
+    margin-bottom: 24px;
+    width: 100%;
+}
+
+/* Cards in Details View - FULL WIDTH */
+.dashboard-details .card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    width: 100% !important;
+    max-width: none !important;
+}
+
+.dashboard-details .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-primary);
     margin-bottom: 16px;
+}
+
+.dashboard-details .card-subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: -8px 0 16px 0;
+}
+
+.dashboard-details .detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.dashboard-details .detail-row:last-of-type {
+    border-bottom: none;
+}
+
+.dashboard-details .detail-label {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.dashboard-details .detail-value {
+    font-size: 13px;
+    color: var(--text-primary);
+    font-weight: 500;
+    text-align: right;
+    word-break: break-all;
+}
+
+.dashboard-details .btn-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.dashboard-details .template-actions {
+    margin-top: 24px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
 }
 
 /* Dashboard Header (metrics view) */
@@ -287,18 +367,117 @@
     text-transform: capitalize;
 }
 
-.leaderboard-total {
-    min-width: 80px;
-    text-align: right;
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--accent-primary);
-}
-
 .leaderboard-empty {
     padding: 40px;
     text-align: center;
     color: var(--text-muted);
+}
+
+/* Member Access List */
+.members-access-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 350px;
+    overflow-y: auto;
+}
+
+.member-access-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    background: var(--bg-primary);
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+}
+
+.member-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.member-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.member-email {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.member-passcode {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.passcode-label {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.passcode-value {
+    font-size: 13px;
+    font-family: monospace;
+    color: var(--accent-primary);
+    background: var(--bg-secondary);
+    padding: 4px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+}
+
+.copy-passcode-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 6px;
+}
+
+.copy-passcode-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--text-muted);
+}
+
+.copy-passcode-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Danger Zone */
+.card-danger {
+    border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+.card-danger .card-title {
+    color: #ef4444;
+}
+
+.btn-danger {
+    background: transparent;
+    border: 1px solid #ef4444;
+    color: #ef4444;
+}
+
+.btn-danger:hover {
+    background: #ef4444;
+    color: #fff;
+}
+
+.action-status {
+    display: block;
+    margin-top: 12px;
+    font-size: 13px;
 }
 
 /* Empty State */
