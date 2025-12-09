@@ -270,15 +270,15 @@ function loadDashboardsSidebar() {
     if (!dashboardsList) return;
 
     fetch('/dashboards/list', { credentials: 'same-origin' }).then(r => r.json()).then(data => {
+        let html = '<a href="#dashboards" class="sidebar-submenu-item add-new" id="sidebar-add-dashboard">+ Add dashboard</a>';
         if (data.dashboards && data.dashboards.length > 0) {
-            dashboardsList.innerHTML = data.dashboards.map(d =>
+            html += data.dashboards.map(d =>
                 `<a href="#dashboards" class="sidebar-submenu-item" data-dashboard-id="${d._id}">${d.dashboard_name}</a>`
             ).join('');
-        } else {
-            dashboardsList.innerHTML = '<a href="#dashboards" class="sidebar-submenu-item">No dashboards yet</a>';
         }
+        dashboardsList.innerHTML = html;
     }).catch(() => {
-        dashboardsList.innerHTML = '<a href="#dashboards" class="sidebar-submenu-item">No dashboards yet</a>';
+        dashboardsList.innerHTML = '<a href="#dashboards" class="sidebar-submenu-item add-new" id="sidebar-add-dashboard">+ Add dashboard</a>';
     });
 }
 
@@ -433,6 +433,17 @@ document.addEventListener('click', (e) => {
     if (e.target.id === 'close-dashboard-modal' || e.target.id === 'cancel-dashboard-btn') {
         const modal = document.getElementById('create-dashboard-modal');
         if (modal) modal.classList.remove('active');
+    }
+});
+
+// Open modal from sidebar
+document.addEventListener('click', (e) => {
+    if (e.target.closest('#sidebar-add-dashboard')) {
+        e.preventDefault();
+        window.location.hash = '#dashboards';
+        if (typeof setHeaderSection === 'function') setHeaderSection('Dashboards');
+        const modal = document.getElementById('create-dashboard-modal');
+        if (modal) modal.classList.add('active');
     }
 });
 

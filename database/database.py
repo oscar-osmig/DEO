@@ -43,13 +43,16 @@ async def connect_to_mongo():
 
         logger.info("Successfully connected to MongoDB!")
         print("Successfully connected to MongoDB!")
+        return True
 
     except asyncio.TimeoutError:
         logger.error("MongoDB connection timeout")
-        print("MongoDB connection timeout - continuing anyway...")
+        print("MongoDB connection timeout")
+        return False
     except Exception as e:
         logger.error(f"Could not connect to MongoDB: {e}")
         print(f"Could not connect to MongoDB: {e}")
+        return False
 
 
 async def close_mongo_connection():
@@ -65,6 +68,12 @@ def get_database():
     """Get the database instance."""
     global database
     return database
+
+
+def is_connected():
+    """Check if database is connected."""
+    global database
+    return database is not None
 
 
 def get_collection(collection_name: str):

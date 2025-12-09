@@ -328,3 +328,169 @@ select.form-input {
     color: var(--text-muted);
     font-size: 13px;
 }
+
+/* Copy button styles */
+.detail-value-copyable {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.copy-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 6px;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.copy-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--text-muted);
+}
+
+.copy-btn svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Settings Tokens */
+.saved-tokens-list {
+    margin-bottom: 20px;
+}
+
+.saved-token-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.saved-token-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.saved-token-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.saved-token-value {
+    font-size: 12px;
+    font-family: monospace;
+    color: var(--text-muted);
+}
+
+.section-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 24px 0;
+}
+
+.section-subtitle {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin: 0 0 16px 0;
+}
+
+.add-token-section {
+    margin-top: 16px;
+}
+
+/* Settings Tokens */
+.settings-tokens-list {
+    margin-bottom: 20px;
+}
+
+.saved-token-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+.saved-token-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.saved-token-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.saved-token-value {
+    font-size: 12px;
+    font-family: monospace;
+    color: var(--text-muted);
+}
+
+.section-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 24px 0;
+}
+
+.section-subtitle {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin: 0 0 16px 0;
+}
+
+.add-token-section {
+    margin-top: 16px;
+}
+
+/* Duplicate confirmation */
+#duplicate-token-confirm {
+    padding: 8px 0;
+}
+
+.confirm-message {
+    text-align: center;
+    padding: 16px 0 24px;
+}
+
+.confirm-icon {
+    width: 48px;
+    height: 48px;
+    color: #f59e0b;
+    margin-bottom: 16px;
+}
+
+.confirm-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 8px 0;
+}
+
+.confirm-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.5;
+}

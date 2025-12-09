@@ -81,6 +81,8 @@
                     </svg>
                 </button>
             </div>
+
+            <!-- Main form -->
             <form id="create-workspace-form">
                 <div class="form-group">
                     <label class="form-label" for="new-workspace-name">Workspace Name</label>
@@ -100,7 +102,7 @@
                             <span>Saved Tokens</span>
                             <button type="button" class="token-dropdown-close" id="close-token-dropdown">&times;</button>
                         </div>
-                        <div class="token-dropdown-list" id="saved-tokens-list">
+                        <div class="token-dropdown-list" id="token-dropdown-list">
                             <p class="text-muted">Loading...</p>
                         </div>
                     </div>
@@ -111,6 +113,23 @@
                 </div>
                 <p class="modal-status" id="create-workspace-status"></p>
             </form>
+
+            <!-- Duplicate token confirmation (hidden by default) -->
+            <div id="duplicate-token-confirm" style="display: none;">
+                <div class="confirm-message">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="confirm-icon">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <p class="confirm-title">Token Already in Use</p>
+                    <p class="confirm-text">A workspace with this token already exists. Do you want to create another workspace with the same token?</p>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="duplicate-cancel-btn">No, cancel</button>
+                    <button type="button" class="btn" id="duplicate-confirm-btn">Yes, create anyway</button>
+                </div>
+            </div>
         </div>
     </div>
 </section>

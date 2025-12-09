@@ -36,7 +36,6 @@ async function loadWorkspaceDetails(workspaceId) {
                 token.textContent = tokenValue ? tokenValue.substring(0, 10) + '••••••••••' : '-';
             }
 
-            // Store workspace ID for delete button
             const deleteBtn = document.getElementById('delete-workspace-btn');
             if (deleteBtn) deleteBtn.dataset.workspaceId = ws._id;
 
@@ -69,12 +68,50 @@ function loadWorkspacesSidebar() {
     });
 }
 
+// Store pending workspace data for duplicate confirmation
+let pendingWorkspaceData = null;
+
+// Show/hide form vs confirmation
+function showWorkspaceForm() {
+    const form = document.getElementById('create-workspace-form');
+    const confirm = document.getElementById('duplicate-token-confirm');
+    if (form) form.style.display = 'block';
+    if (confirm) confirm.style.display = 'none';
+}
+
+function showDuplicateConfirm() {
+    const form = document.getElementById('create-workspace-form');
+    const confirm = document.getElementById('duplicate-token-confirm');
+    if (form) form.style.display = 'none';
+    if (confirm) confirm.style.display = 'block';
+}
+
+// Close workspace modal helper
+function closeWorkspaceModal() {
+    const modal = document.getElementById('create-workspace-modal');
+    if (modal) {
+        modal.classList.remove('active');
+        // Reset form
+        const form = document.getElementById('create-workspace-form');
+        if (form) form.reset();
+        const status = document.getElementById('create-workspace-status');
+        if (status) {
+            status.textContent = '';
+            status.className = 'modal-status';
+        }
+        // Reset to form view
+        showWorkspaceForm();
+        pendingWorkspaceData = null;
+    }
+}
+
 // Workspace modal handlers
 document.addEventListener('click', (e) => {
     // Open modal from header button
     if (e.target.closest('#create-workspace-btn')) {
         const modal = document.getElementById('create-workspace-modal');
         if (modal) modal.classList.add('active');
+        showWorkspaceForm();
     }
 
     // Open modal from sidebar
@@ -84,83 +121,146 @@ document.addEventListener('click', (e) => {
         if (typeof setHeaderSection === 'function') setHeaderSection('Workspaces');
         const modal = document.getElementById('create-workspace-modal');
         if (modal) modal.classList.add('active');
+        showWorkspaceForm();
     }
 
-    // Close modal
-    if (e.target.id === 'close-workspace-modal' || e.target.id === 'cancel-workspace-btn') {
-        const modal = document.getElementById('create-workspace-modal');
-        if (modal) modal.classList.remove('active');
+    // Close modal - X button, Cancel button
+    if (e.target.closest('#close-workspace-modal') || e.target.id === 'cancel-workspace-btn') {
+        e.preventDefault();
+        closeWorkspaceModal();
     }
 });
 
 // Close modal on overlay click
 document.addEventListener('click', (e) => {
     if (e.target.id === 'create-workspace-modal') {
-        e.target.classList.remove('active');
+        closeWorkspaceModal();
     }
 });
 
+// Create workspace - helper function
+async function createWorkspace(workspaceName, botToken, allowDuplicate = false) {
+    const res = await fetch('/workspace/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+            workspace_name: workspaceName,
+            bot_token: botToken,
+            allow_duplicate_token: allowDuplicate
+        })
+    });
+
+    return { res, data: await res.json() };
+}
+
+// Handle successful workspace creation
+async function handleWorkspaceCreated(workspaceId) {
+    const status = document.getElementById('create-workspace-status');
+    if (status) {
+        status.textContent = '✓ Workspace created!';
+        status.className = 'modal-status success';
+    }
+
+    setTimeout(async () => {
+        closeWorkspaceModal();
+        await openWorkspaceTab(workspaceId);
+        loadWorkspacesSidebar();
+        loadWorkspaceEmptyList();
+    }, 1000);
+}
+
 // Create workspace form
-const createWorkspaceForm = document.getElementById('create-workspace-form');
-if (createWorkspaceForm) {
-    createWorkspaceForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
+document.addEventListener('submit', async (e) => {
+    if (e.target.id !== 'create-workspace-form') return;
+    e.preventDefault();
 
-        const workspaceName = document.getElementById('new-workspace-name').value;
-        const botToken = document.getElementById('new-workspace-token').value;
-        const status = document.getElementById('create-workspace-status');
-        const submitBtn = document.getElementById('submit-workspace-btn');
+    const workspaceName = document.getElementById('new-workspace-name').value;
+    const botToken = document.getElementById('new-workspace-token').value;
+    const status = document.getElementById('create-workspace-status');
+    const submitBtn = document.getElementById('submit-workspace-btn');
 
-        if (!workspaceName || !botToken) {
-            status.textContent = 'All fields are required';
+    if (!workspaceName || !botToken) {
+        status.textContent = 'All fields are required';
+        status.className = 'modal-status error';
+        return;
+    }
+
+    submitBtn.textContent = 'Creating...';
+    submitBtn.disabled = true;
+
+    try {
+        const { res, data } = await createWorkspace(workspaceName, botToken, false);
+
+        if (res.ok && data.workspace_id) {
+            await handleWorkspaceCreated(data.workspace_id);
+        } else if (data.detail === 'Workspace with this token already exists') {
+            // Store data and show confirmation
+            pendingWorkspaceData = { workspaceName, botToken };
+            showDuplicateConfirm();
+        } else {
+            status.textContent = '✗ ' + (data.detail || 'Failed to create workspace');
             status.className = 'modal-status error';
-            return;
         }
+    } catch (err) {
+        status.textContent = '✗ Connection error';
+        status.className = 'modal-status error';
+    }
 
-        submitBtn.textContent = 'Creating...';
-        submitBtn.disabled = true;
+    submitBtn.textContent = 'Create';
+    submitBtn.disabled = false;
+});
+
+// Duplicate confirmation handlers
+document.addEventListener('click', async (e) => {
+    // Cancel duplicate - close modal
+    if (e.target.id === 'duplicate-cancel-btn') {
+        closeWorkspaceModal();
+        return;
+    }
+
+    // Confirm duplicate - create with flag
+    if (e.target.id === 'duplicate-confirm-btn') {
+        if (!pendingWorkspaceData) return;
+
+        const btn = e.target;
+        btn.textContent = 'Creating...';
+        btn.disabled = true;
 
         try {
-            const res = await fetch('/workspace/create', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'same-origin',
-                body: JSON.stringify({
-                    workspace_name: workspaceName,
-                    bot_token: botToken
-                })
-            });
-
-            const data = await res.json();
+            const { res, data } = await createWorkspace(
+                pendingWorkspaceData.workspaceName,
+                pendingWorkspaceData.botToken,
+                true
+            );
 
             if (res.ok && data.workspace_id) {
-                status.textContent = '✓ Workspace created!';
-                status.className = 'modal-status success';
-
-                setTimeout(async () => {
-                    const modal = document.getElementById('create-workspace-modal');
-                    if (modal) modal.classList.remove('active');
-
-                    createWorkspaceForm.reset();
-                    status.textContent = '';
-
-                    await openWorkspaceTab(data.workspace_id);
-                    loadWorkspacesSidebar();
-                    loadWorkspaceEmptyList();
-                }, 1000);
+                showWorkspaceForm();
+                await handleWorkspaceCreated(data.workspace_id);
             } else {
-                status.textContent = '✗ ' + (data.detail || 'Failed to create workspace');
-                status.className = 'modal-status error';
+                // Show error in form view
+                showWorkspaceForm();
+                const status = document.getElementById('create-workspace-status');
+                if (status) {
+                    status.textContent = '✗ ' + (data.detail || 'Failed to create workspace');
+                    status.className = 'modal-status error';
+                }
             }
         } catch (err) {
-            status.textContent = '✗ Connection error';
-            status.className = 'modal-status error';
+            showWorkspaceForm();
+            const status = document.getElementById('create-workspace-status');
+            if (status) {
+                status.textContent = '✗ Connection error';
+                status.className = 'modal-status error';
+            }
         }
 
-        submitBtn.textContent = 'Create';
-        submitBtn.disabled = false;
-    });
-}
+        btn.textContent = 'Yes, create anyway';
+        btn.disabled = false;
+        pendingWorkspaceData = null;
+        return;
+    }
+});
 
 // Delete workspace handler
 document.addEventListener('click', async (e) => {
@@ -213,7 +313,7 @@ document.addEventListener('click', async (e) => {
         e.stopPropagation();
 
         const dropdown = document.getElementById('token-dropdown');
-        const list = document.getElementById('saved-tokens-list');
+        const list = document.getElementById('token-dropdown-list');
 
         if (!dropdown || !list) return;
 
@@ -223,24 +323,13 @@ document.addEventListener('click', async (e) => {
 
             try {
                 const res = await fetch('/account/tokens', { credentials: 'same-origin' });
-
-                if (!res.ok) {
-                    list.innerHTML = `
-                        <div class="token-dropdown-empty">
-                            <p>No saved tokens</p>
-                            <p style="margin-top: 8px; font-size: 12px;">Add tokens in Settings → Slack Tokens</p>
-                        </div>
-                    `;
-                    return;
-                }
-
                 const data = await res.json();
 
-                if (data.tokens && data.tokens.length > 0) {
+                if (res.ok && data.tokens && data.tokens.length > 0) {
                     list.innerHTML = data.tokens.map(token => `
                         <div class="token-item" data-token="${token.token}">
-                            <span class="token-item-name">${token.name || 'Unnamed Token'}</span>
-                            <span class="token-item-preview">${token.token.substring(0, 15)}...</span>
+                            <span class="token-item-name">${token.name}</span>
+                            <span class="token-item-preview">${token.masked}</span>
                         </div>
                     `).join('');
                 } else {
@@ -252,10 +341,10 @@ document.addEventListener('click', async (e) => {
                     `;
                 }
             } catch (err) {
+                console.error('Error fetching tokens:', err);
                 list.innerHTML = `
                     <div class="token-dropdown-empty">
-                        <p>No saved tokens</p>
-                        <p style="margin-top: 8px; font-size: 12px;">Add tokens in Settings → Slack Tokens</p>
+                        <p>Error loading tokens</p>
                     </div>
                 `;
             }
@@ -282,6 +371,7 @@ document.addEventListener('click', async (e) => {
         const token = tokenItem.dataset.token;
         const input = document.getElementById('new-workspace-token');
         const dropdown = document.getElementById('token-dropdown');
+
         if (input) input.value = token;
         if (dropdown) dropdown.style.display = 'none';
         return;

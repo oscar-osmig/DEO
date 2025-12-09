@@ -42,16 +42,27 @@ class NoCacheStaticFiles(StaticFiles):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await connect_to_mongo()
-    await initialize_scheduler()
-    await load_active_schedules()
-    timeout_task = asyncio.create_task(timeout_checker_loop())
-    print("🕐 Timeout checker started")
+    # Startup
+    connected = await connect_to_mongo()
+    timeout_task = None
+
+    if connected:
+        await initialize_scheduler()
+        await load_active_schedules()
+        print("📅 Scheduler started")
+
+        timeout_task = asyncio.create_task(timeout_checker_loop())
+        print("🕐 Timeout checker started")
+    else:
+        print("⚠️ Skipping scheduler and timeout checker - database not connected")
 
     yield
 
-    timeout_task.cancel()
-    await shutdown_scheduler()
+    # Shutdown
+    if timeout_task:
+        timeout_task.cancel()
+    if connected:
+        await shutdown_scheduler()
     await close_mongo_connection()
 
 

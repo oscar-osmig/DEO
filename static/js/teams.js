@@ -74,17 +74,41 @@ function loadTeamsSidebar() {
     if (!teamsList) return;
 
     fetch('/teams/list', { credentials: 'same-origin' }).then(r => r.json()).then(data => {
+        let html = '<a href="#teams" class="sidebar-submenu-item add-new" id="sidebar-add-team">+ Add team</a>';
         if (data.teams && data.teams.length > 0) {
-            teamsList.innerHTML = data.teams.map(t =>
+            html += data.teams.map(t =>
                 `<a href="#teams" class="sidebar-submenu-item" data-team-id="${t._id}">${t.team_name}</a>`
             ).join('');
-        } else {
-            teamsList.innerHTML = '<a href="#teams" class="sidebar-submenu-item">No teams yet</a>';
         }
+        teamsList.innerHTML = html;
     }).catch(() => {
-        teamsList.innerHTML = '<a href="#teams" class="sidebar-submenu-item">No teams yet</a>';
+        teamsList.innerHTML = '<a href="#teams" class="sidebar-submenu-item add-new" id="sidebar-add-team">+ Add team</a>';
     });
 }
+
+// Copy Team ID button
+document.addEventListener('click', (e) => {
+    if (e.target.closest('#copy-team-id')) {
+        const teamId = document.getElementById('team-id').textContent;
+        const btn = e.target.closest('#copy-team-id');
+
+        navigator.clipboard.writeText(teamId).then(() => {
+            btn.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            `;
+            setTimeout(() => {
+                btn.innerHTML = `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                `;
+            }, 2000);
+        });
+    }
+});
 
 // Remove member button
 document.addEventListener('click', async (e) => {
@@ -165,6 +189,17 @@ document.addEventListener('click', (e) => {
     if (e.target.id === 'close-team-modal' || e.target.id === 'cancel-team-btn') {
         const modal = document.getElementById('create-team-modal');
         if (modal) modal.classList.remove('active');
+    }
+});
+
+// Open modal from sidebar
+document.addEventListener('click', (e) => {
+    if (e.target.closest('#sidebar-add-team')) {
+        e.preventDefault();
+        window.location.hash = '#teams';
+        if (typeof setHeaderSection === 'function') setHeaderSection('Teams');
+        const modal = document.getElementById('create-team-modal');
+        if (modal) modal.classList.add('active');
     }
 });
 

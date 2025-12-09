@@ -115,7 +115,12 @@ async def delete_account_and_all_data(request: Request):
     result = await workspaces_collection.delete_many({"gmail": user_email})
     deleted["workspaces"] = result.deleted_count
 
-    # 14. Finally delete account
+    # 14. Delete saved tokens
+    tokens_collection = get_collection("tokens")
+    result = await tokens_collection.delete_many({"user_email": user_email})
+    deleted["tokens"] = result.deleted_count
+
+    # 15. Finally delete account
     result = await accounts_collection.delete_one({"_id": ObjectId(account_id)})
     deleted["accounts"] = result.deleted_count
 
@@ -132,18 +137,31 @@ async def delete_account_and_all_data(request: Request):
 
 @router.get("/tokens")
 async def get_saved_tokens(request: Request):
-    """Get user's saved Slack tokens."""
+    """Get user's saved Slack tokens from tokens collection."""
     user_email = request.session.get('user_email')
     if not user_email:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
-    accounts_collection = get_collection("accounts")
-    account = await accounts_collection.find_one({"gmail": user_email})
+    tokens_collection = get_collection("tokens")
+    tokens_cursor = tokens_collection.find({"user_email": user_email})
+    tokens_list = await tokens_cursor.to_list(length=100)
 
-    if not account:
-        raise HTTPException(status_code=404, detail="Account not found")
-
-    tokens = account.get("slack_tokens", [])
+    # Format tokens for response (mask the token value)
+    tokens = []
+    for t in tokens_list:
+        token_value = t.get("token", "")
+        # Show last 8 characters with mask
+        if len(token_value) > 8:
+            masked = "•••••••" + token_value[-8:]
+        else:
+            masked = "•••••••"
+        tokens.append({
+            "id": str(t["_id"]),
+            "name": t.get("name", "Unnamed Token"),
+            "token": token_value,
+            "masked": masked,
+            "created_at": t.get("created_at")
+        })
 
     return {
         "success": True,
@@ -153,7 +171,7 @@ async def get_saved_tokens(request: Request):
 
 @router.post("/tokens")
 async def save_token(request: Request):
-    """Save a new Slack token."""
+    """Save a new Slack token to tokens collection."""
     user_email = request.session.get('user_email')
     if not user_email:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -165,46 +183,49 @@ async def save_token(request: Request):
     if not token:
         raise HTTPException(status_code=400, detail="Token is required")
 
-    accounts_collection = get_collection("accounts")
+    if not name:
+        raise HTTPException(status_code=400, detail="Token name is required")
 
-    await accounts_collection.update_one(
-        {"gmail": user_email},
-        {
-            "$push": {
-                "slack_tokens": {
-                    "token": token,
-                    "name": name,
-                    "created_at": datetime.utcnow()
-                }
-            }
-        }
-    )
+    tokens_collection = get_collection("tokens")
 
-    return {"success": True}
+    # Check if token already exists for this user
+    existing = await tokens_collection.find_one({
+        "user_email": user_email,
+        "token": token
+    })
+
+    if existing:
+        raise HTTPException(status_code=400, detail="Token already saved")
+
+    # Insert new token
+    result = await tokens_collection.insert_one({
+        "user_email": user_email,
+        "name": name,
+        "token": token,
+        "created_at": datetime.utcnow()
+    })
+
+    return {
+        "success": True,
+        "token_id": str(result.inserted_id)
+    }
 
 
-@router.delete("/tokens")
-async def delete_token(request: Request):
-    """Delete a saved Slack token."""
+@router.delete("/tokens/{token_id}")
+async def delete_token(request: Request, token_id: str):
+    """Delete a saved Slack token by ID."""
     user_email = request.session.get('user_email')
     if not user_email:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
-    data = await request.json()
-    token = data.get("token")
+    tokens_collection = get_collection("tokens")
 
-    if not token:
-        raise HTTPException(status_code=400, detail="Token is required")
+    result = await tokens_collection.delete_one({
+        "_id": ObjectId(token_id),
+        "user_email": user_email
+    })
 
-    accounts_collection = get_collection("accounts")
-
-    await accounts_collection.update_one(
-        {"gmail": user_email},
-        {
-            "$pull": {
-                "slack_tokens": {"token": token}
-            }
-        }
-    )
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Token not found")
 
     return {"success": True}
