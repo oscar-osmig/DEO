@@ -1,13 +1,106 @@
 <!-- VIEW: HOME -->
 <section class="view view-home" id="home">
-    <div class="home-content">
-        <h2 class="template-title">Welcome back, <span id="user-name">User</span>!</h2>
+    <!-- Lottie Animation - Bottom Right Corner -->
+    <div class="home-animation">
         <script src="https://unpkg.com/@lottiefiles/dotlottie-wc@0.8.5/dist/dotlottie-wc.js" type="module"></script>
         <dotlottie-wc
             src="https://lottie.host/d2d64f3c-2454-4093-8d99-94ce5e820d7b/urmdRjCWHn.lottie"
-            style="width: 300px; height: 300px;"
+            style="width: 220px; height: 220px;"
             autoplay
             loop>
         </dotlottie-wc>
     </div>
+
+    <div class="home-container">
+        <!-- Welcome Section -->
+        <div class="home-welcome">
+            <span class="home-greeting">Welcome back,</span>
+            <h1 class="home-username"><span id="user-name">User</span><span class="typing-cursor">|</span></h1>
+        </div>
+
+        <!-- What is DEO Section -->
+        <div class="home-info">
+            <h2 class="home-tagline">
+                <span class="typing-text" id="typing-tagline"></span>
+            </h2>
+
+            <p class="home-description">
+                DEO is your automation orchestrator for Slack. Create templates, manage teams,
+                and track metrics all in one place.
+            </p>
+
+            <!-- Quick Stats -->
+            <div class="home-stats">
+                <div class="home-stat">
+                    <span class="home-stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                            <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                            <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                            <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+                        </svg>
+                    </span>
+                    <span class="home-stat-label">Dashboards</span>
+                </div>
+                <div class="home-stat">
+                    <span class="home-stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </span>
+                    <span class="home-stat-label">Teams</span>
+                </div>
+                <div class="home-stat">
+                    <span class="home-stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                    </span>
+                    <span class="home-stat-label">Templates</span>
+                </div>
+                <div class="home-stat">
+                    <span class="home-stat-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                            <line x1="8" y1="21" x2="16" y2="21"></line>
+                            <line x1="12" y1="17" x2="12" y2="21"></line>
+                        </svg>
+                    </span>
+                    <span class="home-stat-label">Workspaces</span>
+                </div>
+            </div>
+        </div>
+    </div>
 </section>
+
+<script>
+// Typing animation for tagline
+(function() {
+    const initTyping = () => {
+        const tagline = "Automate. Orchestrate. Elevate.";
+        const element = document.getElementById('typing-tagline');
+        if (!element || element.dataset.typed) return;
+
+        element.dataset.typed = 'true';
+        let i = 0;
+        const typeWriter = () => {
+            if (i < tagline.length) {
+                element.textContent += tagline.charAt(i);
+                i++;
+                setTimeout(typeWriter, 80);
+            }
+        };
+
+        setTimeout(typeWriter, 500);
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initTyping);
+    } else {
+        initTyping();
+    }
+})();
+</script>

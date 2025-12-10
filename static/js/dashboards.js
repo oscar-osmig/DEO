@@ -519,3 +519,88 @@ if (createDashboardForm) {
         btn.textContent = 'Create';
     });
 }
+
+// === TEAM PICKER ===
+document.addEventListener('click', async (e) => {
+    // Open team dropdown
+    if (e.target.id === 'pick-team-btn') {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const dropdown = document.getElementById('team-dropdown');
+        const list = document.getElementById('team-dropdown-list');
+
+        if (!dropdown || !list) return;
+
+        if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+            dropdown.style.display = 'block';
+            list.innerHTML = '<p style="padding: 16px; text-align: center; color: #6b6b6b;">Loading...</p>';
+
+            try {
+                const res = await fetch('/teams/list', { credentials: 'same-origin' });
+                const data = await res.json();
+
+                if (res.ok && data.teams && data.teams.length > 0) {
+                    list.innerHTML = data.teams.map(team => `
+                        <div class="team-item" data-team-id="${team._id}">
+                            <span class="team-item-name">${team.team_name}</span>
+                            <span class="team-item-id">${team._id.substring(0, 8)}...</span>
+                        </div>
+                    `).join('');
+                } else {
+                    list.innerHTML = `
+                        <div class="team-dropdown-empty">
+                            <p>No teams found</p>
+                            <p style="margin-top: 8px; font-size: 12px;">Create a team first in the Teams section</p>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error('Error fetching teams:', err);
+                list.innerHTML = `
+                    <div class="team-dropdown-empty">
+                        <p>Error loading teams</p>
+                    </div>
+                `;
+            }
+        } else {
+            dropdown.style.display = 'none';
+        }
+        return;
+    }
+
+    // Close team dropdown
+    if (e.target.id === 'close-team-dropdown') {
+        e.preventDefault();
+        e.stopPropagation();
+        const dropdown = document.getElementById('team-dropdown');
+        if (dropdown) dropdown.style.display = 'none';
+        return;
+    }
+
+    // Select team from dropdown
+    const teamItem = e.target.closest('.team-item');
+    if (teamItem && e.target.closest('#team-dropdown')) {
+        e.preventDefault();
+        e.stopPropagation();
+        const teamId = teamItem.dataset.teamId;
+        const input = document.getElementById('new-dashboard-team');
+        const dropdown = document.getElementById('team-dropdown');
+
+        if (input) input.value = teamId;
+        if (dropdown) dropdown.style.display = 'none';
+        return;
+    }
+});
+
+// Close team dropdown when clicking outside
+document.addEventListener('mousedown', (e) => {
+    const dropdown = document.getElementById('team-dropdown');
+    const pickBtn = document.getElementById('pick-team-btn');
+
+    if (dropdown && dropdown.style.display !== 'none' && dropdown.style.display !== '') {
+        if (!dropdown.contains(e.target) && e.target !== pickBtn) {
+            dropdown.style.display = 'none';
+        }
+    }
+});

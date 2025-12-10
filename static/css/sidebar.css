@@ -2,20 +2,52 @@
 .sidebar {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
     height: 100%;
     padding: 16px 8px;
     width: var(--sidebar-width);
     transition: width 0.2s ease;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
 }
 
-.sidebar-top, .sidebar-bottom {
+.sidebar-top {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-bottom: 8px;
+    padding-right: 4px;
+}
+
+.sidebar-bottom {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    flex-shrink: 0;
+    border-top: 1px solid var(--border-color);
+    padding-top: 12px;
+    margin-top: 8px;
+}
+
+/* Sidebar scrollbar styling */
+.sidebar-top::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar-top::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-top::-webkit-scrollbar-thumb {
+    background: var(--text-muted);
+    border-radius: 2px;
+}
+
+.sidebar-top::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
 }
 
 .sidebar-btn {

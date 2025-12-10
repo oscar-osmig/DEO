@@ -399,9 +399,9 @@ document.addEventListener('click', async (e) => {
         return;
     }
 
-    // Team link (sidebar or empty state list)
+    // Team link (sidebar or empty state list) - but not from team dropdown in modals
     const teamLink = e.target.closest('[data-team-id]');
-    if (teamLink && !e.target.closest('.tab')) {
+    if (teamLink && !e.target.closest('.tab') && !e.target.closest('#team-dropdown')) {
         e.preventDefault();
         const teamId = teamLink.dataset.teamId;
         window.location.hash = '#teams';

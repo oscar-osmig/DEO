@@ -165,15 +165,20 @@
                 <div class="form-group">
                     <div class="form-label-row">
                         <label class="form-label" for="new-dashboard-team">Team ID</label>
-                        <span class="info-icon" data-tooltip="Enter the MongoDB ObjectId of the team.">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="12" y1="16" x2="12" y2="12"></line>
-                                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                            </svg>
-                        </span>
+                        <button type="button" class="btn-text" id="pick-team-btn">Pick Team</button>
                     </div>
-                    <input type="text" id="new-dashboard-team" class="form-input" placeholder="507f1f77bcf86cd799439011" required>
+                    <div class="input-with-dropdown">
+                        <input type="text" id="new-dashboard-team" class="form-input" placeholder="507f1f77bcf86cd799439011" required>
+                        <div class="team-dropdown" id="team-dropdown" style="display: none;">
+                            <div class="team-dropdown-header">
+                                <span>Select a Team</span>
+                                <button type="button" class="token-dropdown-close" id="close-team-dropdown">&times;</button>
+                            </div>
+                            <div class="team-dropdown-list" id="team-dropdown-list">
+                                <!-- Teams will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
                     <p class="form-hint">The team this dashboard is for</p>
                 </div>
                 <div class="form-group">
