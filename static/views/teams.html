@@ -27,62 +27,68 @@
 
             <!-- Team details - shown when a tab is active -->
             <div class="team-details" id="team-details" style="display: none;">
-                <h2 class="template-title" id="team-title">Team</h2>
-                <p class="template-subtitle" id="team-subtitle">Loading...</p>
+                <div class="team-header-section">
+                    <h2 class="template-title" id="team-title">Team</h2>
+                    <p class="template-subtitle" id="team-subtitle">Team configuration and members</p>
+                </div>
 
-                <div class="card">
-                    <div class="card-title">Team Details</div>
+                <div class="team-cards-grid">
+                    <div class="card">
+                        <div class="card-title">Team Details</div>
 
-                    <div class="detail-row">
-                        <span class="detail-label">Team ID</span>
-                        <span class="detail-value detail-value-copyable">
-                            <span id="team-id">-</span>
-                            <button class="copy-btn" id="copy-team-id" title="Copy Team ID">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                </svg>
-                            </button>
-                        </span>
+                        <div class="detail-row">
+                            <span class="detail-label">Team ID</span>
+                            <span class="detail-value detail-value-copyable">
+                                <span id="team-id">-</span>
+                                <button class="copy-btn" id="copy-team-id" title="Copy Team ID">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                </button>
+                            </span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span class="detail-label">Team Name</span>
+                            <span class="detail-value" id="team-name">-</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span class="detail-label">Description</span>
+                            <span class="detail-value" id="team-description">-</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span class="detail-label">Owner</span>
+                            <span class="detail-value" id="team-owner">-</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span class="detail-label">Members</span>
+                            <span class="detail-value" id="team-member-count">-</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span class="detail-label">Created</span>
+                            <span class="detail-value" id="team-created">-</span>
+                        </div>
                     </div>
 
-                    <div class="detail-row">
-                        <span class="detail-label">Team Name</span>
-                        <span class="detail-value" id="team-name">-</span>
-                    </div>
-
-                    <div class="detail-row">
-                        <span class="detail-label">Description</span>
-                        <span class="detail-value" id="team-description">-</span>
-                    </div>
-
-                    <div class="detail-row">
-                        <span class="detail-label">Owner</span>
-                        <span class="detail-value" id="team-owner">-</span>
-                    </div>
-
-                    <div class="detail-row">
-                        <span class="detail-label">Members</span>
-                        <span class="detail-value" id="team-member-count">-</span>
-                    </div>
-
-                    <div class="detail-row">
-                        <span class="detail-label">Created</span>
-                        <span class="detail-value" id="team-created">-</span>
+                    <div class="card">
+                        <div class="card-title">Team Members</div>
+                        <div class="members-list" id="team-members-list">
+                            <p class="text-muted">No members yet</p>
+                        </div>
+                        <button class="btn btn-small" id="add-member-btn">+ Add Member</button>
                     </div>
                 </div>
 
-                <div class="card">
-                    <div class="card-title">Team Members</div>
-                    <div class="members-list" id="team-members-list">
-                        <p class="text-muted">No members yet</p>
-                    </div>
-                    <button class="btn btn-small" id="add-member-btn">+ Add Member</button>
-                </div>
-
-                <div class="template-actions">
-                    <button class="btn btn-secondary" id="delete-team-btn">Delete Team</button>
-                    <span id="team-action-status"></span>
+                <div class="card card-danger">
+                    <div class="card-title">Danger Zone</div>
+                    <p class="card-subtitle">Permanently delete this team and remove all associated data.</p>
+                    <button class="btn btn-small btn-danger" id="delete-team-btn">Delete Team</button>
+                    <span id="team-action-status" class="action-status"></span>
                 </div>
             </div>
         </div>
