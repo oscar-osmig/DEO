@@ -37,6 +37,7 @@
                         </div>
                         <div class="dashboard-header-right">
                             <span class="dashboard-period-badge" id="dashboard-period-badge">Weekly</span>
+                            <button class="btn btn-secondary btn-small" id="show-graph-btn">Graph</button>
                             <button class="btn btn-secondary btn-small" id="show-details-btn">Show Details</button>
                         </div>
                     </div>
@@ -59,6 +60,57 @@
                                 <p>No submissions yet</p>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Graph View -->
+                <div class="dashboard-graph-view" id="dashboard-graph-view" style="display: none;">
+                    <div class="dashboard-header">
+                        <div class="dashboard-header-left">
+                            <h2 class="dashboard-title" id="graph-view-title">Analytics</h2>
+                            <p class="dashboard-subtitle" id="graph-view-subtitle">Historical metrics over time</p>
+                        </div>
+                        <div class="dashboard-header-right">
+                            <button class="btn btn-secondary btn-small" id="hide-graph-btn">← Back to Dashboard</button>
+                        </div>
+                    </div>
+
+                    <!-- Graph Controls -->
+                    <div class="graph-controls">
+                        <div class="graph-metric-tabs" id="graph-metric-tabs">
+                            <!-- Metric tabs will be populated by JS -->
+                        </div>
+                        <div class="graph-filter-controls">
+                            <div class="member-selector">
+                                <button id="by-member-btn">By Member</button>
+                                <div class="member-dropdown" id="member-dropdown" style="display: none;">
+                                    <div class="member-dropdown-header">
+                                        <span>Select Member</span>
+                                        <button type="button" class="member-dropdown-close" id="close-member-dropdown">&times;</button>
+                                    </div>
+                                    <div class="member-dropdown-list" id="member-dropdown-list">
+                                        <!-- Members will be loaded here -->
+                                    </div>
+                                </div>
+                            </div>
+                            <select class="form-input form-input-small" id="graph-time-range">
+                                <option value="4">Last 4 weeks</option>
+                                <option value="8" selected>Last 8 weeks</option>
+                                <option value="12">Last 12 weeks</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Graph Container -->
+                    <div class="graph-card">
+                        <div class="graph-header">
+                            <span class="graph-metric-label" id="graph-metric-label">All Metrics</span>
+                            <span class="graph-member-label" id="graph-member-label">All Members</span>
+                        </div>
+                        <div class="graph-container" id="graph-container">
+                            <div class="graph-loading">Loading graph data...</div>
+                        </div>
+                        <div class="graph-legend" id="graph-legend"></div>
                     </div>
                 </div>
 

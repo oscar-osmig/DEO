@@ -15,16 +15,20 @@ let currentDashboardUrl = '';
 function showMetricsView() {
     const metricsView = document.getElementById('dashboard-metrics-view');
     const detailsView = document.getElementById('dashboard-details-view');
+    const graphView = document.getElementById('dashboard-graph-view');
     if (metricsView) metricsView.style.display = 'block';
     if (detailsView) detailsView.style.display = 'none';
+    if (graphView) graphView.style.display = 'none';
 }
 
 // Show details view
 function showDetailsView() {
     const metricsView = document.getElementById('dashboard-metrics-view');
     const detailsView = document.getElementById('dashboard-details-view');
+    const graphView = document.getElementById('dashboard-graph-view');
     if (metricsView) metricsView.style.display = 'none';
     if (detailsView) detailsView.style.display = 'block';
+    if (graphView) graphView.style.display = 'none';
 }
 
 // Load dashboard details by ID
@@ -60,6 +64,9 @@ async function loadDashboardDetails(dashboardId) {
 
             // Load leaderboard
             loadDashboardLeaderboard(dashboardId, d.metrics || []);
+
+            // Initialize graph for this dashboard
+            initGraphForDashboard(dashboardId, d.metrics || []);
 
             // === DETAILS VIEW (old) ===
             const title = document.getElementById('dashboard-title');
@@ -600,6 +607,403 @@ document.addEventListener('mousedown', (e) => {
 
     if (dropdown && dropdown.style.display !== 'none' && dropdown.style.display !== '') {
         if (!dropdown.contains(e.target) && e.target !== pickBtn) {
+            dropdown.style.display = 'none';
+        }
+    }
+});
+
+// === GRAPH VIEW ===
+let graphCurrentDashboardId = null;
+let graphCurrentMetric = null;
+let graphCurrentMember = 'all';
+let graphMembers = [];
+let graphMetrics = [];
+
+// Show graph view
+function showGraphView() {
+    const metricsView = document.getElementById('dashboard-metrics-view');
+    const detailsView = document.getElementById('dashboard-details-view');
+    const graphView = document.getElementById('dashboard-graph-view');
+    if (metricsView) metricsView.style.display = 'none';
+    if (detailsView) detailsView.style.display = 'none';
+    if (graphView) graphView.style.display = 'block';
+
+    // Load graph data if we have a dashboard
+    if (graphCurrentDashboardId) {
+        loadGraphData();
+    }
+}
+
+// Hide graph view (back to metrics)
+function hideGraphView() {
+    showMetricsView();
+}
+
+// Graph button click
+document.addEventListener('click', (e) => {
+    if (e.target.closest('#show-graph-btn')) {
+        showGraphView();
+    }
+    if (e.target.closest('#hide-graph-btn')) {
+        hideGraphView();
+    }
+});
+
+// Initialize graph when loading dashboard
+function initGraphForDashboard(dashboardId, metrics) {
+    graphCurrentDashboardId = dashboardId;
+    graphMetrics = metrics || [];
+    graphCurrentMetric = null; // All metrics by default
+    graphCurrentMember = 'all';
+
+    // Populate metric tabs
+    const tabsContainer = document.getElementById('graph-metric-tabs');
+    if (tabsContainer && graphMetrics.length > 0) {
+        let tabsHtml = '<button class="graph-metric-tab active" data-metric="">All</button>';
+        tabsHtml += graphMetrics.map(m =>
+            `<button class="graph-metric-tab" data-metric="${m}">${m}</button>`
+        ).join('');
+        tabsContainer.innerHTML = tabsHtml;
+    }
+
+    // Reset member dropdown display
+    const memberLabel = document.getElementById('graph-member-label');
+    if (memberLabel) memberLabel.textContent = 'All Members';
+
+    // Reset the By Member button
+    updateByMemberButton('all');
+}
+
+// Load graph data from API
+async function loadGraphData() {
+    if (!graphCurrentDashboardId) return;
+
+    const container = document.getElementById('graph-container');
+    if (!container) return;
+
+    container.innerHTML = '<div class="graph-loading">Loading graph data...</div>';
+
+    const timeRange = document.getElementById('graph-time-range')?.value || 8;
+
+    let url = `/dashboards/${graphCurrentDashboardId}/graph-data?time_range=${timeRange}`;
+    if (graphCurrentMetric) {
+        url += `&metric=${encodeURIComponent(graphCurrentMetric)}`;
+    }
+    if (graphCurrentMember && graphCurrentMember !== 'all') {
+        url += `&member_email=${encodeURIComponent(graphCurrentMember)}`;
+    }
+
+    try {
+        const res = await fetch(url, { credentials: 'same-origin' });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            graphMembers = data.members || [];
+            renderGraph(data.series, data.metrics);
+            updateGraphLabels();
+        } else {
+            container.innerHTML = `<div class="graph-empty"><p>Could not load graph data</p></div>`;
+        }
+    } catch (err) {
+        console.error('Error loading graph:', err);
+        container.innerHTML = `<div class="graph-empty"><p>Error loading graph data</p></div>`;
+    }
+}
+
+// Update graph labels
+function updateGraphLabels() {
+    const metricLabel = document.getElementById('graph-metric-label');
+    const memberLabel = document.getElementById('graph-member-label');
+
+    if (metricLabel) {
+        metricLabel.textContent = graphCurrentMetric || 'All Metrics';
+    }
+    if (memberLabel) {
+        if (graphCurrentMember === 'all') {
+            memberLabel.textContent = 'All Members';
+        } else {
+            const member = graphMembers.find(m => m.email === graphCurrentMember);
+            memberLabel.textContent = member ? member.name : graphCurrentMember;
+        }
+    }
+}
+
+// Render SVG graph
+function renderGraph(series, metrics) {
+    const container = document.getElementById('graph-container');
+    const legendContainer = document.getElementById('graph-legend');
+    if (!container) return;
+
+    if (!series || series.length === 0) {
+        container.innerHTML = `
+            <div class="graph-empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                <p>No data available</p>
+            </div>
+        `;
+        if (legendContainer) legendContainer.innerHTML = '';
+        return;
+    }
+
+    // Determine which metrics to display
+    const displayMetrics = graphCurrentMetric ? [graphCurrentMetric] : metrics;
+    const graphColors = ['orange', 'blue', 'green', 'purple', 'pink', 'cyan'];
+
+    // Calculate dimensions
+    const padding = { top: 20, right: 20, bottom: 40, left: 50 };
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    const graphWidth = width - padding.left - padding.right;
+    const graphHeight = height - padding.top - padding.bottom;
+
+    // Find max value
+    let maxValue = 0;
+    series.forEach(point => {
+        displayMetrics.forEach(m => {
+            if (point[m] > maxValue) maxValue = point[m];
+        });
+    });
+    if (maxValue === 0) maxValue = 100;
+    maxValue = Math.ceil(maxValue * 1.1); // Add 10% padding
+
+    // Create SVG
+    let svg = `<svg class="graph-svg" viewBox="0 0 ${width} ${height}">`;
+
+    // Draw grid lines
+    const gridLines = 5;
+    for (let i = 0; i <= gridLines; i++) {
+        const y = padding.top + (graphHeight / gridLines) * i;
+        const value = Math.round(maxValue - (maxValue / gridLines) * i);
+        svg += `<line class="graph-grid-line" x1="${padding.left}" y1="${y}" x2="${width - padding.right}" y2="${y}"/>`;
+        svg += `<text class="graph-axis-label" x="${padding.left - 10}" y="${y + 4}" text-anchor="end">${formatNumber(value)}</text>`;
+    }
+
+    // Draw x-axis labels
+    const xStep = graphWidth / (series.length - 1 || 1);
+    series.forEach((point, i) => {
+        const x = padding.left + xStep * i;
+        svg += `<text class="graph-axis-label" x="${x}" y="${height - 10}" text-anchor="middle">${point.period}</text>`;
+    });
+
+    // Draw lines and areas for each metric
+    displayMetrics.forEach((metricName, metricIndex) => {
+        const color = graphColors[metricIndex % graphColors.length];
+        let linePath = '';
+        let areaPath = '';
+        const points = [];
+
+        series.forEach((point, i) => {
+            const x = padding.left + xStep * i;
+            const value = point[metricName] || 0;
+            const y = padding.top + graphHeight - (value / maxValue) * graphHeight;
+
+            points.push({ x, y, value, period: point.period });
+
+            if (i === 0) {
+                linePath += `M ${x} ${y}`;
+                areaPath += `M ${x} ${padding.top + graphHeight} L ${x} ${y}`;
+            } else {
+                linePath += ` L ${x} ${y}`;
+                areaPath += ` L ${x} ${y}`;
+            }
+        });
+
+        // Close area path
+        if (series.length > 0) {
+            const lastX = padding.left + xStep * (series.length - 1);
+            areaPath += ` L ${lastX} ${padding.top + graphHeight} Z`;
+        }
+
+        // Draw area
+        svg += `<path class="graph-area ${color}" d="${areaPath}"/>`;
+
+        // Draw line
+        svg += `<path class="graph-line ${color}" d="${linePath}"/>`;
+
+        // Draw points
+        points.forEach((p, i) => {
+            svg += `<circle class="graph-point ${color}" cx="${p.x}" cy="${p.y}" r="4" data-metric="${metricName}" data-value="${p.value}" data-period="${p.period}"/>`;
+        });
+    });
+
+    svg += '</svg>';
+
+    // Add tooltip div
+    svg += '<div class="graph-tooltip" id="graph-tooltip"></div>';
+
+    container.innerHTML = svg;
+
+    // Build legend
+    if (legendContainer) {
+        legendContainer.innerHTML = displayMetrics.map((m, i) => {
+            const color = graphColors[i % graphColors.length];
+            return `
+                <div class="graph-legend-item">
+                    <div class="graph-legend-color graph-color-${color}"></div>
+                    <span>${m}</span>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Add point hover handlers
+    container.querySelectorAll('.graph-point').forEach(point => {
+        point.addEventListener('mouseenter', (e) => {
+            const tooltip = document.getElementById('graph-tooltip');
+            if (tooltip) {
+                const metric = e.target.dataset.metric;
+                const value = e.target.dataset.value;
+                const period = e.target.dataset.period;
+                tooltip.innerHTML = `
+                    <div class="graph-tooltip-period">${period}</div>
+                    <div class="graph-tooltip-value">${metric}: ${formatNumber(parseFloat(value))}</div>
+                `;
+                tooltip.classList.add('visible');
+
+                const rect = container.getBoundingClientRect();
+                const x = parseFloat(e.target.getAttribute('cx'));
+                const y = parseFloat(e.target.getAttribute('cy'));
+                tooltip.style.left = `${x}px`;
+                tooltip.style.top = `${y - 60}px`;
+            }
+        });
+
+        point.addEventListener('mouseleave', () => {
+            const tooltip = document.getElementById('graph-tooltip');
+            if (tooltip) tooltip.classList.remove('visible');
+        });
+    });
+}
+
+// Metric tab click handler
+document.addEventListener('click', (e) => {
+    const tab = e.target.closest('.graph-metric-tab');
+    if (tab) {
+        // Update active state
+        document.querySelectorAll('.graph-metric-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+
+        // Set current metric
+        graphCurrentMetric = tab.dataset.metric || null;
+
+        // Reload graph
+        loadGraphData();
+    }
+});
+
+// Time range change
+document.addEventListener('change', (e) => {
+    if (e.target.id === 'graph-time-range') {
+        loadGraphData();
+    }
+});
+
+// By Member button click
+document.addEventListener('click', (e) => {
+    const byMemberBtn = e.target.closest('#by-member-btn');
+    if (byMemberBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const dropdown = document.getElementById('member-dropdown');
+        if (!dropdown) return;
+
+        if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+            dropdown.style.display = 'block';
+            populateMemberDropdown();
+        } else {
+            dropdown.style.display = 'none';
+        }
+        return;
+    }
+
+    // Close member dropdown
+    if (e.target.closest('#close-member-dropdown')) {
+        const dropdown = document.getElementById('member-dropdown');
+        if (dropdown) dropdown.style.display = 'none';
+    }
+});
+
+// Populate member dropdown
+function populateMemberDropdown() {
+    const list = document.getElementById('member-dropdown-list');
+    if (!list) return;
+
+    let html = `
+        <div class="member-dropdown-item ${graphCurrentMember === 'all' ? 'active' : ''}" data-email="all">
+            <span class="member-item-name">All Members</span>
+            <span class="member-item-email">Show aggregated data</span>
+        </div>
+    `;
+
+    graphMembers.forEach(m => {
+        const isActive = graphCurrentMember === m.email;
+        html += `
+            <div class="member-dropdown-item ${isActive ? 'active' : ''}" data-email="${m.email}">
+                <span class="member-item-name">${m.name || 'Unknown'}</span>
+                <span class="member-item-email">${m.email}</span>
+            </div>
+        `;
+    });
+
+    list.innerHTML = html;
+}
+
+// Member dropdown item click
+document.addEventListener('click', (e) => {
+    const item = e.target.closest('.member-dropdown-item');
+    if (item && e.target.closest('#member-dropdown')) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const email = item.dataset.email;
+        graphCurrentMember = email;
+
+        // Update button text and style
+        updateByMemberButton(email);
+
+        // Close dropdown
+        const dropdown = document.getElementById('member-dropdown');
+        if (dropdown) dropdown.style.display = 'none';
+
+        // Reload graph
+        loadGraphData();
+    }
+});
+
+// Helper function to update the By Member button
+function updateByMemberButton(email) {
+    const btn = document.getElementById('by-member-btn');
+    if (!btn) return;
+
+    // Ensure button is always visible
+    btn.style.display = 'inline-flex';
+    btn.style.visibility = 'visible';
+    btn.style.opacity = '1';
+
+    if (email === 'all') {
+        btn.textContent = 'By Member';
+        btn.classList.remove('has-selection');
+    } else {
+        const member = graphMembers.find(m => m.email === email);
+        const displayName = member ? member.name : email;
+        // Truncate long names
+        const truncatedName = displayName.length > 15 ? displayName.substring(0, 15) + '...' : displayName;
+        btn.textContent = truncatedName;
+        btn.classList.add('has-selection');
+    }
+}
+
+// Close member dropdown when clicking outside
+document.addEventListener('mousedown', (e) => {
+    const dropdown = document.getElementById('member-dropdown');
+    const btn = document.getElementById('by-member-btn');
+
+    if (dropdown && dropdown.style.display !== 'none' && dropdown.style.display !== '') {
+        if (!dropdown.contains(e.target) && e.target !== btn) {
             dropdown.style.display = 'none';
         }
     }

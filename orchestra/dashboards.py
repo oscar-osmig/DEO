@@ -1049,3 +1049,140 @@ async def get_dashboard_aggregate(request: Request, dashboard_id: str):
         "period": period,
         "aggregates": aggregates
     }
+
+
+@router.get("/{dashboard_id}/graph-data")
+async def get_graph_data(
+    request: Request,
+    dashboard_id: str,
+    time_range: int = 8,
+    metric: Optional[str] = None,
+    member_email: Optional[str] = None
+):
+    """
+    Get historical graph data for a dashboard.
+
+    Args:
+        dashboard_id: Dashboard ID
+        time_range: Number of weeks to fetch (default 8)
+        metric: Optional specific metric to filter by
+        member_email: Optional member email to filter by (use 'all' for all members)
+
+    Returns:
+        Time series data for graphing
+    """
+    user_email = request.session.get('user_email')
+    if not user_email:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    dashboard_templates = get_collection("dashboard_templates")
+    dashboard_data = get_collection("dashboard_data")
+    dashboard_logins = get_collection("dashboard_logins")
+
+    try:
+        dashboard = await dashboard_templates.find_one({"_id": ObjectId(dashboard_id)})
+    except:
+        raise HTTPException(status_code=400, detail="Invalid dashboard ID")
+
+    if not dashboard:
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+
+    if dashboard.get("owner_email") != user_email:
+        raise HTTPException(status_code=403, detail="You don't own this dashboard")
+
+    # Get members list for reference
+    login_doc = await dashboard_logins.find_one({"dashboard_id": dashboard_id})
+    members_map = {}
+    members_list = []
+    if login_doc:
+        for m in login_doc.get("members", []):
+            email = m.get("email", "").lower().strip()
+            name = m.get("name", "Unknown")
+            members_map[email] = name
+            members_list.append({"email": m.get("email"), "name": name})
+
+    # Get metrics list
+    metrics_list = dashboard.get("metrics", [])
+
+    # Generate week identifiers for the time range
+    now = datetime.utcnow()
+    weeks = []
+    for i in range(time_range - 1, -1, -1):
+        week_date = now - timedelta(weeks=i)
+        week_number = week_date.isocalendar()[1]
+        year = week_date.isocalendar()[0]
+        week_id = f"week-{year}-W{week_number:02d}"
+        weeks.append({
+            "week_id": week_id,
+            "label": f"W{week_number}"
+        })
+
+    # Fetch all data for these weeks
+    week_ids = [w["week_id"] for w in weeks]
+    data_docs = await dashboard_data.find({
+        "dashboard_id": dashboard_id,
+        "reporting_period": {"$in": week_ids}
+    }).to_list(length=100)
+
+    # Create lookup by period
+    data_by_period = {doc["reporting_period"]: doc for doc in data_docs}
+
+    # Build time series data
+    series_data = []
+
+    for week in weeks:
+        week_id = week["week_id"]
+        label = week["label"]
+        data_doc = data_by_period.get(week_id)
+
+        point = {"period": label, "week_id": week_id}
+
+        if not data_doc:
+            # No data for this period
+            if metric:
+                point[metric] = 0
+            else:
+                for m in metrics_list:
+                    point[m] = 0
+        else:
+            metrics_data = data_doc.get("metrics_data", {})
+
+            # Filter by metric if specified
+            target_metrics = [metric] if metric else metrics_list
+
+            for m in target_metrics:
+                metric_values = metrics_data.get(m, {})
+                total = 0
+
+                if member_email and member_email != "all":
+                    # Get specific member's value
+                    member_clean = member_email.lower().strip()
+                    for email, value_data in metric_values.items():
+                        if email.lower().strip() == member_clean:
+                            if isinstance(value_data, dict):
+                                total = value_data.get("value", 0)
+                            else:
+                                total = value_data
+                            break
+                else:
+                    # Sum all members
+                    for email, value_data in metric_values.items():
+                        if isinstance(value_data, dict):
+                            total += value_data.get("value", 0)
+                        else:
+                            total += value_data
+
+                point[m] = total
+
+        series_data.append(point)
+
+    return {
+        "success": True,
+        "dashboard_id": dashboard_id,
+        "metrics": metrics_list,
+        "members": members_list,
+        "series": series_data,
+        "time_range": time_range,
+        "filtered_metric": metric,
+        "filtered_member": member_email
+    }
