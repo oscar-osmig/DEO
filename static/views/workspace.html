@@ -26,44 +26,50 @@
 
             <!-- Workspace details - shown when a tab is active -->
             <div class="workspace-details" id="workspace-details" style="display: none;">
-                <h2 class="template-title" id="workspace-title">Workspace</h2>
-                <p class="template-subtitle" id="workspace-subtitle">Loading...</p>
+                <div class="workspace-header-section">
+                    <h2 class="template-title" id="workspace-title">Workspace</h2>
+                    <p class="template-subtitle" id="workspace-subtitle">Loading...</p>
+                </div>
 
-                <div class="card">
-                    <div class="card-title">Workspace Details</div>
+                <div class="workspace-cards-grid">
+                    <div class="card">
+                        <div class="card-title">Workspace Details</div>
 
-                    <div class="detail-row">
-                        <span class="detail-label">Workspace ID</span>
-                        <span class="detail-value" id="workspace-id">-</span>
+                        <div class="detail-row">
+                            <span class="detail-label">Workspace ID</span>
+                            <span class="detail-value" id="workspace-id">-</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span class="detail-label">Owner</span>
+                            <span class="detail-value" id="workspace-owner">-</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span class="detail-label">Created</span>
+                            <span class="detail-value" id="workspace-created">-</span>
+                        </div>
+
+                        <div class="detail-row">
+                            <span class="detail-label">Status</span>
+                            <span class="detail-value" id="workspace-status">-</span>
+                        </div>
                     </div>
 
-                    <div class="detail-row">
-                        <span class="detail-label">Owner</span>
-                        <span class="detail-value" id="workspace-owner">-</span>
-                    </div>
-
-                    <div class="detail-row">
-                        <span class="detail-label">Created</span>
-                        <span class="detail-value" id="workspace-created">-</span>
-                    </div>
-
-                    <div class="detail-row">
-                        <span class="detail-label">Status</span>
-                        <span class="detail-value" id="workspace-status">-</span>
+                    <div class="card">
+                        <div class="card-title">Bot Token</div>
+                        <div class="detail-row">
+                            <span class="detail-label">Token</span>
+                            <span class="detail-value" id="workspace-token">••••••••••••</span>
+                        </div>
                     </div>
                 </div>
 
-                <div class="card">
-                    <div class="card-title">Bot Token</div>
-                    <div class="detail-row">
-                        <span class="detail-label">Token</span>
-                        <span class="detail-value" id="workspace-token">••••••••••••</span>
-                    </div>
-                </div>
-
-                <div class="template-actions">
-                    <button class="btn btn-secondary" id="delete-workspace-btn">Delete Workspace</button>
-                    <span id="workspace-action-status"></span>
+                <div class="card card-danger">
+                    <div class="card-title">Danger Zone</div>
+                    <p class="card-subtitle">Permanently delete this workspace and disconnect the bot.</p>
+                    <button class="btn btn-small btn-danger" id="delete-workspace-btn">Delete Workspace</button>
+                    <span id="workspace-action-status" class="action-status"></span>
                 </div>
             </div>
         </div>

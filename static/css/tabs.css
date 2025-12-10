@@ -104,7 +104,126 @@
     position: relative;
 }
 
-.workspace-details,
+/* Workspace view - 2 column layout like teams */
+.workspace-details {
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.workspace-details .workspace-header-section {
+    margin-bottom: 8px;
+}
+
+.workspace-details .template-title {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.workspace-details .template-subtitle {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* Two column grid for workspace cards */
+.workspace-details .workspace-cards-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: stretch;
+    margin-bottom: 24px;
+}
+
+/* Workspace cards styling */
+.workspace-details .card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 0;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.workspace-details .card:hover {
+    border-color: var(--text-muted);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.workspace-details .card-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.workspace-details .detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.workspace-details .detail-row:last-of-type {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.workspace-details .detail-row:first-of-type {
+    padding-top: 0;
+}
+
+.workspace-details .detail-label {
+    font-size: 14px;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+.workspace-details .detail-value {
+    font-size: 14px;
+    color: var(--text-primary);
+    font-family: inherit;
+}
+
+/* Workspace danger zone card */
+.workspace-details .card-danger {
+    border-color: rgba(248, 113, 113, 0.2);
+    background-color: rgba(248, 113, 113, 0.03);
+    padding: 20px 24px;
+    max-width: 50%;
+}
+
+.workspace-details .card-danger .card-title {
+    color: #f87171;
+    border-bottom-color: rgba(248, 113, 113, 0.2);
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+}
+
+.workspace-details .card-danger .card-subtitle {
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+
+.workspace-details .card-danger .btn-danger {
+    margin-top: 0;
+}
+
+.workspace-details .action-status {
+    margin-left: 12px;
+    font-size: 13px;
+}
+
 .dashboard-details {
     max-width: 600px;
 }
@@ -244,7 +363,7 @@
 }
 
 .team-details .team-header-section {
-    margin-bottom: 0;
+    margin-bottom: 8px;
 }
 
 .team-details .template-title {
