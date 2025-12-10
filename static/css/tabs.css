@@ -105,16 +105,8 @@
 }
 
 .workspace-details,
-.template-details,
 .dashboard-details {
     max-width: 600px;
-}
-
-.template-actions {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-    margin-top: 24px;
 }
 
 #workspace,
