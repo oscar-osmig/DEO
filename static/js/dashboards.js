@@ -166,13 +166,36 @@ async function renderMetricCards(metrics, dashboardId) {
     }
 
     let aggregatedData = {};
+    let historicalData = {};
+
     try {
-        const res = await fetch(`/dashboards/${dashboardId}/aggregate`, { credentials: 'same-origin' });
-        const data = await res.json();
-        if (res.ok && data.aggregates) {
-            aggregatedData = data.aggregates;
+        // Fetch current aggregates and historical data in parallel
+        const [aggRes, histRes] = await Promise.all([
+            fetch(`/dashboards/${dashboardId}/aggregate`, { credentials: 'same-origin' }),
+            fetch(`/dashboards/${dashboardId}/graph-data?time_range=4`, { credentials: 'same-origin' })
+        ]);
+
+        const aggData = await aggRes.json();
+        if (aggRes.ok && aggData.aggregates) {
+            aggregatedData = aggData.aggregates;
         }
-    } catch (err) {}
+
+        const histData = await histRes.json();
+        if (histRes.ok && histData.series) {
+            // Transform series data into per-metric arrays
+            histData.series.forEach((point, idx) => {
+                metrics.forEach(metric => {
+                    if (!historicalData[metric]) historicalData[metric] = [];
+                    historicalData[metric].push({
+                        value: point[metric] || 0,
+                        label: point.period
+                    });
+                });
+            });
+        }
+    } catch (err) {
+        console.error('Error fetching metric data:', err);
+    }
 
     grid.innerHTML = metrics.map((metric, index) => {
         const color = metricColors[index % metricColors.length];
@@ -180,9 +203,25 @@ async function renderMetricCards(metrics, dashboardId) {
         const value = aggregatedData[metric]?.total || 0;
         const count = aggregatedData[metric]?.count || 0;
 
-        const chartBars = Array.from({ length: 8 }, () =>
-            `<div class="metric-chart-bar" style="height: ${20 + Math.random() * 80}%"></div>`
-        ).join('');
+        // Build chart bars from historical data
+        const history = historicalData[metric] || [];
+        const maxVal = Math.max(...history.map(h => h.value), 1);
+
+        const chartBars = history.length > 0
+            ? history.map((h, i) => {
+                const heightPercent = Math.max((h.value / maxVal) * 100, 4);
+                const isLast = i === history.length - 1;
+                return `<div class="metric-chart-bar-wrapper">
+                    <div class="metric-chart-bar ${isLast ? 'current' : ''}" style="height: ${heightPercent}%"></div>
+                    <span class="metric-chart-label">${h.label}</span>
+                </div>`;
+            }).join('')
+            : Array.from({ length: 4 }, (_, i) =>
+                `<div class="metric-chart-bar-wrapper">
+                    <div class="metric-chart-bar" style="height: 4%"></div>
+                    <span class="metric-chart-label">W${i+1}</span>
+                </div>`
+            ).join('');
 
         return `
             <div class="metric-card">
@@ -194,7 +233,7 @@ async function renderMetricCards(metrics, dashboardId) {
                     <span class="metric-card-label">${metric}</span>
                     <span class="metric-card-value">${formatNumber(value)}</span>
                 </div>
-                <div class="metric-card-chart">${chartBars}</div>
+                <div class="metric-card-chart" data-color="${color}">${chartBars}</div>
             </div>
         `;
     }).join('');
@@ -1147,17 +1186,44 @@ async function renderMetricCardsFiltered(metrics, dashboardId, memberEmail) {
     }
 
     let aggregatedData = {};
+    let historicalData = {};
+
     try {
-        let url = `/dashboards/${dashboardId}/aggregate`;
+        // Build URLs with member filter
+        let aggUrl = `/dashboards/${dashboardId}/aggregate`;
+        let histUrl = `/dashboards/${dashboardId}/graph-data?time_range=4`;
         if (memberEmail && memberEmail !== 'all') {
-            url += `?member_email=${encodeURIComponent(memberEmail)}`;
+            aggUrl += `?member_email=${encodeURIComponent(memberEmail)}`;
+            histUrl += `&member_email=${encodeURIComponent(memberEmail)}`;
         }
-        const res = await fetch(url, { credentials: 'same-origin' });
-        const data = await res.json();
-        if (res.ok && data.aggregates) {
-            aggregatedData = data.aggregates;
+
+        // Fetch current aggregates and historical data in parallel
+        const [aggRes, histRes] = await Promise.all([
+            fetch(aggUrl, { credentials: 'same-origin' }),
+            fetch(histUrl, { credentials: 'same-origin' })
+        ]);
+
+        const aggData = await aggRes.json();
+        if (aggRes.ok && aggData.aggregates) {
+            aggregatedData = aggData.aggregates;
         }
-    } catch (err) {}
+
+        const histData = await histRes.json();
+        if (histRes.ok && histData.series) {
+            // Transform series data into per-metric arrays
+            histData.series.forEach((point, idx) => {
+                metrics.forEach(metric => {
+                    if (!historicalData[metric]) historicalData[metric] = [];
+                    historicalData[metric].push({
+                        value: point[metric] || 0,
+                        label: point.period
+                    });
+                });
+            });
+        }
+    } catch (err) {
+        console.error('Error fetching filtered metric data:', err);
+    }
 
     grid.innerHTML = metrics.map((metric, index) => {
         const color = metricColors[index % metricColors.length];
@@ -1165,9 +1231,25 @@ async function renderMetricCardsFiltered(metrics, dashboardId, memberEmail) {
         const value = aggregatedData[metric]?.total || 0;
         const count = aggregatedData[metric]?.count || 0;
 
-        const chartBars = Array.from({ length: 8 }, () =>
-            `<div class="metric-chart-bar" style="height: ${20 + Math.random() * 80}%"></div>`
-        ).join('');
+        // Build chart bars from historical data
+        const history = historicalData[metric] || [];
+        const maxVal = Math.max(...history.map(h => h.value), 1);
+
+        const chartBars = history.length > 0
+            ? history.map((h, i) => {
+                const heightPercent = Math.max((h.value / maxVal) * 100, 4);
+                const isLast = i === history.length - 1;
+                return `<div class="metric-chart-bar-wrapper">
+                    <div class="metric-chart-bar ${isLast ? 'current' : ''}" style="height: ${heightPercent}%"></div>
+                    <span class="metric-chart-label">${h.label}</span>
+                </div>`;
+            }).join('')
+            : Array.from({ length: 4 }, (_, i) =>
+                `<div class="metric-chart-bar-wrapper">
+                    <div class="metric-chart-bar" style="height: 4%"></div>
+                    <span class="metric-chart-label">W${i+1}</span>
+                </div>`
+            ).join('');
 
         return `
             <div class="metric-card">
@@ -1179,7 +1261,7 @@ async function renderMetricCardsFiltered(metrics, dashboardId, memberEmail) {
                     <span class="metric-card-label">${metric}</span>
                     <span class="metric-card-value">${formatNumber(value)}</span>
                 </div>
-                <div class="metric-card-chart">${chartBars}</div>
+                <div class="metric-card-chart" data-color="${color}">${chartBars}</div>
             </div>
         `;
     }).join('');

@@ -249,32 +249,61 @@
 }
 
 .metric-card-chart {
-    height: 32px;
+    height: 60px;
     display: flex;
     align-items: flex-end;
-    gap: 2px;
-    padding-top: 4px;
+    gap: 6px;
+    padding-top: 10px;
     border-top: 1px solid var(--border-color);
 }
 
-.metric-chart-bar {
+.metric-chart-bar-wrapper {
     flex: 1;
-    background: var(--accent-primary);
-    border-radius: 2px;
-    opacity: 0.4;
-    transition: opacity 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 4px;
+    height: 100%;
 }
+
+.metric-chart-bar {
+    width: 100%;
+    max-width: 28px;
+    background: var(--border-color);
+    border-radius: 3px;
+    transition: background 0.2s ease, opacity 0.2s ease;
+    min-height: 2px;
+    flex-shrink: 0;
+}
+
+/* Color-coded bars based on parent data-color attribute */
+.metric-card-chart[data-color="orange"] .metric-chart-bar { background: rgba(245, 158, 11, 0.3); }
+.metric-card-chart[data-color="orange"] .metric-chart-bar.current { background: #f59e0b; }
+.metric-card-chart[data-color="blue"] .metric-chart-bar { background: rgba(59, 130, 246, 0.3); }
+.metric-card-chart[data-color="blue"] .metric-chart-bar.current { background: #3b82f6; }
+.metric-card-chart[data-color="green"] .metric-chart-bar { background: rgba(16, 185, 129, 0.3); }
+.metric-card-chart[data-color="green"] .metric-chart-bar.current { background: #10b981; }
+.metric-card-chart[data-color="purple"] .metric-chart-bar { background: rgba(139, 92, 246, 0.3); }
+.metric-card-chart[data-color="purple"] .metric-chart-bar.current { background: #8b5cf6; }
+.metric-card-chart[data-color="pink"] .metric-chart-bar { background: rgba(236, 72, 153, 0.3); }
+.metric-card-chart[data-color="pink"] .metric-chart-bar.current { background: #ec4899; }
+.metric-card-chart[data-color="cyan"] .metric-chart-bar { background: rgba(6, 182, 212, 0.3); }
+.metric-card-chart[data-color="cyan"] .metric-chart-bar.current { background: #06b6d4; }
 
 .metric-card:hover .metric-chart-bar {
-    opacity: 0.6;
-}
-
-.metric-chart-bar:last-child {
     opacity: 0.8;
 }
 
-.metric-card:hover .metric-chart-bar:last-child {
+.metric-card:hover .metric-chart-bar.current {
     opacity: 1;
+}
+
+.metric-chart-label {
+    font-size: 9px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
 
 .metric-card-placeholder {

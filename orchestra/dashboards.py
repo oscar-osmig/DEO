@@ -1033,14 +1033,15 @@ async def get_dashboard_aggregate(request: Request, dashboard_id: str, member_em
 
     if data_doc:
         metrics_data = data_doc.get("metrics_data", {})
+        member_email_clean = member_email.lower().strip() if member_email else None
 
         for metric_name, metric_values in metrics_data.items():
             if metric_name in aggregates:
                 total = 0
                 count = 0
                 for email, value_data in metric_values.items():
-                    # If member_email filter is set, only include that member
-                    if member_email and email != member_email:
+                    # If member_email filter is set, only include that member (case-insensitive)
+                    if member_email_clean and email.lower().strip() != member_email_clean:
                         continue
                     value = value_data.get("value", 0) if isinstance(value_data, dict) else value_data
                     total += value
@@ -1112,14 +1113,24 @@ async def get_graph_data(
     # Generate week identifiers for the time range
     now = datetime.utcnow()
     weeks = []
+    month_abbrevs = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
     for i in range(time_range - 1, -1, -1):
         week_date = now - timedelta(weeks=i)
         week_number = week_date.isocalendar()[1]
         year = week_date.isocalendar()[0]
         week_id = f"week-{year}-W{week_number:02d}"
+
+        # Calculate week of month (1-5) and month abbreviation
+        month = week_date.month
+        month_abbr = month_abbrevs[month - 1]
+        # Get the first day of the month
+        first_of_month = week_date.replace(day=1)
+        # Calculate which week of the month this is
+        week_of_month = ((week_date.day - 1) // 7) + 1
+
         weeks.append({
             "week_id": week_id,
-            "label": f"W{week_number}"
+            "label": f"{month_abbr}-{week_of_month}"
         })
 
     # Fetch all data for these weeks
