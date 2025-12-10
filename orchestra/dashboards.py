@@ -991,10 +991,11 @@ async def get_my_metrics(dashboard_id: str, email: str):
     }
 
 @router.get("/{dashboard_id}/aggregate")
-async def get_dashboard_aggregate(request: Request, dashboard_id: str):
+async def get_dashboard_aggregate(request: Request, dashboard_id: str, member_email: Optional[str] = None):
     """
     Get aggregated metrics totals for the current period.
     Returns total value and submission count for each metric.
+    Optionally filter by member_email to show only one member's data.
     """
     user_email = request.session.get('user_email')
     if not user_email:
@@ -1038,6 +1039,9 @@ async def get_dashboard_aggregate(request: Request, dashboard_id: str):
                 total = 0
                 count = 0
                 for email, value_data in metric_values.items():
+                    # If member_email filter is set, only include that member
+                    if member_email and email != member_email:
+                        continue
                     value = value_data.get("value", 0) if isinstance(value_data, dict) else value_data
                     total += value
                     count += 1
@@ -1047,6 +1051,7 @@ async def get_dashboard_aggregate(request: Request, dashboard_id: str):
         "success": True,
         "dashboard_id": dashboard_id,
         "period": period,
+        "member_email": member_email,
         "aggregates": aggregates
     }
 

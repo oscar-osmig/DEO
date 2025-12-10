@@ -36,8 +36,35 @@
                             <p class="dashboard-subtitle" id="metrics-view-subtitle">Overview of your metrics</p>
                         </div>
                         <div class="dashboard-header-right">
-                            <span class="dashboard-period-badge" id="dashboard-period-badge">Weekly</span>
-                            <button class="btn btn-secondary btn-small" id="show-graph-btn">Graph</button>
+                            <div class="member-filter-selector">
+                                <button id="metrics-by-member-btn">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                    <span id="metrics-member-btn-text">all</span>
+                                    <svg class="dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="6 9 12 15 18 9"></polyline>
+                                    </svg>
+                                </button>
+                                <div class="member-dropdown" id="metrics-member-dropdown" style="display: none;">
+                                    <div class="member-dropdown-header">
+                                        <span>Filter by Member</span>
+                                        <button type="button" class="member-dropdown-close" id="close-metrics-member-dropdown">&times;</button>
+                                    </div>
+                                    <div class="member-dropdown-list" id="metrics-member-dropdown-list">
+                                        <!-- Members will be loaded here -->
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="btn btn-secondary btn-small btn-with-icon" id="show-graph-btn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                                </svg>
+                                Graph
+                            </button>
                             <button class="btn btn-secondary btn-small" id="show-details-btn">Show Details</button>
                         </div>
                     </div>

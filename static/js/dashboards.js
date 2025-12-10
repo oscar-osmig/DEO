@@ -1007,4 +1007,255 @@ document.addEventListener('mousedown', (e) => {
             dropdown.style.display = 'none';
         }
     }
+
+    // Also handle metrics view member dropdown
+    const metricsDropdown = document.getElementById('metrics-member-dropdown');
+    const metricsBtn = document.getElementById('metrics-by-member-btn');
+
+    if (metricsDropdown && metricsDropdown.style.display !== 'none' && metricsDropdown.style.display !== '') {
+        // Check if click is inside button (including its children like SVGs)
+        const isInsideBtn = metricsBtn && (e.target === metricsBtn || metricsBtn.contains(e.target));
+        if (!metricsDropdown.contains(e.target) && !isInsideBtn) {
+            metricsDropdown.style.display = 'none';
+        }
+    }
 });
+
+// === METRICS VIEW MEMBER FILTER ===
+let metricsViewCurrentMember = 'all';
+let metricsViewMembers = [];
+
+// Metrics By Member button click
+document.addEventListener('click', (e) => {
+    const metricsBtn = e.target.closest('#metrics-by-member-btn');
+    if (metricsBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const dropdown = document.getElementById('metrics-member-dropdown');
+        if (!dropdown) return;
+
+        if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+            dropdown.style.display = 'block';
+            populateMetricsMemberDropdown();
+        } else {
+            dropdown.style.display = 'none';
+        }
+        return;
+    }
+
+    // Close metrics member dropdown
+    if (e.target.closest('#close-metrics-member-dropdown')) {
+        const dropdown = document.getElementById('metrics-member-dropdown');
+        if (dropdown) dropdown.style.display = 'none';
+    }
+});
+
+// Populate metrics member dropdown
+async function populateMetricsMemberDropdown() {
+    const list = document.getElementById('metrics-member-dropdown-list');
+    if (!list) return;
+
+    // Load members if not already loaded
+    if (metricsViewMembers.length === 0 && graphCurrentDashboardId) {
+        try {
+            const res = await fetch(`/dashboards/${graphCurrentDashboardId}/login-info`, { credentials: 'same-origin' });
+            const data = await res.json();
+            if (res.ok && data.members) {
+                metricsViewMembers = data.members;
+            }
+        } catch (err) {
+            console.error('Error loading members:', err);
+        }
+    }
+
+    let html = `
+        <div class="member-dropdown-item ${metricsViewCurrentMember === 'all' ? 'active' : ''}" data-email="all" data-target="metrics">
+            <span class="member-item-name">All Members</span>
+            <span class="member-item-email">Show aggregated data</span>
+        </div>
+    `;
+
+    metricsViewMembers.forEach(m => {
+        const isActive = metricsViewCurrentMember === m.email;
+        html += `
+            <div class="member-dropdown-item ${isActive ? 'active' : ''}" data-email="${m.email}" data-target="metrics">
+                <span class="member-item-name">${m.name || 'Unknown'}</span>
+                <span class="member-item-email">${m.email}</span>
+            </div>
+        `;
+    });
+
+    list.innerHTML = html;
+}
+
+// Metrics member dropdown item click
+document.addEventListener('click', (e) => {
+    const item = e.target.closest('.member-dropdown-item[data-target="metrics"]');
+    if (item && e.target.closest('#metrics-member-dropdown')) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const email = item.dataset.email;
+        metricsViewCurrentMember = email;
+
+        // Update button text
+        updateMetricsByMemberButton(email);
+
+        // Close dropdown
+        const dropdown = document.getElementById('metrics-member-dropdown');
+        if (dropdown) dropdown.style.display = 'none';
+
+        // Reload metrics with filter
+        if (graphCurrentDashboardId) {
+            renderMetricCardsFiltered(currentDashboardMetrics, graphCurrentDashboardId, email);
+            loadDashboardLeaderboardFiltered(graphCurrentDashboardId, currentDashboardMetrics, email);
+        }
+    }
+});
+
+// Helper function to update the Metrics By Member button
+function updateMetricsByMemberButton(email) {
+    const btn = document.getElementById('metrics-by-member-btn');
+    const textSpan = document.getElementById('metrics-member-btn-text');
+    if (!btn || !textSpan) return;
+
+    btn.style.display = 'inline-flex';
+    btn.style.visibility = 'visible';
+    btn.style.opacity = '1';
+
+    if (email === 'all') {
+        textSpan.textContent = 'all';
+        btn.classList.remove('has-selection');
+    } else {
+        const member = metricsViewMembers.find(m => m.email === email);
+        const displayName = member ? member.name : email;
+        // Truncate to fit in button
+        const truncatedName = displayName.length > 12 ? displayName.substring(0, 12) + '...' : displayName;
+        textSpan.textContent = truncatedName;
+        btn.classList.add('has-selection');
+    }
+}
+
+// Render metric cards with member filter
+async function renderMetricCardsFiltered(metrics, dashboardId, memberEmail) {
+    const grid = document.getElementById('metrics-grid');
+    if (!grid) return;
+
+    if (!metrics || metrics.length === 0) {
+        grid.innerHTML = '<div class="metric-card-placeholder"><p>No metrics configured</p></div>';
+        return;
+    }
+
+    let aggregatedData = {};
+    try {
+        let url = `/dashboards/${dashboardId}/aggregate`;
+        if (memberEmail && memberEmail !== 'all') {
+            url += `?member_email=${encodeURIComponent(memberEmail)}`;
+        }
+        const res = await fetch(url, { credentials: 'same-origin' });
+        const data = await res.json();
+        if (res.ok && data.aggregates) {
+            aggregatedData = data.aggregates;
+        }
+    } catch (err) {}
+
+    grid.innerHTML = metrics.map((metric, index) => {
+        const color = metricColors[index % metricColors.length];
+        const icon = metricIcons[metric.toLowerCase()] || metricIcons.default;
+        const value = aggregatedData[metric]?.total || 0;
+        const count = aggregatedData[metric]?.count || 0;
+
+        const chartBars = Array.from({ length: 8 }, () =>
+            `<div class="metric-chart-bar" style="height: ${20 + Math.random() * 80}%"></div>`
+        ).join('');
+
+        return `
+            <div class="metric-card">
+                <div class="metric-card-header">
+                    <div class="metric-card-icon ${color}">${icon}</div>
+                    <div class="metric-card-trend">${count} submissions</div>
+                </div>
+                <div class="metric-card-body">
+                    <span class="metric-card-label">${metric}</span>
+                    <span class="metric-card-value">${formatNumber(value)}</span>
+                </div>
+                <div class="metric-card-chart">${chartBars}</div>
+            </div>
+        `;
+    }).join('');
+}
+
+// Load leaderboard with member filter (shows only that member)
+async function loadDashboardLeaderboardFiltered(dashboardId, metrics, memberEmail) {
+    const container = document.getElementById('dashboard-leaderboard');
+    const countBadge = document.getElementById('leaderboard-count');
+    if (!container) return;
+
+    try {
+        const res = await fetch(`/dashboards/${dashboardId}/leaderboard`, { credentials: 'same-origin' });
+        const data = await res.json();
+
+        if (res.ok && data.leaderboard && data.leaderboard.length > 0) {
+            let leaderboard = data.leaderboard;
+
+            // Filter to specific member if not 'all'
+            if (memberEmail && memberEmail !== 'all') {
+                leaderboard = leaderboard.filter(m => m.email.toLowerCase() === memberEmail.toLowerCase());
+            }
+
+            if (countBadge) countBadge.textContent = `${leaderboard.length} members`;
+
+            container.innerHTML = leaderboard.map((member, index) => {
+                let rankClass = '';
+                if (index === 0) rankClass = 'gold';
+                else if (index === 1) rankClass = 'silver';
+                else if (index === 2) rankClass = 'bronze';
+
+                const memberMetrics = member.metrics || {};
+                const metricsHtml = metrics.slice(0, 3).map(m => {
+                    let val = 0;
+                    if (memberMetrics[m]) {
+                        val = memberMetrics[m].value || 0;
+                    } else {
+                        const lowerM = m.toLowerCase();
+                        for (const [key, data] of Object.entries(memberMetrics)) {
+                            if (key.toLowerCase() === lowerM) {
+                                val = data.value || 0;
+                                break;
+                            }
+                        }
+                    }
+                    return `
+                        <div class="leaderboard-metric">
+                            <span class="leaderboard-metric-value">${formatNumber(val)}</span>
+                            <span class="leaderboard-metric-label">${m}</span>
+                        </div>
+                    `;
+                }).join('');
+
+                return `
+                    <div class="leaderboard-row">
+                        <div class="leaderboard-rank ${rankClass}">${index + 1}</div>
+                        <div class="leaderboard-info">
+                            <span class="leaderboard-name">${member.name || 'Unknown'}</span>
+                            <span class="leaderboard-email">${member.email}</span>
+                        </div>
+                        <div class="leaderboard-metrics">${metricsHtml}</div>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            if (countBadge) countBadge.textContent = '0 members';
+            container.innerHTML = '<div class="leaderboard-empty"><p>No submissions yet</p></div>';
+        }
+    } catch (err) {
+        container.innerHTML = '<div class="leaderboard-empty"><p>Could not load leaderboard</p></div>';
+    }
+}
+
+// Reset metrics view member filter when loading new dashboard
+function resetMetricsViewMemberFilter() {
+    metricsViewCurrentMember = 'all';
+    metricsViewMembers = [];
+    updateMetricsByMemberButton('all');
+}
