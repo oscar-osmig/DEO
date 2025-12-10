@@ -389,7 +389,12 @@ document.addEventListener('click', async (e) => {
 
         if (!dashboardId) return;
 
-        if (!confirm('Delete this dashboard?')) return;
+        const confirmed = await confirmDelete({
+            title: 'Delete Dashboard',
+            message: 'Are you sure you want to delete this dashboard?',
+            warning: 'All metrics and member access will be removed. This action cannot be undone.'
+        });
+        if (!confirmed) return;
 
         e.target.textContent = 'Deleting...';
         e.target.disabled = true;

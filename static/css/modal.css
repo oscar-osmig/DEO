@@ -494,3 +494,119 @@ select.form-input {
     margin: 0;
     line-height: 1.5;
 }
+
+/* === DELETE CONFIRMATION MODAL === */
+.delete-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.15s ease;
+}
+
+.delete-modal-overlay.active {
+    display: flex;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.delete-modal {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 32px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    animation: slideUp 0.2s ease;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.delete-modal-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 20px;
+    background-color: rgba(248, 113, 113, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.delete-modal-icon svg {
+    width: 32px;
+    height: 32px;
+    color: #f87171;
+}
+
+.delete-modal-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 12px 0;
+}
+
+.delete-modal-message {
+    font-size: 15px;
+    color: var(--text-secondary);
+    margin: 0 0 8px 0;
+    line-height: 1.5;
+}
+
+.delete-modal-warning {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin: 0 0 28px 0;
+}
+
+.delete-modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.delete-modal-actions .btn {
+    min-width: 100px;
+    padding: 12px 24px;
+}
+
+.delete-modal-actions .btn-secondary {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.delete-modal-actions .btn-secondary:hover {
+    background-color: var(--bg-hover);
+}
+
+.delete-modal-actions .delete-modal-confirm {
+    background-color: #f87171;
+    color: #000;
+    border: none;
+}
+
+.delete-modal-actions .delete-modal-confirm:hover {
+    background-color: #ef4444;
+}

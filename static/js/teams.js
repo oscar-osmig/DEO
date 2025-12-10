@@ -120,7 +120,13 @@ document.addEventListener('click', async (e) => {
 
     if (!email || !teamId) return;
 
-    if (!confirm(`Remove ${email} from the team?`)) return;
+    const confirmed = await confirmDelete({
+        title: 'Remove Member',
+        message: `Are you sure you want to remove ${email} from the team?`,
+        warning: 'They will lose access to team resources.',
+        confirmText: 'Remove'
+    });
+    if (!confirmed) return;
 
     try {
         const res = await fetch(`/teams/${teamId}/members/${encodeURIComponent(email)}`, {
@@ -145,7 +151,12 @@ document.addEventListener('click', async (e) => {
 
         if (!teamId) return;
 
-        if (!confirm('Delete this team?')) return;
+        const confirmed = await confirmDelete({
+            title: 'Delete Team',
+            message: 'Are you sure you want to delete this team?',
+            warning: 'All members will be removed. This action cannot be undone.'
+        });
+        if (!confirmed) return;
 
         e.target.textContent = 'Deleting...';
         e.target.disabled = true;

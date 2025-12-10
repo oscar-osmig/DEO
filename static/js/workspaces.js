@@ -271,7 +271,12 @@ document.addEventListener('click', async (e) => {
 
         if (!workspaceId) return;
 
-        if (!confirm('Delete this workspace? This action cannot be undone.')) return;
+        const confirmed = await confirmDelete({
+            title: 'Delete Workspace',
+            message: 'Are you sure you want to delete this workspace?',
+            warning: 'This action cannot be undone.'
+        });
+        if (!confirmed) return;
 
         btn.textContent = 'Deleting...';
         btn.disabled = true;

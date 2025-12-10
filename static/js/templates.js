@@ -148,7 +148,12 @@ document.addEventListener('click', async (e) => {
 
         if (!templateId) return;
 
-        if (!confirm(`Delete template "${templateId}"?`)) return;
+        const confirmed = await confirmDelete({
+            title: 'Delete Template',
+            message: `Are you sure you want to delete "${templateId}"?`,
+            warning: 'This action cannot be undone.'
+        });
+        if (!confirmed) return;
 
         e.target.textContent = 'Deleting...';
         e.target.disabled = true;

@@ -93,7 +93,12 @@ document.addEventListener('click', async (e) => {
     const tokenId = e.target.dataset.tokenId;
     if (!tokenId) return;
 
-    if (!confirm('Delete this token?')) return;
+    const confirmed = await confirmDelete({
+        title: 'Delete Token',
+        message: 'Are you sure you want to delete this token?',
+        warning: 'Workspaces using this token will not be affected.'
+    });
+    if (!confirmed) return;
 
     e.target.textContent = 'Deleting...';
     e.target.disabled = true;
@@ -123,8 +128,13 @@ document.addEventListener('click', async (e) => {
 
     const status = document.getElementById('account-action-status');
 
-    if (!confirm('Are you sure you want to delete your account and ALL data? This cannot be undone.')) return;
-    if (!confirm('This will delete all workspaces, teams, dashboards, and templates. Are you absolutely sure?')) return;
+    const confirmed = await confirmDelete({
+        title: 'Delete Account',
+        message: 'Are you sure you want to delete your account and ALL data?',
+        warning: 'This will permanently delete all workspaces, teams, dashboards, and templates. This action cannot be undone.',
+        confirmText: 'Delete Account'
+    });
+    if (!confirmed) return;
 
     e.target.textContent = 'Deleting...';
     e.target.disabled = true;
