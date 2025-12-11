@@ -439,7 +439,9 @@ function initNodeConfig(nodeId, nodeType) {
         };
     } else if (nodeType === 'await') {
         nodeConfigs[nodeId] = {
-            timeout: '24h'
+            timeout: '24h',
+            expected_response: '',
+            failure_message: ''
         };
     } else if (nodeType === 'response') {
         nodeConfigs[nodeId] = {
@@ -470,6 +472,8 @@ function updateNodeLabel(nodeId) {
         } else {
             label.textContent = config.mode === 'channel' ? 'Channel' : 'Users';
         }
+    } else if (nodeType === 'await') {
+        label.textContent = config.timeout || '24h';
     }
 }
 
@@ -565,11 +569,31 @@ document.addEventListener('input', (e) => {
         config.message = e.target.value;
     } else if (e.target.classList.contains('config-response-input')) {
         config.message = e.target.value;
-    } else if (e.target.classList.contains('config-timeout-input')) {
-        config.timeout = e.target.value;
+    } else if (e.target.classList.contains('config-expected-response-input')) {
+        config.expected_response = e.target.value;
+    } else if (e.target.classList.contains('config-failure-message-input')) {
+        config.failure_message = e.target.value;
     }
 
     updateNodeLabel(nodeId);
+});
+
+// Handle config select changes (for timeout, etc.)
+document.addEventListener('change', (e) => {
+    const popup = e.target.closest('.block-config-popup');
+    if (!popup) return;
+
+    const node = popup.closest('.flow-node');
+    if (!node) return;
+
+    const nodeId = node.dataset.nodeId;
+    const config = nodeConfigs[nodeId];
+    if (!config) return;
+
+    if (e.target.classList.contains('config-timeout-select')) {
+        config.timeout = e.target.value;
+        updateNodeLabel(nodeId);
+    }
 });
 
 // === CANVAS DRAG AND DROP (Flow-based) ===
@@ -873,6 +897,32 @@ function createNode(blockType, x, y) {
                 <div class="block-config-row">
                     <div class="block-config-label">Message</div>
                     <textarea class="block-config-textarea config-message-input" placeholder="Enter your message..."></textarea>
+                </div>
+            </div>
+        `;
+    } else if (blockType === 'await') {
+        configPopupHtml = `
+            <div class="block-config-popup">
+                <div class="block-config-title">Await Configuration</div>
+                <div class="block-config-row">
+                    <div class="block-config-label">Expected Response</div>
+                    <input type="text" class="block-config-input config-expected-response-input" placeholder="e.g., yes, approve, done">
+                </div>
+                <div class="block-config-row">
+                    <div class="block-config-label">Timeout</div>
+                    <select class="block-config-select config-timeout-select">
+                        <option value="1h">1 hour</option>
+                        <option value="6h">6 hours</option>
+                        <option value="12h">12 hours</option>
+                        <option value="24h" selected>24 hours</option>
+                        <option value="48h">48 hours</option>
+                        <option value="72h">72 hours</option>
+                        <option value="7d">7 days</option>
+                    </select>
+                </div>
+                <div class="block-config-row">
+                    <div class="block-config-label">Timeout Message</div>
+                    <textarea class="block-config-textarea config-failure-message-input" placeholder="Message to send if no response..."></textarea>
                 </div>
             </div>
         `;
