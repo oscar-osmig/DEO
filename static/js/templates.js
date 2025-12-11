@@ -193,3 +193,76 @@ document.addEventListener('click', (e) => {
         if (typeof setHeaderSection === 'function') setHeaderSection('Canvas');
     }
 });
+
+// === CANVAS WORKSPACE SELECTOR ===
+let selectedCanvasWorkspace = null;
+
+// Load workspaces into canvas dropdown
+async function loadCanvasWorkspaces() {
+    const list = document.getElementById('workspace-dropdown-list');
+    if (!list) return;
+
+    try {
+        const res = await fetch('/workspace/list', { credentials: 'same-origin' });
+        const data = await res.json();
+
+        if (res.ok && data.workspaces && data.workspaces.length > 0) {
+            list.innerHTML = data.workspaces.map(ws => `
+                <div class="workspace-dropdown-item" data-workspace-id="${ws._id}" data-workspace-name="${ws.workspace_name}">
+                    ${ws.workspace_name}
+                </div>
+            `).join('');
+        } else {
+            list.innerHTML = '<div class="workspace-dropdown-item" style="color: var(--text-muted); cursor: default;">No workspaces</div>';
+        }
+    } catch (err) {
+        list.innerHTML = '<div class="workspace-dropdown-item" style="color: var(--text-muted); cursor: default;">Error loading</div>';
+    }
+}
+
+// Toggle workspace dropdown
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('#workspace-select-btn');
+    const wrapper = document.querySelector('.workspace-select-wrapper');
+
+    if (btn && wrapper) {
+        e.stopPropagation();
+        const isOpen = wrapper.classList.contains('open');
+
+        if (!isOpen) {
+            loadCanvasWorkspaces();
+        }
+        wrapper.classList.toggle('open');
+        return;
+    }
+
+    // Select workspace from dropdown
+    const item = e.target.closest('.workspace-dropdown-item');
+    if (item && item.dataset.workspaceId) {
+        selectedCanvasWorkspace = item.dataset.workspaceId;
+        const nameSpan = document.getElementById('selected-workspace-name');
+        if (nameSpan) nameSpan.textContent = item.dataset.workspaceName;
+
+        // Mark as selected
+        document.querySelectorAll('.workspace-dropdown-item').forEach(i => i.classList.remove('selected'));
+        item.classList.add('selected');
+
+        // Close dropdown
+        const wrapper = document.querySelector('.workspace-select-wrapper');
+        if (wrapper) wrapper.classList.remove('open');
+        return;
+    }
+
+    // Close dropdown when clicking outside
+    if (wrapper && !wrapper.contains(e.target)) {
+        wrapper.classList.remove('open');
+    }
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+    const wrapper = document.querySelector('.workspace-select-wrapper');
+    if (wrapper && !wrapper.contains(e.target)) {
+        wrapper.classList.remove('open');
+    }
+});

@@ -23,13 +23,34 @@
     margin: 0;
 }
 
-.blocks-sidebar {
+.sidebar-column {
+    display: flex;
+    flex-direction: column;
     width: 200px;
-    background-color: var(--bg-secondary);
-    border-right: 1px solid var(--border-color);
-    padding: 16px 0;
     flex-shrink: 0;
-    height: 100%;
+    padding: 0 0 24px 0;
+}
+
+.sidebar-column .template-name-wrapper {
+    height: 57px;
+    display: flex;
+    align-items: center;
+    padding: 0 0 0 12px;
+    max-width: none;
+}
+
+.sidebar-column .template-name-input {
+    width: 100%;
+}
+
+.blocks-sidebar {
+    flex: 1;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-left: none;
+    padding: 16px 0;
+    border-radius: 0 12px 12px 0;
+    margin-top: 11px;
 }
 
 .blocks-header {
@@ -92,9 +113,89 @@
     padding: 12px 24px;
 }
 
+.toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 .template-name-wrapper {
-    flex: 1;
     max-width: 300px;
+}
+
+/* Workspace Select Dropdown */
+.workspace-select-wrapper {
+    position: relative;
+}
+
+.workspace-select-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.workspace-select-btn:hover {
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+}
+
+.workspace-select-btn svg {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.2s ease;
+}
+
+.workspace-select-wrapper.open .workspace-select-btn svg {
+    transform: rotate(180deg);
+}
+
+.workspace-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    min-width: 200px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 4px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: all 0.15s ease;
+    z-index: 100;
+}
+
+.workspace-select-wrapper.open .workspace-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.workspace-dropdown-item {
+    padding: 10px 12px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.workspace-dropdown-item:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.workspace-dropdown-item.selected {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
 }
 
 .template-name-input {

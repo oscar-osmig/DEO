@@ -1,35 +1,50 @@
 <!-- VIEW: NEW DEO -->
 <section class="view" id="new-deo">
     <div class="deo-builder">
-        <aside class="blocks-sidebar">
-            <div class="blocks-header">Blocks</div>
-            <div class="blocks-list">
-                <div class="block-item" draggable="true" data-block="message">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                    </svg>
-                    <span>Message</span>
-                </div>
-                <div class="block-item" draggable="true" data-block="await">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
-                    <span>Await</span>
-                </div>
-                <div class="block-item" draggable="true" data-block="response">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="9 11 12 14 22 4"></polyline>
-                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-                    </svg>
-                    <span>Response</span>
-                </div>
+        <div class="sidebar-column">
+            <div class="template-name-wrapper">
+                <input type="text" id="template-name-input" class="template-name-input" placeholder="Template name">
             </div>
-        </aside>
+            <aside class="blocks-sidebar">
+                <div class="blocks-header">Blocks</div>
+                <div class="blocks-list">
+                    <div class="block-item" draggable="true" data-block="message">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        <span>Message</span>
+                    </div>
+                    <div class="block-item" draggable="true" data-block="await">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>Await</span>
+                    </div>
+                    <div class="block-item" draggable="true" data-block="response">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="9 11 12 14 22 4"></polyline>
+                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                        </svg>
+                        <span>Response</span>
+                    </div>
+                </div>
+            </aside>
+        </div>
         <div class="deo-canvas-container">
             <div class="canvas-toolbar">
-                <div class="template-name-wrapper">
-                    <input type="text" id="template-name-input" class="template-name-input" placeholder="Template name">
+                <div class="workspace-select-wrapper">
+                    <button class="workspace-select-btn" id="workspace-select-btn">
+                        <span id="selected-workspace-name">Select Workspace</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                    </button>
+                    <div class="workspace-dropdown" id="workspace-dropdown">
+                        <div class="workspace-dropdown-list" id="workspace-dropdown-list">
+                            <!-- Workspaces will be populated by JS -->
+                        </div>
+                    </div>
                 </div>
                 <div class="canvas-actions">
                     <button class="btn btn-secondary" id="reset-deo-btn">Reset</button>
