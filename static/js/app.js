@@ -48,13 +48,13 @@ fetch('/auth/me', {
 
     // Load sidebar data
     loadWorkspacesSidebar(u.email);
-    loadTemplatesSidebar(u.workspace_id);
+    loadTemplatesSidebar(); // Load all templates, not filtered by workspace
     loadDashboardsSidebar();
     loadTeamsSidebar();
 
     // Load empty state lists
     loadWorkspaceEmptyList();
-    loadTemplateEmptyList(u.workspace_id);
+    loadTemplateEmptyList(); // Load all templates
     loadDashboardEmptyList();
     loadTeamEmptyList();
 
@@ -88,18 +88,17 @@ function loadWorkspaceEmptyList() {
 }
 
 // Load template empty list
+// If workspaceId is provided, filter by workspace; otherwise load all templates
 function loadTemplateEmptyList(workspaceId) {
     const list = document.getElementById('template-empty-list');
     if (!list) return;
 
     list.innerHTML = '<div class="empty-state-list-title">Templates</div><div class="empty-state-list-empty">Loading...</div>';
 
-    if (!workspaceId) {
-        list.innerHTML = '<div class="empty-state-list-title">Templates</div><div class="empty-state-list-empty">No workspace selected</div>';
-        return;
-    }
+    // Build URL - include workspace filter only if provided
+    const url = workspaceId ? `/templates?workspace_id=${workspaceId}` : '/templates';
 
-    fetch(`/templates?workspace_id=${workspaceId}`).then(r => r.json()).then(data => {
+    fetch(url).then(r => r.json()).then(data => {
         let html = '<div class="empty-state-list-title">Templates</div>';
         if (data.templates && data.templates.length > 0) {
             html += data.templates.map(t =>

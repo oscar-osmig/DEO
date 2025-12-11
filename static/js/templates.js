@@ -79,16 +79,15 @@ async function loadTemplateDetails(templateId) {
 }
 
 // Load templates into sidebar
+// If workspaceId is provided, filter by workspace; otherwise load all templates
 function loadTemplatesSidebar(workspaceId) {
     const templatesList = document.getElementById('templates-list');
     if (!templatesList) return;
 
-    if (!workspaceId) {
-        templatesList.innerHTML = '<a href="#template" class="sidebar-submenu-item">No workspace</a>';
-        return;
-    }
+    // Build URL - include workspace filter only if provided
+    const url = workspaceId ? `/templates?workspace_id=${workspaceId}` : '/templates';
 
-    fetch(`/templates?workspace_id=${workspaceId}`).then(r => r.json()).then(data => {
+    fetch(url).then(r => r.json()).then(data => {
         if (data.templates && data.templates.length > 0) {
             templatesList.innerHTML = data.templates.map(t =>
                 `<a href="#template" class="sidebar-submenu-item" data-template-id="${t.template_id}">${t.template_id}</a>`
@@ -170,8 +169,8 @@ document.addEventListener('click', async (e) => {
                 status.style.color = '#4ade80';
 
                 closeTemplateTab(templateId);
-                loadTemplatesSidebar(currentUser?.workspace_id);
-                loadTemplateEmptyList(currentUser?.workspace_id);
+                loadTemplatesSidebar(); // Refresh all templates
+                loadTemplateEmptyList(); // Refresh all templates
             } else {
                 status.textContent = '✗ ' + (data.detail || 'Failed');
                 status.style.color = '#f87171';
@@ -1434,6 +1433,13 @@ document.addEventListener('click', (e) => {
                 saveBtn.disabled = false;
             }
 
+            // Reset save & run button state
+            const saveRunBtn = document.getElementById('save-run-deo-btn');
+            if (saveRunBtn) {
+                saveRunBtn.textContent = 'Save & Run';
+                saveRunBtn.disabled = false;
+            }
+
             // Reset template name input
             const templateNameInput = document.getElementById('template-name-input');
             if (templateNameInput) {
@@ -1599,59 +1605,132 @@ function buildTemplatePayload() {
     return { payload };
 }
 
+// Save template function (reusable)
+async function saveTemplate(btn, runAfterSave = false) {
+    const originalText = btn.textContent;
+
+    // Build payload
+    const result = buildTemplatePayload();
+
+    if (result.error) {
+        alert(result.error);
+        return null;
+    }
+
+    // Disable both buttons while saving
+    const saveBtn = document.getElementById('save-deo-btn');
+    const saveRunBtn = document.getElementById('save-run-deo-btn');
+    if (saveBtn) saveBtn.disabled = true;
+    if (saveRunBtn) saveRunBtn.disabled = true;
+    btn.textContent = runAfterSave ? 'Saving...' : 'Saving...';
+
+    try {
+        const res = await fetch('/templates/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(result.payload)
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            // Refresh templates sidebar if function exists
+            if (typeof loadTemplatesSidebar === 'function') {
+                loadTemplatesSidebar(); // Refresh all templates
+            }
+            if (typeof loadTemplateEmptyList === 'function') {
+                loadTemplateEmptyList(); // Refresh all templates
+            }
+
+            return result.payload.template_id;
+        } else {
+            alert(data.detail || 'Failed to save template');
+            btn.textContent = originalText;
+            if (saveBtn) saveBtn.disabled = false;
+            if (saveRunBtn) saveRunBtn.disabled = false;
+            return null;
+        }
+    } catch (err) {
+        console.error('Save error:', err);
+        alert('Error saving template');
+        btn.textContent = originalText;
+        if (saveBtn) saveBtn.disabled = false;
+        if (saveRunBtn) saveRunBtn.disabled = false;
+        return null;
+    }
+}
+
 // Save button handler
 document.addEventListener('click', async (e) => {
     if (e.target.id === 'save-deo-btn') {
         const btn = e.target;
-        const originalText = btn.textContent;
+        const templateId = await saveTemplate(btn, false);
 
-        // Build payload
-        const result = buildTemplatePayload();
-
-        if (result.error) {
-            alert(result.error);
-            return;
+        if (templateId) {
+            btn.textContent = 'Saved!';
+            // Redirect to templates view after short delay
+            setTimeout(() => {
+                window.location.hash = '#templates';
+            }, 500);
         }
+    }
+});
 
-        // Disable button and show loading
-        btn.disabled = true;
-        btn.textContent = 'Saving...';
+// Save & Run button handler
+document.addEventListener('click', async (e) => {
+    if (e.target.id === 'save-run-deo-btn') {
+        const btn = e.target;
+        const saveBtn = document.getElementById('save-deo-btn');
 
-        try {
-            const res = await fetch('/templates/create', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(result.payload)
-            });
+        const templateId = await saveTemplate(btn, true);
 
-            const data = await res.json();
+        if (templateId) {
+            // Now run the template
+            btn.textContent = 'Running...';
 
-            if (res.ok && data.success) {
-                // Success - show message and redirect
-                btn.textContent = 'Saved!';
+            try {
+                const runRes = await fetch('/templates/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ template_id: templateId })
+                });
 
-                // Refresh templates sidebar if function exists
-                if (typeof loadTemplatesSidebar === 'function') {
-                    loadTemplatesSidebar(selectedCanvasWorkspace);
+                const runData = await runRes.json();
+
+                if (runRes.ok && runData.success) {
+                    btn.textContent = 'Done!';
+                    if (saveBtn) saveBtn.textContent = 'Saved!';
+
+                    // Show success notification
+                    setTimeout(() => {
+                        alert(`Template "${templateId}" saved and executed successfully!`);
+                        // Reset buttons after notification
+                        btn.textContent = 'Save & Run';
+                        btn.disabled = false;
+                        if (saveBtn) {
+                            saveBtn.textContent = 'Save';
+                            saveBtn.disabled = false;
+                        }
+                    }, 300);
+                } else {
+                    alert('Template saved but failed to run: ' + (runData.detail || 'Unknown error'));
+                    btn.textContent = 'Save & Run';
+                    btn.disabled = false;
+                    if (saveBtn) {
+                        saveBtn.textContent = 'Save';
+                        saveBtn.disabled = false;
+                    }
                 }
-                if (typeof loadTemplateEmptyList === 'function') {
-                    loadTemplateEmptyList(selectedCanvasWorkspace);
-                }
-
-                // Redirect to templates view after short delay
-                setTimeout(() => {
-                    window.location.hash = '#templates';
-                }, 500);
-            } else {
-                alert(data.detail || 'Failed to save template');
-                btn.textContent = originalText;
+            } catch (err) {
+                console.error('Run error:', err);
+                alert('Template saved but error running: ' + err.message);
+                btn.textContent = 'Save & Run';
                 btn.disabled = false;
+                if (saveBtn) {
+                    saveBtn.textContent = 'Save';
+                    saveBtn.disabled = false;
+                }
             }
-        } catch (err) {
-            console.error('Save error:', err);
-            alert('Error saving template');
-            btn.textContent = originalText;
-            btn.disabled = false;
         }
     }
 });

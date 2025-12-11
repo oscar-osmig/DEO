@@ -126,4 +126,14 @@ function initFromHash() {
     } else {
         setHeaderSection('');
     }
+
+    // Ensure target view is properly activated on refresh
+    // This helps browsers that might not apply :target immediately
+    if (hash && hash.length > 1) {
+        const targetElement = document.querySelector(hash);
+        if (targetElement) {
+            // Force a reflow to ensure :target is applied
+            targetElement.offsetHeight;
+        }
+    }
 }
