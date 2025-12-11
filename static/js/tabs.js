@@ -366,9 +366,9 @@ function closeTeamTab(teamId) {
 document.addEventListener('click', async (e) => {
     // === SIDEBAR/LIST ITEM CLICKS ===
 
-    // Workspace link (sidebar or empty state list)
+    // Workspace link (sidebar or empty state list) - exclude canvas dropdown items
     const workspaceLink = e.target.closest('[data-workspace-id]');
-    if (workspaceLink && !e.target.closest('.tab')) {
+    if (workspaceLink && !e.target.closest('.tab') && !e.target.closest('.workspace-dropdown-item')) {
         e.preventDefault();
         const workspaceId = workspaceLink.dataset.workspaceId;
         window.location.hash = '#workspace';
