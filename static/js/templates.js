@@ -375,10 +375,223 @@ document.addEventListener('click', async (e) => {
 // Create template button - navigate to canvas
 document.addEventListener('click', (e) => {
     if (e.target.closest('#create-template-btn')) {
+        // Clear editing mode when creating new template
+        editingTemplateId = null;
         window.location.hash = '#new-deo';
         if (typeof setHeaderSection === 'function') setHeaderSection('Canvas');
     }
 });
+
+// === EDIT TEMPLATE ===
+let editingTemplateId = null; // Track if we're editing an existing template
+
+// Edit template button
+document.addEventListener('click', async (e) => {
+    if (e.target.closest('#update-template-btn')) {
+        const btn = e.target.closest('#update-template-btn');
+        const runBtn = document.getElementById('run-template-btn');
+        const templateId = runBtn?.dataset.templateId;
+
+        if (!templateId || !currentTemplateData) return;
+
+        // Navigate to canvas and load template data
+        window.location.hash = '#new-deo';
+        if (typeof setHeaderSection === 'function') setHeaderSection('Canvas');
+
+        // Wait for canvas to be ready, then load template
+        setTimeout(() => {
+            loadTemplateIntoCanvas(currentTemplateData);
+        }, 100);
+    }
+});
+
+// Load template data into the canvas for editing
+async function loadTemplateIntoCanvas(template) {
+    const canvas = document.querySelector('.deo-canvas');
+    if (!canvas) return;
+
+    // Set editing mode
+    editingTemplateId = template.template_id;
+
+    // Reset canvas first
+    const placeholder = canvas.querySelector('.canvas-placeholder');
+    if (placeholder) placeholder.style.display = 'none';
+
+    // Clear existing nodes (but keep trigger)
+    canvas.querySelectorAll('.flow-node').forEach(n => n.remove());
+    canvasNodes = [];
+    connections = [];
+    nodeConfigs = {};
+    nodeIdCounter = 0;
+
+    // Set template name (disable input in edit mode since template_id can't change)
+    const templateNameInput = document.getElementById('template-name-input');
+    if (templateNameInput) {
+        templateNameInput.value = template.template_id;
+        templateNameInput.disabled = true;
+        templateNameInput.style.opacity = '0.7';
+        templateNameInput.title = 'Template name cannot be changed when editing';
+    }
+
+    // Set workspace
+    const workspaceId = template.workspace_id;
+    selectedCanvasWorkspace = workspaceId;
+    const workspaceNameSpan = document.getElementById('selected-workspace-name');
+    if (workspaceNameSpan) {
+        // Try to get workspace name from dropdown or just show ID
+        const dropdownItem = document.querySelector(`.workspace-dropdown-item[data-workspace-id="${workspaceId}"]`);
+        if (dropdownItem) {
+            workspaceNameSpan.textContent = dropdownItem.dataset.workspaceName;
+        } else {
+            workspaceNameSpan.textContent = workspaceId;
+        }
+    }
+
+    const ac = template.action_chain || {};
+
+    // Set trigger configuration
+    const trigger = ac.trigger;
+    if (typeof trigger === 'object' && trigger.type === 'schedule') {
+        triggerConfig.type = 'schedule';
+        triggerConfig.schedule = trigger.schedule || {};
+
+        // Update trigger UI
+        selectTriggerType('schedule');
+
+        // Set schedule form values
+        const sched = trigger.schedule || {};
+        const regularitySelect = document.getElementById('trigger-schedule-regularity');
+        if (regularitySelect && sched.regularity) {
+            regularitySelect.value = sched.regularity;
+            // Trigger change to show correct fields
+            regularitySelect.dispatchEvent(new Event('change'));
+        }
+
+        const timeInput = document.getElementById('trigger-schedule-time');
+        if (timeInput && sched.time) timeInput.value = sched.time;
+
+        const dayWeekSelect = document.getElementById('trigger-schedule-day-week');
+        if (dayWeekSelect && sched.day_of_week !== undefined) dayWeekSelect.value = sched.day_of_week;
+
+        const dayMonthInput = document.getElementById('trigger-schedule-day-month');
+        if (dayMonthInput && sched.day_of_month) dayMonthInput.value = sched.day_of_month;
+
+        const intervalInput = document.getElementById('trigger-schedule-interval');
+        if (intervalInput && sched.interval_minutes) intervalInput.value = sched.interval_minutes;
+
+        updateScheduleConfig();
+    } else {
+        triggerConfig.type = 'manual';
+        triggerConfig.schedule = null;
+        selectTriggerType('manual');
+    }
+
+    // Create nodes for each block
+    const blocks = ac.blocks || [];
+    const msg = ac.message || {};
+    const awaitConfig = ac.await || {};
+    const responseText = ac.response || '';
+
+    // Position nodes vertically below trigger
+    const triggerNode = document.getElementById('trigger-node');
+    const triggerRect = triggerNode ? triggerNode.getBoundingClientRect() : { left: 300, bottom: 100 };
+    const canvasRect = canvas.getBoundingClientRect();
+
+    const startX = triggerRect.left - canvasRect.left + (triggerNode ? triggerNode.offsetWidth / 2 : 100);
+    let currentY = 150; // Start below trigger
+    const nodeSpacing = 120;
+
+    let previousNodeId = 'trigger-node';
+
+    blocks.forEach((blockType, index) => {
+        // Create node
+        const newNode = createNode(blockType, startX, currentY);
+        if (!newNode) return;
+
+        const nodeId = newNode.dataset.nodeId;
+
+        // Connect to previous node
+        connections.push({
+            from: { nodeId: previousNodeId, side: 'bottom' },
+            to: { nodeId: nodeId, side: 'top' }
+        });
+
+        // Set node config based on block type
+        if (blockType === 'message') {
+            const config = nodeConfigs[nodeId];
+            if (msg.channel_name) {
+                config.mode = 'channel';
+                config.channel_name = msg.channel_name;
+                config.message = msg.message || '';
+
+                // Update UI
+                const channelInput = newNode.querySelector('.config-channel-input');
+                if (channelInput) channelInput.value = msg.channel_name;
+                const msgInput = newNode.querySelector('.config-message-input');
+                if (msgInput) msgInput.value = msg.message || '';
+
+                selectMessageMode(nodeId, 'channel');
+            } else if (msg.users) {
+                config.mode = 'users';
+                config.users = Array.isArray(msg.users) ? msg.users.join(', ') : msg.users;
+                config.message = msg.message || '';
+
+                // Update UI
+                const usersInput = newNode.querySelector('.config-users-input');
+                if (usersInput) usersInput.value = config.users;
+                const msgInput = newNode.querySelector('.config-message-input');
+                if (msgInput) msgInput.value = msg.message || '';
+
+                selectMessageMode(nodeId, 'users');
+            }
+            updateNodeLabel(nodeId);
+        } else if (blockType === 'await') {
+            const config = nodeConfigs[nodeId];
+            config.expected_response = awaitConfig.expected_response || '';
+            config.timeout = awaitConfig.timeout || '24h';
+            config.failure_message = awaitConfig.failed || awaitConfig.failure_message || '';
+
+            // Update UI
+            const expectedInput = newNode.querySelector('.config-expected-response-input');
+            if (expectedInput) expectedInput.value = config.expected_response;
+            const timeoutSelect = newNode.querySelector('.config-timeout-select');
+            if (timeoutSelect) timeoutSelect.value = config.timeout;
+            const failureInput = newNode.querySelector('.config-failure-message-input');
+            if (failureInput) failureInput.value = config.failure_message;
+
+            updateNodeLabel(nodeId);
+        } else if (blockType === 'response') {
+            const config = nodeConfigs[nodeId];
+            config.message = responseText;
+
+            // Update UI
+            const responseInput = newNode.querySelector('.config-response-input');
+            if (responseInput) responseInput.value = responseText;
+
+            updateNodeLabel(nodeId);
+        }
+
+        previousNodeId = nodeId;
+        currentY += nodeSpacing;
+    });
+
+    // Update connector states and render connections
+    updateConnectorStates();
+    renderConnections();
+
+    // Update save button to show we're in edit mode
+    const saveBtn = document.getElementById('save-deo-btn');
+    if (saveBtn) {
+        saveBtn.textContent = 'Update';
+        saveBtn.disabled = false;
+    }
+
+    const saveRunBtn = document.getElementById('save-run-deo-btn');
+    if (saveRunBtn) {
+        saveRunBtn.textContent = 'Update & Run';
+        saveRunBtn.disabled = false;
+    }
+}
 
 // === CANVAS WORKSPACE SELECTOR ===
 let selectedCanvasWorkspace = null;
@@ -1631,6 +1844,9 @@ document.addEventListener('click', (e) => {
             const templateNameInput = document.getElementById('template-name-input');
             if (templateNameInput) {
                 templateNameInput.value = '';
+                templateNameInput.disabled = false;
+                templateNameInput.style.opacity = '1';
+                templateNameInput.title = '';
             }
 
             // Reset workspace selection
@@ -1643,6 +1859,9 @@ document.addEventListener('click', (e) => {
             // Reset trigger config
             triggerConfig = { type: 'manual', schedule: null };
             selectTriggerType('manual');
+
+            // Clear editing mode
+            editingTemplateId = null;
         }
     }
 });
@@ -1812,11 +2031,25 @@ async function saveTemplate(btn, runAfterSave = false) {
     btn.textContent = runAfterSave ? 'Saving...' : 'Saving...';
 
     try {
-        const res = await fetch('/templates/create', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(result.payload)
-        });
+        let res;
+        let isUpdate = editingTemplateId !== null;
+
+        if (isUpdate) {
+            // Update existing template (PUT)
+            btn.textContent = runAfterSave ? 'Updating...' : 'Updating...';
+            res = await fetch(`/templates/update/${encodeURIComponent(editingTemplateId)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action_chain: result.payload.action_chain })
+            });
+        } else {
+            // Create new template (POST)
+            res = await fetch('/templates/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(result.payload)
+            });
+        }
 
         const data = await res.json();
 
@@ -1829,9 +2062,10 @@ async function saveTemplate(btn, runAfterSave = false) {
                 loadTemplateEmptyList(); // Refresh all templates
             }
 
-            return result.payload.template_id;
+            // Return the template ID (use editingTemplateId for updates)
+            return isUpdate ? editingTemplateId : result.payload.template_id;
         } else {
-            alert(data.detail || 'Failed to save template');
+            alert(data.detail || `Failed to ${isUpdate ? 'update' : 'save'} template`);
             btn.textContent = originalText;
             if (saveBtn) saveBtn.disabled = false;
             if (saveRunBtn) saveRunBtn.disabled = false;
@@ -1851,10 +2085,13 @@ async function saveTemplate(btn, runAfterSave = false) {
 document.addEventListener('click', async (e) => {
     if (e.target.id === 'save-deo-btn') {
         const btn = e.target;
+        const isUpdate = editingTemplateId !== null;
         const templateId = await saveTemplate(btn, false);
 
         if (templateId) {
-            btn.textContent = 'Saved!';
+            btn.textContent = isUpdate ? 'Updated!' : 'Saved!';
+            // Clear editing mode after successful save
+            editingTemplateId = null;
             // Redirect to templates view after short delay
             setTimeout(() => {
                 window.location.hash = '#templates';
@@ -1868,6 +2105,7 @@ document.addEventListener('click', async (e) => {
     if (e.target.id === 'save-run-deo-btn') {
         const btn = e.target;
         const saveBtn = document.getElementById('save-deo-btn');
+        const isUpdate = editingTemplateId !== null;
 
         const templateId = await saveTemplate(btn, true);
 
@@ -1886,11 +2124,14 @@ document.addEventListener('click', async (e) => {
 
                 if (runRes.ok && runData.success) {
                     btn.textContent = 'Done!';
-                    if (saveBtn) saveBtn.textContent = 'Saved!';
+                    if (saveBtn) saveBtn.textContent = isUpdate ? 'Updated!' : 'Saved!';
+
+                    // Clear editing mode after successful save
+                    editingTemplateId = null;
 
                     // Show success notification
                     setTimeout(() => {
-                        alert(`Template "${templateId}" saved and executed successfully!`);
+                        alert(`Template "${templateId}" ${isUpdate ? 'updated' : 'saved'} and executed successfully!`);
                         // Reset buttons after notification
                         btn.textContent = 'Save & Run';
                         btn.disabled = false;
@@ -1900,7 +2141,7 @@ document.addEventListener('click', async (e) => {
                         }
                     }, 300);
                 } else {
-                    alert('Template saved but failed to run: ' + (runData.detail || 'Unknown error'));
+                    alert(`Template ${isUpdate ? 'updated' : 'saved'} but failed to run: ` + (runData.detail || 'Unknown error'));
                     btn.textContent = 'Save & Run';
                     btn.disabled = false;
                     if (saveBtn) {

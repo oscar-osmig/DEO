@@ -399,6 +399,10 @@ textarea.canvas-block-input {
     border-color: var(--text-primary);
 }
 
+.flow-node.config-open {
+    z-index: 300;
+}
+
 .flow-node-header {
     display: flex;
     align-items: center;
@@ -556,6 +560,10 @@ textarea.canvas-block-input {
 
 .trigger-node:hover {
     border-color: var(--text-secondary);
+}
+
+.trigger-node.config-open {
+    z-index: 300;
 }
 
 .trigger-config-popup {
