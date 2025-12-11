@@ -208,7 +208,7 @@ async function loadCanvasWorkspaces() {
 
         if (res.ok && data.workspaces && data.workspaces.length > 0) {
             list.innerHTML = data.workspaces.map(ws => `
-                <div class="workspace-dropdown-item" data-workspace-id="${ws._id}" data-workspace-name="${ws.workspace_name}">
+                <div class="workspace-dropdown-item" data-workspace-id="${ws.workspace_id}" data-workspace-name="${ws.workspace_name}">
                     ${ws.workspace_name}
                 </div>
             `).join('');
@@ -1426,6 +1426,232 @@ document.addEventListener('click', (e) => {
             nodeConfigs = {}; // Clear all node configs
             nodeIdCounter = 0;
             updateConnectorStates();
+
+            // Reset save button state
+            const saveBtn = document.getElementById('save-deo-btn');
+            if (saveBtn) {
+                saveBtn.textContent = 'Save';
+                saveBtn.disabled = false;
+            }
+
+            // Reset template name input
+            const templateNameInput = document.getElementById('template-name-input');
+            if (templateNameInput) {
+                templateNameInput.value = '';
+            }
+
+            // Reset workspace selection
+            selectedCanvasWorkspace = null;
+            const workspaceNameSpan = document.getElementById('selected-workspace-name');
+            if (workspaceNameSpan) {
+                workspaceNameSpan.textContent = 'Select Workspace';
+            }
+
+            // Reset trigger config
+            triggerConfig = { type: 'manual', schedule: null };
+            selectTriggerType('manual');
+        }
+    }
+});
+
+// === SAVE TEMPLATE ===
+
+// Traverse connections from trigger to get ordered blocks
+// Uses BFS with priority: bottom -> right -> left
+// This ensures ALL connected nodes are found, not just one linear path
+function getOrderedBlocks() {
+    const orderedBlocks = [];
+    const visited = new Set();
+
+    // Queue for BFS: each item has nodeId
+    // We process nodes in order, but for each node we check connections with priority
+    const queue = ['trigger-node'];
+    visited.add('trigger-node');
+
+    while (queue.length > 0) {
+        const currentNodeId = queue.shift();
+
+        // Find all outgoing connections from current node, sorted by priority
+        const priorities = ['bottom', 'right', 'left'];
+
+        for (const side of priorities) {
+            // Find connection from this side
+            const conn = connections.find(c =>
+                c.from.nodeId === currentNodeId &&
+                c.from.side === side &&
+                !visited.has(c.to.nodeId)
+            );
+
+            if (conn) {
+                const nextNodeId = conn.to.nodeId;
+                const nodeData = canvasNodes.find(n => n.id === nextNodeId);
+
+                if (nodeData) {
+                    orderedBlocks.push({
+                        nodeId: nextNodeId,
+                        type: nodeData.type,
+                        config: nodeConfigs[nextNodeId] || {}
+                    });
+                    visited.add(nextNodeId);
+                    queue.push(nextNodeId);
+                }
+            }
+        }
+    }
+
+    return orderedBlocks;
+}
+
+// Build template payload from canvas state
+function buildTemplatePayload() {
+    const templateName = document.getElementById('template-name-input')?.value?.trim();
+    const workspaceId = selectedCanvasWorkspace;
+
+    // Validation
+    if (!templateName) {
+        return { error: 'Please enter a template name' };
+    }
+    if (!workspaceId) {
+        return { error: 'Please select a workspace' };
+    }
+
+    // Get ordered blocks
+    const orderedBlocks = getOrderedBlocks();
+
+    if (orderedBlocks.length === 0) {
+        return { error: 'Please add at least one block connected to the trigger' };
+    }
+
+    // Extract block types for the blocks array
+    const blockTypes = orderedBlocks.map(b => b.type);
+
+    // Find specific block configs
+    const messageBlock = orderedBlocks.find(b => b.type === 'message');
+    const awaitBlock = orderedBlocks.find(b => b.type === 'await');
+    const responseBlock = orderedBlocks.find(b => b.type === 'response');
+
+    // Validate required blocks
+    if (!messageBlock) {
+        return { error: 'Template requires a Message block' };
+    }
+    if (!responseBlock) {
+        return { error: 'Template requires a Response block' };
+    }
+
+    // Build message config
+    const msgConfig = messageBlock.config;
+    if (!msgConfig.message) {
+        return { error: 'Message block requires a message' };
+    }
+
+    const messagePayload = { message: msgConfig.message };
+    if (msgConfig.mode === 'channel') {
+        if (!msgConfig.channel_name) {
+            return { error: 'Message block requires a channel name' };
+        }
+        messagePayload.channel_name = msgConfig.channel_name;
+    } else {
+        if (!msgConfig.users) {
+            return { error: 'Message block requires user IDs' };
+        }
+        messagePayload.users = msgConfig.users.split(',').map(u => u.trim()).filter(u => u);
+    }
+
+    // Build trigger config
+    let triggerPayload;
+    if (triggerConfig.type === 'manual') {
+        triggerPayload = 'manual';
+    } else {
+        triggerPayload = {
+            type: 'schedule',
+            schedule: triggerConfig.schedule
+        };
+    }
+
+    // Build response
+    const respConfig = responseBlock.config;
+    if (!respConfig.message) {
+        return { error: 'Response block requires a message' };
+    }
+
+    // Build payload
+    const payload = {
+        template_id: templateName,
+        workspace_id: workspaceId,
+        action_chain: {
+            blocks: blockTypes,
+            trigger: triggerPayload,
+            message: messagePayload,
+            response: respConfig.message
+        }
+    };
+
+    // Add await config if present
+    if (awaitBlock) {
+        const awaitConfig = awaitBlock.config;
+        payload.action_chain.await = {
+            expected_response: awaitConfig.expected_response || '',
+            timeout: awaitConfig.timeout || '24h',
+            failure_message: awaitConfig.failure_message || ''
+        };
+    }
+
+    return { payload };
+}
+
+// Save button handler
+document.addEventListener('click', async (e) => {
+    if (e.target.id === 'save-deo-btn') {
+        const btn = e.target;
+        const originalText = btn.textContent;
+
+        // Build payload
+        const result = buildTemplatePayload();
+
+        if (result.error) {
+            alert(result.error);
+            return;
+        }
+
+        // Disable button and show loading
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+
+        try {
+            const res = await fetch('/templates/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(result.payload)
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                // Success - show message and redirect
+                btn.textContent = 'Saved!';
+
+                // Refresh templates sidebar if function exists
+                if (typeof loadTemplatesSidebar === 'function') {
+                    loadTemplatesSidebar(selectedCanvasWorkspace);
+                }
+                if (typeof loadTemplateEmptyList === 'function') {
+                    loadTemplateEmptyList(selectedCanvasWorkspace);
+                }
+
+                // Redirect to templates view after short delay
+                setTimeout(() => {
+                    window.location.hash = '#templates';
+                }, 500);
+            } else {
+                alert(data.detail || 'Failed to save template');
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        } catch (err) {
+            console.error('Save error:', err);
+            alert('Error saving template');
+            btn.textContent = originalText;
+            btn.disabled = false;
         }
     }
 });
