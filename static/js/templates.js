@@ -1,5 +1,8 @@
 // === TEMPLATE FUNCTIONS ===
 
+// Store current template data for diagram rendering
+let currentTemplateData = null;
+
 // Load template details by ID
 async function loadTemplateDetails(templateId) {
     try {
@@ -9,6 +12,9 @@ async function loadTemplateDetails(templateId) {
         if (res.ok && data.success) {
             const t = data.template;
             const ac = t.action_chain || {};
+
+            // Store template data for diagram
+            currentTemplateData = t;
 
             const title = document.getElementById('template-title');
             if (title) title.textContent = t.template_id || 'Template';
@@ -68,6 +74,17 @@ async function loadTemplateDetails(templateId) {
             if (runBtn) runBtn.dataset.templateId = t.template_id;
             if (deleteBtn) deleteBtn.dataset.templateId = t.template_id;
 
+            // Render diagram view
+            renderTemplateDiagram(t);
+
+            // Reset view toggle state (show diagram by default)
+            const diagramView = document.getElementById('template-diagram-view');
+            const simpleView = document.getElementById('template-simple-view');
+            const toggleBtn = document.getElementById('toggle-template-view-btn');
+            if (diagramView) diagramView.style.display = 'block';
+            if (simpleView) simpleView.style.display = 'none';
+            if (toggleBtn) toggleBtn.textContent = 'Simplify';
+
         } else {
             const subtitle = document.getElementById('template-subtitle');
             if (subtitle) subtitle.textContent = 'Template not found';
@@ -77,6 +94,176 @@ async function loadTemplateDetails(templateId) {
         if (subtitle) subtitle.textContent = 'Error loading template';
     }
 }
+
+// Render template as a read-only diagram
+function renderTemplateDiagram(template) {
+    const canvas = document.getElementById('template-diagram-canvas');
+    if (!canvas) return;
+
+    const ac = template.action_chain || {};
+    const blocks = ac.blocks || [];
+    const msg = ac.message || {};
+    const awaitConfig = ac.await || {};
+    const trigger = ac.trigger;
+
+    // Clear canvas
+    canvas.innerHTML = '';
+
+    // Create SVG for connections
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.classList.add('diagram-svg');
+    canvas.appendChild(svg);
+
+    // Icons for each block type
+    const icons = {
+        trigger: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>',
+        message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>',
+        await: '<circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>',
+        response: '<polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>'
+    };
+
+    // Get trigger label
+    let triggerLabel = 'Manual';
+    if (typeof trigger === 'object' && trigger.type === 'schedule') {
+        const sched = trigger.schedule || {};
+        if (sched.regularity === 'daily') triggerLabel = `Daily at ${sched.time || '09:00'}`;
+        else if (sched.regularity === 'weekly') triggerLabel = `Weekly`;
+        else if (sched.regularity === 'interval') triggerLabel = `Every ${sched.interval_minutes || 30}m`;
+        else triggerLabel = 'Schedule';
+    }
+
+    // Create trigger node
+    const triggerNode = document.createElement('div');
+    triggerNode.className = 'diagram-node diagram-trigger';
+    triggerNode.innerHTML = `
+        <div class="diagram-node-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${icons.trigger}</svg>
+            <span class="node-title">Trigger</span>
+            <span class="node-label">${triggerLabel}</span>
+        </div>
+        <div class="diagram-connector bottom"></div>
+    `;
+    canvas.appendChild(triggerNode);
+
+    // Calculate positions for blocks (vertical layout)
+    const startY = 100;
+    const nodeSpacing = 100;
+    const centerX = canvas.offsetWidth / 2;
+
+    // Create block nodes
+    blocks.forEach((blockType, index) => {
+        const node = document.createElement('div');
+        node.className = 'diagram-node';
+
+        const y = startY + (index * nodeSpacing);
+        node.style.left = `${centerX - 90}px`;
+        node.style.top = `${y}px`;
+
+        let label = '';
+        let bodyContent = '';
+
+        if (blockType === 'message') {
+            if (msg.channel_name) {
+                label = `#${msg.channel_name}`;
+            } else if (msg.users && msg.users.length) {
+                label = `${msg.users.length} user(s)`;
+            } else {
+                label = 'Message';
+            }
+            bodyContent = msg.message ? (msg.message.length > 50 ? msg.message.substring(0, 50) + '...' : msg.message) : '';
+        } else if (blockType === 'await') {
+            label = awaitConfig.timeout || '24h';
+            bodyContent = awaitConfig.expected_response ? `Wait for: "${awaitConfig.expected_response}"` : '';
+        } else if (blockType === 'response') {
+            label = 'Success';
+            bodyContent = ac.response ? (ac.response.length > 50 ? ac.response.substring(0, 50) + '...' : ac.response) : '';
+        }
+
+        node.innerHTML = `
+            <div class="diagram-connector top"></div>
+            <div class="diagram-node-header">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${icons[blockType] || ''}</svg>
+                <span class="node-title">${blockType.charAt(0).toUpperCase() + blockType.slice(1)}</span>
+                <span class="node-label">${label}</span>
+            </div>
+            ${bodyContent ? `<div class="diagram-node-body">${bodyContent}</div>` : ''}
+            ${index < blocks.length - 1 ? '<div class="diagram-connector bottom"></div>' : ''}
+        `;
+
+        canvas.appendChild(node);
+    });
+
+    // Draw connection lines after nodes are rendered
+    setTimeout(() => {
+        drawDiagramConnections(canvas, svg);
+    }, 10);
+}
+
+// Draw connections between diagram nodes
+function drawDiagramConnections(canvas, svg) {
+    svg.innerHTML = '';
+
+    const triggerNode = canvas.querySelector('.diagram-trigger');
+    if (!triggerNode) return;
+
+    const canvasRect = canvas.getBoundingClientRect();
+    const triggerRect = triggerNode.getBoundingClientRect();
+
+    // Starting point (trigger bottom connector)
+    let prevX = triggerRect.left + triggerRect.width / 2 - canvasRect.left;
+    let prevY = triggerRect.bottom - canvasRect.top;
+
+    // Get all non-trigger nodes
+    const nodes = canvas.querySelectorAll('.diagram-node:not(.diagram-trigger)');
+
+    nodes.forEach((node) => {
+        const nodeRect = node.getBoundingClientRect();
+        const nodeX = nodeRect.left + nodeRect.width / 2 - canvasRect.left;
+        const nodeY = nodeRect.top - canvasRect.top;
+
+        // Draw line from previous to current
+        const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const midY = prevY + (nodeY - prevY) / 2;
+        const d = `M ${prevX} ${prevY} C ${prevX} ${midY}, ${nodeX} ${midY}, ${nodeX} ${nodeY}`;
+        line.setAttribute('d', d);
+        line.classList.add('diagram-line');
+        svg.appendChild(line);
+
+        // Update prev position for next connection
+        prevX = nodeX;
+        prevY = nodeRect.bottom - canvasRect.top;
+    });
+}
+
+// Toggle between diagram and simple view
+document.addEventListener('click', (e) => {
+    if (e.target.id === 'toggle-template-view-btn') {
+        const btn = e.target;
+        const diagramView = document.getElementById('template-diagram-view');
+        const simpleView = document.getElementById('template-simple-view');
+
+        if (!diagramView || !simpleView) return;
+
+        const isDiagramVisible = diagramView.style.display !== 'none';
+
+        if (isDiagramVisible) {
+            // Switch to simple view
+            diagramView.style.display = 'none';
+            simpleView.style.display = 'grid';
+            btn.textContent = 'Diagram';
+        } else {
+            // Switch to diagram view
+            diagramView.style.display = 'block';
+            simpleView.style.display = 'none';
+            btn.textContent = 'Simplify';
+
+            // Re-render diagram in case canvas size changed
+            if (currentTemplateData) {
+                renderTemplateDiagram(currentTemplateData);
+            }
+        }
+    }
+});
 
 // Load templates into sidebar
 // If workspaceId is provided, filter by workspace; otherwise load all templates

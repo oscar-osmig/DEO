@@ -56,7 +56,20 @@
                     </div>
                 </div>
 
-                <div class="template-content">
+                <!-- View toggle -->
+                <div class="template-view-toggle">
+                    <button class="btn btn-secondary btn-sm" id="toggle-template-view-btn">Simplify</button>
+                </div>
+
+                <!-- Diagram View (default) -->
+                <div class="template-diagram-view" id="template-diagram-view">
+                    <div class="template-diagram-canvas" id="template-diagram-canvas">
+                        <!-- Diagram will be rendered here by JS -->
+                    </div>
+                </div>
+
+                <!-- Simple View (hidden by default) -->
+                <div class="template-simple-view" id="template-simple-view" style="display: none;">
                     <div class="card">
                         <div class="card-title">Template Details</div>
 
