@@ -474,6 +474,16 @@ function updateNodeLabel(nodeId) {
         }
     } else if (nodeType === 'await') {
         label.textContent = config.timeout || '24h';
+    } else if (nodeType === 'response') {
+        if (config.message) {
+            // Show truncated message preview
+            const preview = config.message.length > 20
+                ? config.message.substring(0, 20) + '...'
+                : config.message;
+            label.textContent = preview;
+        } else {
+            label.textContent = 'Response';
+        }
     }
 }
 
@@ -923,6 +933,16 @@ function createNode(blockType, x, y) {
                 <div class="block-config-row">
                     <div class="block-config-label">Timeout Message</div>
                     <textarea class="block-config-textarea config-failure-message-input" placeholder="Message to send if no response..."></textarea>
+                </div>
+            </div>
+        `;
+    } else if (blockType === 'response') {
+        configPopupHtml = `
+            <div class="block-config-popup">
+                <div class="block-config-title">Response Configuration</div>
+                <div class="block-config-row">
+                    <div class="block-config-label">Success Message</div>
+                    <textarea class="block-config-textarea config-response-input" placeholder="Message to send on success..."></textarea>
                 </div>
             </div>
         `;
