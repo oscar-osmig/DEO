@@ -378,7 +378,8 @@ textarea.canvas-block-input {
 
 .flow-node {
     position: absolute;
-    width: 200px;
+    min-width: 200px;
+    width: auto;
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -516,7 +517,8 @@ textarea.canvas-block-input {
     top: 24px;
     left: 50%;
     transform: translateX(-50%);
-    width: 200px;
+    min-width: 200px;
+    width: auto;
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: 8px;
@@ -682,4 +684,137 @@ textarea.canvas-block-input {
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 4px;
     margin-left: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* === BLOCK CONFIG POPUP (shared styles) === */
+.block-config-popup {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 280px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    z-index: 200;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
+.flow-node.config-open .block-config-popup {
+    opacity: 1;
+    visibility: visible;
+}
+
+.block-config-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+
+.block-config-row {
+    margin-bottom: 12px;
+}
+
+.block-config-row:last-child {
+    margin-bottom: 0;
+}
+
+.block-config-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.block-config-input,
+.block-config-select,
+.block-config-textarea {
+    width: 100%;
+    padding: 8px 10px;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-family: inherit;
+}
+
+.block-config-input:focus,
+.block-config-select:focus,
+.block-config-textarea:focus {
+    outline: none;
+    border-color: var(--text-secondary);
+}
+
+.block-config-input::placeholder,
+.block-config-textarea::placeholder {
+    color: var(--text-muted);
+}
+
+.block-config-textarea {
+    min-height: 60px;
+    resize: vertical;
+}
+
+.block-config-select option {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* Mode toggle buttons */
+.block-config-modes {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.block-config-mode {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+.block-config-mode:hover {
+    border-color: var(--text-secondary);
+}
+
+.block-config-mode.selected {
+    border-color: var(--text-secondary);
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.block-config-mode svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* Block type label (like trigger-type-label) */
+.block-type-label {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-muted);
+    padding: 2px 6px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    margin-left: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
 }

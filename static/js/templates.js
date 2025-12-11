@@ -424,6 +424,154 @@ document.addEventListener('input', (e) => {
     }
 });
 
+// === NODE CONFIGURATIONS ===
+// Store config for each node by nodeId
+let nodeConfigs = {};
+
+// Initialize config for a node
+function initNodeConfig(nodeId, nodeType) {
+    if (nodeType === 'message') {
+        nodeConfigs[nodeId] = {
+            mode: 'channel', // 'channel' or 'users'
+            channel_name: '',
+            users: '',
+            message: ''
+        };
+    } else if (nodeType === 'await') {
+        nodeConfigs[nodeId] = {
+            timeout: '24h'
+        };
+    } else if (nodeType === 'response') {
+        nodeConfigs[nodeId] = {
+            message: ''
+        };
+    }
+}
+
+// Update node label based on config
+function updateNodeLabel(nodeId) {
+    const node = document.querySelector(`[data-node-id="${nodeId}"]`);
+    if (!node) return;
+
+    const label = node.querySelector('.block-type-label');
+    if (!label) return;
+
+    const config = nodeConfigs[nodeId];
+    if (!config) return;
+
+    const nodeType = node.dataset.nodeType;
+
+    if (nodeType === 'message') {
+        if (config.mode === 'channel' && config.channel_name) {
+            label.textContent = `#${config.channel_name}`;
+        } else if (config.mode === 'users' && config.users) {
+            const userCount = config.users.split(',').filter(u => u.trim()).length;
+            label.textContent = `${userCount} user${userCount !== 1 ? 's' : ''}`;
+        } else {
+            label.textContent = config.mode === 'channel' ? 'Channel' : 'Users';
+        }
+    }
+}
+
+// Toggle node config popup
+document.addEventListener('click', (e) => {
+    const flowNode = e.target.closest('.flow-node');
+    const clickedHeader = e.target.closest('.flow-node .flow-node-header');
+    const clickedPopup = e.target.closest('.block-config-popup');
+    const clickedConnector = e.target.closest('.flow-node-connector');
+    const clickedDelete = e.target.closest('.flow-node-delete');
+
+    // Don't open popup when clicking delete button or connector
+    if (clickedDelete || clickedConnector) return;
+
+    // Toggle popup when clicking on flow node header
+    if (clickedHeader && flowNode && !flowNode.classList.contains('trigger-node')) {
+        e.stopPropagation();
+
+        // Close other open popups
+        document.querySelectorAll('.flow-node.config-open').forEach(n => {
+            if (n !== flowNode) n.classList.remove('config-open');
+        });
+
+        flowNode.classList.toggle('config-open');
+        return;
+    }
+
+    // Handle clicks inside popup (don't close)
+    if (clickedPopup) {
+        e.stopPropagation();
+
+        // Handle mode selection for message block
+        const modeBtn = e.target.closest('.block-config-mode');
+        if (modeBtn) {
+            const nodeId = modeBtn.closest('.flow-node').dataset.nodeId;
+            const mode = modeBtn.dataset.mode;
+            selectMessageMode(nodeId, mode);
+        }
+        return;
+    }
+
+    // Close all flow node popups when clicking outside
+    if (!flowNode) {
+        document.querySelectorAll('.flow-node.config-open').forEach(n => {
+            n.classList.remove('config-open');
+        });
+    }
+});
+
+// Select message mode (channel or users)
+function selectMessageMode(nodeId, mode) {
+    const config = nodeConfigs[nodeId];
+    if (!config) return;
+
+    config.mode = mode;
+
+    const node = document.querySelector(`[data-node-id="${nodeId}"]`);
+    if (!node) return;
+
+    // Update selected state
+    node.querySelectorAll('.block-config-mode').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.mode === mode);
+    });
+
+    // Show/hide relevant input
+    const channelRow = node.querySelector('.config-channel-row');
+    const usersRow = node.querySelector('.config-users-row');
+
+    if (channelRow) channelRow.style.display = mode === 'channel' ? 'block' : 'none';
+    if (usersRow) usersRow.style.display = mode === 'users' ? 'block' : 'none';
+
+    updateNodeLabel(nodeId);
+}
+
+// Handle config input changes
+document.addEventListener('input', (e) => {
+    const popup = e.target.closest('.block-config-popup');
+    if (!popup) return;
+
+    const node = popup.closest('.flow-node');
+    if (!node) return;
+
+    const nodeId = node.dataset.nodeId;
+    const config = nodeConfigs[nodeId];
+    if (!config) return;
+
+    // Update config based on input
+    if (e.target.classList.contains('config-channel-input')) {
+        config.channel_name = e.target.value;
+    } else if (e.target.classList.contains('config-users-input')) {
+        config.users = e.target.value;
+    } else if (e.target.classList.contains('config-message-input')) {
+        config.message = e.target.value;
+    } else if (e.target.classList.contains('config-response-input')) {
+        config.message = e.target.value;
+    } else if (e.target.classList.contains('config-timeout-input')) {
+        config.timeout = e.target.value;
+    }
+
+    updateNodeLabel(nodeId);
+});
+
 // === CANVAS DRAG AND DROP (Flow-based) ===
 let draggedBlock = null;
 let canvasNodes = [];
@@ -681,20 +829,74 @@ function createNode(blockType, x, y) {
         response: 'Response'
     };
 
+    const defaultLabels = {
+        message: 'Channel',
+        await: '24h',
+        response: 'Response'
+    };
+
+    // Generate config popup HTML based on block type
+    let configPopupHtml = '';
+
+    if (blockType === 'message') {
+        configPopupHtml = `
+            <div class="block-config-popup">
+                <div class="block-config-title">Message Configuration</div>
+                <div class="block-config-modes">
+                    <div class="block-config-mode selected" data-mode="channel">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 9l16 0"></path>
+                            <path d="M4 15l16 0"></path>
+                            <path d="M10 3l-2 18"></path>
+                            <path d="M16 3l-2 18"></path>
+                        </svg>
+                        <span>Channel</span>
+                    </div>
+                    <div class="block-config-mode" data-mode="users">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                        <span>Users</span>
+                    </div>
+                </div>
+                <div class="block-config-row config-channel-row">
+                    <div class="block-config-label">Channel Name</div>
+                    <input type="text" class="block-config-input config-channel-input" placeholder="general">
+                </div>
+                <div class="block-config-row config-users-row" style="display: none;">
+                    <div class="block-config-label">User IDs (comma-separated)</div>
+                    <input type="text" class="block-config-input config-users-input" placeholder="U123, U456">
+                </div>
+                <div class="block-config-row">
+                    <div class="block-config-label">Message</div>
+                    <textarea class="block-config-textarea config-message-input" placeholder="Enter your message..."></textarea>
+                </div>
+            </div>
+        `;
+    }
+
     node.innerHTML = `
         <div class="flow-node-connector top" data-connector="top" data-node-id="${nodeId}"></div>
         <div class="flow-node-connector left" data-connector="left" data-node-id="${nodeId}"></div>
         <div class="flow-node-header">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${icons[blockType]}</svg>
             <span>${labels[blockType]}</span>
+            <span class="block-type-label">${defaultLabels[blockType]}</span>
             <button class="flow-node-delete" data-node-id="${nodeId}">&times;</button>
         </div>
         <div class="flow-node-connector right" data-connector="right" data-node-id="${nodeId}"></div>
         <div class="flow-node-connector bottom" data-connector="bottom" data-node-id="${nodeId}"></div>
+        ${configPopupHtml}
     `;
 
     canvas.appendChild(node);
     makeNodeDraggable(node);
+
+    // Initialize config for this node
+    initNodeConfig(nodeId, blockType);
 
     canvasNodes.push({
         id: nodeId,
@@ -851,7 +1053,10 @@ function makeNodeDraggable(node) {
     let startX, startY, initialX, initialY;
 
     node.addEventListener('mousedown', (e) => {
-        if (e.target.closest('.flow-node-delete') || e.target.closest('.flow-node-connector')) return;
+        // Don't start drag when clicking on delete button, connector, or config popup
+        if (e.target.closest('.flow-node-delete') ||
+            e.target.closest('.flow-node-connector') ||
+            e.target.closest('.block-config-popup')) return;
 
         isDragging = true;
         draggingNode = node;
@@ -1121,6 +1326,7 @@ document.addEventListener('click', (e) => {
             node.remove();
             canvasNodes = canvasNodes.filter(n => n.id !== nodeId);
             connections = connections.filter(c => c.from.nodeId !== nodeId && c.to.nodeId !== nodeId);
+            delete nodeConfigs[nodeId]; // Clean up node config
             updateConnectorStates();
             renderConnections();
 
@@ -1147,6 +1353,7 @@ document.addEventListener('click', (e) => {
 
             canvasNodes = [];
             connections = [];
+            nodeConfigs = {}; // Clear all node configs
             nodeIdCounter = 0;
             updateConnectorStates();
         }
