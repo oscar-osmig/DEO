@@ -546,3 +546,140 @@ textarea.canvas-block-input {
     opacity: 0.5;
     pointer-events: none;
 }
+
+/* === TRIGGER CONFIG POPUP === */
+.trigger-node {
+    cursor: pointer;
+}
+
+.trigger-node:hover {
+    border-color: var(--text-secondary);
+}
+
+.trigger-config-popup {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 240px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+    z-index: 200;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s ease, visibility 0.15s ease;
+}
+
+.trigger-node.config-open .trigger-config-popup {
+    opacity: 1;
+    visibility: visible;
+}
+
+.trigger-config-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+}
+
+.trigger-config-options {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.trigger-config-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.trigger-config-option:hover {
+    border-color: var(--text-secondary);
+}
+
+.trigger-config-option.selected {
+    border-color: var(--text-secondary);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.trigger-config-option svg {
+    width: 16px;
+    height: 16px;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.trigger-config-option span {
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+/* Schedule config section */
+.trigger-schedule-config {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+    display: none;
+}
+
+.trigger-schedule-config.visible {
+    display: block;
+}
+
+.trigger-schedule-row {
+    margin-bottom: 10px;
+}
+
+.trigger-schedule-row:last-child {
+    margin-bottom: 0;
+}
+
+.trigger-schedule-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.trigger-schedule-select,
+.trigger-schedule-input {
+    width: 100%;
+    padding: 8px 10px;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.trigger-schedule-select:focus,
+.trigger-schedule-input:focus {
+    outline: none;
+    border-color: var(--text-secondary);
+}
+
+.trigger-schedule-select option {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* Trigger type label inline */
+.trigger-type-label {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-muted);
+    padding: 2px 6px;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+    margin-left: auto;
+}

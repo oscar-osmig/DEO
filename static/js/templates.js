@@ -267,6 +267,163 @@ document.addEventListener('click', (e) => {
     }
 });
 
+// === TRIGGER CONFIGURATION ===
+let triggerConfig = {
+    type: 'manual',
+    schedule: null
+};
+
+// Toggle trigger config popup
+document.addEventListener('click', (e) => {
+    const triggerNode = document.getElementById('trigger-node');
+    if (!triggerNode) return;
+
+    const clickedHeader = e.target.closest('.trigger-node .flow-node-header');
+    const clickedPopup = e.target.closest('.trigger-config-popup');
+    const clickedConnector = e.target.closest('.flow-node-connector');
+
+    // Toggle popup when clicking on trigger header (not connector)
+    if (clickedHeader && !clickedConnector) {
+        e.stopPropagation();
+        triggerNode.classList.toggle('config-open');
+        return;
+    }
+
+    // Handle clicks inside popup
+    if (clickedPopup) {
+        e.stopPropagation();
+
+        // Handle trigger type selection
+        const option = e.target.closest('.trigger-config-option');
+        if (option) {
+            const type = option.dataset.triggerType;
+            selectTriggerType(type);
+        }
+        return;
+    }
+
+    // Close popup when clicking outside
+    if (!triggerNode.contains(e.target)) {
+        triggerNode.classList.remove('config-open');
+    }
+});
+
+// Select trigger type
+function selectTriggerType(type) {
+    triggerConfig.type = type;
+
+    // Update selected state
+    document.querySelectorAll('.trigger-config-option').forEach(opt => {
+        opt.classList.toggle('selected', opt.dataset.triggerType === type);
+    });
+
+    // Show/hide schedule config
+    const scheduleConfig = document.getElementById('trigger-schedule-config');
+    if (scheduleConfig) {
+        scheduleConfig.classList.toggle('visible', type === 'schedule');
+    }
+
+    // Update label
+    updateTriggerLabel();
+
+    // If manual, clear schedule config
+    if (type === 'manual') {
+        triggerConfig.schedule = null;
+    } else {
+        // Initialize schedule config
+        updateScheduleConfig();
+    }
+}
+
+// Update trigger type label text
+function updateTriggerLabel() {
+    const label = document.getElementById('trigger-type-label');
+    if (!label) return;
+
+    if (triggerConfig.type === 'manual') {
+        label.textContent = 'Manual';
+    } else if (triggerConfig.schedule) {
+        const reg = triggerConfig.schedule.regularity;
+        const time = triggerConfig.schedule.time || '';
+
+        if (reg === 'daily') {
+            label.textContent = `Daily at ${time}`;
+        } else if (reg === 'weekly') {
+            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            const day = days[triggerConfig.schedule.day_of_week || 0];
+            label.textContent = `${day} at ${time}`;
+        } else if (reg === 'monthly') {
+            const dayNum = triggerConfig.schedule.day_of_month || 1;
+            label.textContent = `Day ${dayNum} at ${time}`;
+        } else if (reg === 'interval') {
+            const mins = triggerConfig.schedule.interval_minutes || 30;
+            label.textContent = `Every ${mins}m`;
+        } else {
+            label.textContent = 'Schedule';
+        }
+    } else {
+        label.textContent = 'Schedule';
+    }
+}
+
+// Update schedule config from form inputs
+function updateScheduleConfig() {
+    const regularity = document.getElementById('trigger-schedule-regularity')?.value || 'daily';
+    const time = document.getElementById('trigger-schedule-time')?.value || '09:00';
+    const dayOfWeek = parseInt(document.getElementById('trigger-schedule-day-week')?.value || '0');
+    const dayOfMonth = parseInt(document.getElementById('trigger-schedule-day-month')?.value || '1');
+    const intervalMinutes = parseInt(document.getElementById('trigger-schedule-interval')?.value || '30');
+
+    triggerConfig.schedule = {
+        regularity: regularity,
+        time: time
+    };
+
+    // Add regularity-specific fields
+    if (regularity === 'weekly') {
+        triggerConfig.schedule.day_of_week = dayOfWeek;
+    } else if (regularity === 'monthly') {
+        triggerConfig.schedule.day_of_month = dayOfMonth;
+    } else if (regularity === 'interval') {
+        triggerConfig.schedule.interval_minutes = intervalMinutes;
+        delete triggerConfig.schedule.time;
+    }
+
+    updateTriggerLabel();
+}
+
+// Handle regularity change - show/hide relevant fields
+document.addEventListener('change', (e) => {
+    if (e.target.id === 'trigger-schedule-regularity') {
+        const regularity = e.target.value;
+
+        // Show/hide fields based on regularity
+        const timeRow = document.getElementById('trigger-time-row');
+        const dayWeekRow = document.getElementById('trigger-day-week-row');
+        const dayMonthRow = document.getElementById('trigger-day-month-row');
+        const intervalRow = document.getElementById('trigger-interval-row');
+
+        if (timeRow) timeRow.style.display = regularity !== 'interval' ? 'block' : 'none';
+        if (dayWeekRow) dayWeekRow.style.display = regularity === 'weekly' ? 'block' : 'none';
+        if (dayMonthRow) dayMonthRow.style.display = regularity === 'monthly' ? 'block' : 'none';
+        if (intervalRow) intervalRow.style.display = regularity === 'interval' ? 'block' : 'none';
+
+        updateScheduleConfig();
+    }
+
+    // Update config when any schedule input changes
+    if (e.target.closest('.trigger-schedule-config')) {
+        updateScheduleConfig();
+    }
+});
+
+// Also update on input for number fields
+document.addEventListener('input', (e) => {
+    if (e.target.closest('.trigger-schedule-config')) {
+        updateScheduleConfig();
+    }
+});
+
 // === CANVAS DRAG AND DROP (Flow-based) ===
 let draggedBlock = null;
 let canvasNodes = [];
