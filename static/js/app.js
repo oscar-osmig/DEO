@@ -3,9 +3,73 @@
 // Store user data globally
 let currentUser = null;
 
+// === MOBILE MENU ===
+function initMobileMenu() {
+    const menuBtn = document.getElementById('mobile-menu-btn');
+    const sidebar = document.getElementById('main-sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+
+    if (!menuBtn || !sidebar || !backdrop) return;
+
+    // Open sidebar
+    menuBtn.addEventListener('click', () => {
+        sidebar.classList.add('mobile-open');
+        backdrop.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    });
+
+    // Close sidebar when clicking backdrop
+    backdrop.addEventListener('click', closeMobileSidebar);
+
+    // Close sidebar when clicking a navigation link
+    sidebar.addEventListener('click', (e) => {
+        const link = e.target.closest('a.sidebar-btn, a.sidebar-submenu-item');
+        if (link) {
+            closeMobileSidebar();
+        }
+    });
+
+    // Close on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && sidebar.classList.contains('mobile-open')) {
+            closeMobileSidebar();
+        }
+    });
+}
+
+function closeMobileSidebar() {
+    const sidebar = document.getElementById('main-sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    if (sidebar) sidebar.classList.remove('mobile-open');
+    if (backdrop) backdrop.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+// === BLOCKS SIDEBAR TOGGLE (Mobile) ===
+function initBlocksSidebarToggle() {
+    const sidebarColumn = document.querySelector('.sidebar-column');
+    if (!sidebarColumn) return;
+
+    const nameWrapper = sidebarColumn.querySelector('.template-name-wrapper');
+    if (!nameWrapper) return;
+
+    // Only add toggle on mobile
+    nameWrapper.addEventListener('click', (e) => {
+        // Don't toggle if clicking on input
+        if (e.target.tagName === 'INPUT') return;
+
+        // Check if we're on mobile
+        if (window.innerWidth < 768) {
+            sidebarColumn.classList.toggle('expanded');
+        }
+    });
+}
+
 // Run on page load
 window.addEventListener('DOMContentLoaded', () => {
     initFromHash();
+    initMobileMenu();
+    initBlocksSidebarToggle();
 });
 
 // Handle back/forward navigation
