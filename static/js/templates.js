@@ -2859,7 +2859,7 @@ async function saveTemplate(btn, runAfterSave = false) {
     const result = buildTemplatePayload();
 
     if (result.error) {
-        alert(result.error);
+        await showAlert({ title: 'Validation Error', message: result.error, type: 'warning' });
         return null;
     }
 
@@ -2905,7 +2905,7 @@ async function saveTemplate(btn, runAfterSave = false) {
             // Return the template ID (use editingTemplateId for updates)
             return isUpdate ? editingTemplateId : result.payload.template_id;
         } else {
-            alert(data.detail || `Failed to ${isUpdate ? 'update' : 'save'} template`);
+            await showAlert({ title: 'Save Failed', message: data.detail || `Failed to ${isUpdate ? 'update' : 'save'} template`, type: 'error' });
             btn.textContent = originalText;
             if (saveBtn) saveBtn.disabled = false;
             if (saveRunBtn) saveRunBtn.disabled = false;
@@ -2913,7 +2913,7 @@ async function saveTemplate(btn, runAfterSave = false) {
         }
     } catch (err) {
         console.error('Save error:', err);
-        alert('Error saving template');
+        await showAlert({ title: 'Error', message: 'Error saving template', type: 'error' });
         btn.textContent = originalText;
         if (saveBtn) saveBtn.disabled = false;
         if (saveRunBtn) saveRunBtn.disabled = false;
@@ -2970,8 +2970,8 @@ document.addEventListener('click', async (e) => {
                     editingTemplateId = null;
 
                     // Show success notification
-                    setTimeout(() => {
-                        alert(`Template "${templateId}" ${isUpdate ? 'updated' : 'saved'} and executed successfully!`);
+                    setTimeout(async () => {
+                        await showAlert({ title: 'Success', message: `Template "${templateId}" ${isUpdate ? 'updated' : 'saved'} and executed successfully!`, type: 'success' });
                         // Reset buttons after notification
                         btn.textContent = 'Save & Run';
                         btn.disabled = false;
@@ -2981,7 +2981,7 @@ document.addEventListener('click', async (e) => {
                         }
                     }, 300);
                 } else {
-                    alert(`Template ${isUpdate ? 'updated' : 'saved'} but failed to run: ` + (runData.detail || 'Unknown error'));
+                    await showAlert({ title: 'Run Failed', message: `Template ${isUpdate ? 'updated' : 'saved'} but failed to run: ` + (runData.detail || 'Unknown error'), type: 'error' });
                     btn.textContent = 'Save & Run';
                     btn.disabled = false;
                     if (saveBtn) {
@@ -2991,7 +2991,7 @@ document.addEventListener('click', async (e) => {
                 }
             } catch (err) {
                 console.error('Run error:', err);
-                alert('Template saved but error running: ' + err.message);
+                await showAlert({ title: 'Error', message: 'Template saved but error running: ' + err.message, type: 'error' });
                 btn.textContent = 'Save & Run';
                 btn.disabled = false;
                 if (saveBtn) {

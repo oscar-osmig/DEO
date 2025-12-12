@@ -75,6 +75,113 @@ async function confirmDelete(options) {
     return deleteModal.show(options);
 }
 
+// === ALERT MODAL ===
+const alertModal = {
+    overlay: null,
+    resolvePromise: null,
+
+    init() {
+        if (this.overlay) return;
+
+        this.overlay = document.createElement('div');
+        this.overlay.className = 'alert-modal-overlay';
+        this.overlay.innerHTML = `
+            <div class="alert-modal">
+                <div class="alert-modal-icon alert-modal-icon-info">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="16" x2="12" y2="12"/>
+                        <line x1="12" y1="8" x2="12.01" y2="8"/>
+                    </svg>
+                </div>
+                <h3 class="alert-modal-title">Alert</h3>
+                <p class="alert-modal-message">Message here</p>
+                <div class="alert-modal-actions">
+                    <button class="btn alert-modal-ok">OK</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(this.overlay);
+
+        // Event listeners
+        this.overlay.querySelector('.alert-modal-ok').addEventListener('click', () => this.close());
+        this.overlay.addEventListener('click', (e) => {
+            if (e.target === this.overlay) this.close();
+        });
+
+        // ESC key to close
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.overlay.classList.contains('active')) {
+                this.close();
+            }
+        });
+    },
+
+    show({ title = 'Alert', message = '', type = 'info' } = {}) {
+        this.init();
+
+        this.overlay.querySelector('.alert-modal-title').textContent = title;
+        this.overlay.querySelector('.alert-modal-message').textContent = message;
+
+        // Update icon based on type
+        const iconContainer = this.overlay.querySelector('.alert-modal-icon');
+        iconContainer.className = `alert-modal-icon alert-modal-icon-${type}`;
+
+        if (type === 'error') {
+            iconContainer.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+            `;
+        } else if (type === 'success') {
+            iconContainer.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M9 12l2 2 4-4"/>
+                </svg>
+            `;
+        } else if (type === 'warning') {
+            iconContainer.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+            `;
+        } else {
+            iconContainer.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="16" x2="12" y2="12"/>
+                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+            `;
+        }
+
+        this.overlay.classList.add('active');
+
+        return new Promise((resolve) => {
+            this.resolvePromise = resolve;
+        });
+    },
+
+    close() {
+        this.overlay.classList.remove('active');
+        if (this.resolvePromise) {
+            this.resolvePromise();
+            this.resolvePromise = null;
+        }
+    }
+};
+
+// Convenience function for styled alerts
+async function showAlert(options) {
+    return alertModal.show(options);
+}
+
 // Helper function to set header section
 function setHeaderSection(text) {
     const section = document.getElementById('header-section');

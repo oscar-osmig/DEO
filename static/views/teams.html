@@ -126,7 +126,7 @@
 
     <!-- Add Member Modal -->
     <div class="modal-overlay" id="add-member-modal">
-        <div class="modal">
+        <div class="modal modal-wide">
             <div class="modal-header">
                 <h3 class="modal-title">Add Team Member</h3>
                 <button class="modal-close" id="close-member-modal">
@@ -136,7 +136,15 @@
                     </svg>
                 </button>
             </div>
-            <form id="add-member-form">
+
+            <!-- Tab switcher for manual vs Slack selection -->
+            <div class="member-add-tabs">
+                <button type="button" class="member-tab active" data-tab="manual">Manual Entry</button>
+                <button type="button" class="member-tab" data-tab="slack">Choose from Slack</button>
+            </div>
+
+            <!-- Manual Entry Form -->
+            <form id="add-member-form" class="member-tab-content active" data-tab="manual">
                 <div class="form-group">
                     <label class="form-label" for="member-name">Name</label>
                     <input type="text" id="member-name" class="form-input" placeholder="John Doe" required>
@@ -164,6 +172,27 @@
                 </div>
                 <p class="modal-status" id="add-member-status"></p>
             </form>
+
+            <!-- Slack User Picker -->
+            <div id="slack-member-picker" class="member-tab-content" data-tab="slack">
+                <div class="form-group">
+                    <label class="form-label">Select Workspace</label>
+                    <select id="slack-workspace-select" class="form-input">
+                        <option value="">Select a workspace...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Select Users</label>
+                    <div class="slack-users-list" id="slack-users-list">
+                        <p class="text-muted">Select a workspace to load users</p>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-slack-member-btn">Cancel</button>
+                    <button type="button" class="btn" id="add-slack-members-btn" disabled>Add Selected Members</button>
+                </div>
+                <p class="modal-status" id="slack-member-status"></p>
+            </div>
         </div>
     </div>
 </section>

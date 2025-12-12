@@ -698,3 +698,123 @@
     color: var(--text-muted);
     margin-bottom: 8px;
 }
+
+/* === ADD MEMBER MODAL TABS === */
+.modal-wide {
+    max-width: 500px;
+    width: 90%;
+}
+
+.member-add-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 0 0 16px 0;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.member-tab {
+    flex: 1;
+    padding: 10px 16px;
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.member-tab:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.member-tab.active {
+    background-color: var(--bg-tertiary);
+    border-color: var(--text-muted);
+    color: var(--text-primary);
+}
+
+.member-tab-content {
+    display: none;
+}
+
+.member-tab-content.active {
+    display: block;
+}
+
+/* Slack users list in modal */
+.slack-users-list {
+    max-height: 250px;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--bg-tertiary);
+}
+
+.slack-users-list .text-muted {
+    padding: 16px;
+    text-align: center;
+}
+
+.slack-user-checkbox-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+    transition: background-color 0.15s ease;
+}
+
+.slack-user-checkbox-item:last-child {
+    border-bottom: none;
+}
+
+.slack-user-checkbox-item:hover {
+    background-color: var(--bg-hover);
+}
+
+.slack-user-checkbox {
+    width: 18px;
+    height: 18px;
+    margin-right: 12px;
+    cursor: pointer;
+    accent-color: var(--text-primary);
+}
+
+.slack-user-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    cursor: pointer;
+}
+
+.slack-user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    object-fit: cover;
+}
+
+.slack-user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.slack-user-name {
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.slack-user-handle {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* Center modal actions in slack picker */
+#slack-member-picker .modal-actions {
+    justify-content: center;
+}

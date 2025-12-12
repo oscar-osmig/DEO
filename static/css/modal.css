@@ -681,3 +681,108 @@ select.form-input {
 .delete-modal-actions .delete-modal-confirm:hover {
     background-color: #ef4444;
 }
+
+/* === ALERT MODAL === */
+.alert-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.15s ease;
+}
+
+.alert-modal-overlay.active {
+    display: flex;
+}
+
+.alert-modal {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 32px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+    animation: slideUp 0.2s ease;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.alert-modal-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.alert-modal-icon svg {
+    width: 32px;
+    height: 32px;
+}
+
+/* Icon colors by type */
+.alert-modal-icon-info {
+    background-color: rgba(96, 165, 250, 0.1);
+}
+
+.alert-modal-icon-info svg {
+    color: #60a5fa;
+}
+
+.alert-modal-icon-error {
+    background-color: rgba(248, 113, 113, 0.1);
+}
+
+.alert-modal-icon-error svg {
+    color: #f87171;
+}
+
+.alert-modal-icon-success {
+    background-color: rgba(74, 222, 128, 0.1);
+}
+
+.alert-modal-icon-success svg {
+    color: #4ade80;
+}
+
+.alert-modal-icon-warning {
+    background-color: rgba(251, 191, 36, 0.1);
+}
+
+.alert-modal-icon-warning svg {
+    color: #fbbf24;
+}
+
+.alert-modal-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 12px 0;
+}
+
+.alert-modal-message {
+    font-size: 15px;
+    color: var(--text-secondary);
+    margin: 0 0 28px 0;
+    line-height: 1.5;
+}
+
+.alert-modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.alert-modal-actions .btn {
+    min-width: 100px;
+    padding: 12px 24px;
+}

@@ -1,5 +1,100 @@
 // === TEAMS ===
 
+// Cache for Slack users per workspace
+let teamSlackUsersCache = {};
+let teamWorkspacesCache = [];
+
+// Fetch workspaces for the dropdown
+async function fetchTeamWorkspaces() {
+    try {
+        const res = await fetch('/workspace/list', { credentials: 'same-origin' });
+        const data = await res.json();
+        if (data.success && data.workspaces) {
+            teamWorkspacesCache = data.workspaces;
+            updateWorkspaceDropdown();
+        }
+    } catch (err) {
+        console.error('Error fetching workspaces:', err);
+    }
+}
+
+// Update the workspace dropdown in the modal
+function updateWorkspaceDropdown() {
+    const select = document.getElementById('slack-workspace-select');
+    if (!select) return;
+
+    select.innerHTML = '<option value="">Select a workspace...</option>';
+    teamWorkspacesCache.forEach(ws => {
+        const option = document.createElement('option');
+        option.value = ws._id;
+        option.textContent = ws.workspace_name;
+        select.appendChild(option);
+    });
+}
+
+// Fetch Slack users for a workspace
+async function fetchTeamSlackUsers(workspaceId) {
+    if (teamSlackUsersCache[workspaceId]) {
+        return teamSlackUsersCache[workspaceId];
+    }
+
+    try {
+        const res = await fetch(`/workspace/${workspaceId}/users`, { credentials: 'same-origin' });
+        const data = await res.json();
+        if (data.success && data.users) {
+            teamSlackUsersCache[workspaceId] = data.users;
+            return data.users;
+        }
+    } catch (err) {
+        console.error('Error fetching Slack users:', err);
+    }
+    return [];
+}
+
+// Render Slack users list with checkboxes
+function renderSlackUsersList(users) {
+    const container = document.getElementById('slack-users-list');
+    if (!container) return;
+
+    if (!users || users.length === 0) {
+        container.innerHTML = '<p class="text-muted">No users found in this workspace</p>';
+        return;
+    }
+
+    container.innerHTML = users.map(user => `
+        <div class="slack-user-checkbox-item">
+            <input type="checkbox"
+                   class="slack-user-checkbox"
+                   id="slack-user-${user.id}"
+                   data-user-id="${user.id}"
+                   data-user-name="${user.real_name || user.name}"
+                   data-user-display="${user.display_name || ''}"
+            >
+            <label for="slack-user-${user.id}" class="slack-user-label">
+                ${user.avatar ? `<img src="${user.avatar}" class="slack-user-avatar" alt="">` : ''}
+                <span class="slack-user-info">
+                    <span class="slack-user-name">${user.real_name || user.name}</span>
+                    ${user.display_name ? `<span class="slack-user-handle">@${user.display_name}</span>` : ''}
+                </span>
+            </label>
+        </div>
+    `).join('');
+
+    // Update Add button state when checkboxes change
+    container.querySelectorAll('.slack-user-checkbox').forEach(cb => {
+        cb.addEventListener('change', updateAddSlackMembersButton);
+    });
+}
+
+// Update the Add button enabled state based on selections
+function updateAddSlackMembersButton() {
+    const btn = document.getElementById('add-slack-members-btn');
+    const checkboxes = document.querySelectorAll('#slack-users-list .slack-user-checkbox:checked');
+    if (btn) {
+        btn.disabled = checkboxes.length === 0;
+    }
+}
+
 // Load team details by ID
 async function loadTeamDetails(teamId) {
     try {
@@ -220,15 +315,152 @@ document.addEventListener('click', (e) => {
         const modal = document.getElementById('add-member-modal');
         if (modal) {
             modal.classList.add('active');
-            // Store team ID in the form
+            // Store team ID in the form and slack picker
             const form = document.getElementById('add-member-form');
+            const slackPicker = document.getElementById('slack-member-picker');
             if (form) form.dataset.teamId = e.target.dataset.teamId;
+            if (slackPicker) slackPicker.dataset.teamId = e.target.dataset.teamId;
+
+            // Fetch workspaces for Slack picker
+            fetchTeamWorkspaces();
+
+            // Reset to manual tab
+            resetMemberModalTabs();
         }
     }
 
-    if (e.target.id === 'close-member-modal' || e.target.id === 'cancel-member-btn') {
+    if (e.target.id === 'close-member-modal' || e.target.id === 'cancel-member-btn' || e.target.id === 'cancel-slack-member-btn') {
         const modal = document.getElementById('add-member-modal');
         if (modal) modal.classList.remove('active');
+        resetMemberModalTabs();
+    }
+});
+
+// Reset modal tabs to default state
+function resetMemberModalTabs() {
+    const tabs = document.querySelectorAll('.member-tab');
+    const contents = document.querySelectorAll('.member-tab-content');
+
+    tabs.forEach(tab => tab.classList.remove('active'));
+    contents.forEach(content => content.classList.remove('active'));
+
+    const manualTab = document.querySelector('.member-tab[data-tab="manual"]');
+    const manualContent = document.querySelector('.member-tab-content[data-tab="manual"]');
+    if (manualTab) manualTab.classList.add('active');
+    if (manualContent) manualContent.classList.add('active');
+
+    // Reset Slack picker state
+    const workspaceSelect = document.getElementById('slack-workspace-select');
+    const usersList = document.getElementById('slack-users-list');
+    const addBtn = document.getElementById('add-slack-members-btn');
+    if (workspaceSelect) workspaceSelect.value = '';
+    if (usersList) usersList.innerHTML = '<p class="text-muted">Select a workspace to load users</p>';
+    if (addBtn) addBtn.disabled = true;
+}
+
+// Tab switching in add member modal
+document.addEventListener('click', (e) => {
+    const tab = e.target.closest('.member-tab');
+    if (!tab) return;
+
+    const tabName = tab.dataset.tab;
+    const tabs = document.querySelectorAll('.member-tab');
+    const contents = document.querySelectorAll('.member-tab-content');
+
+    tabs.forEach(t => t.classList.remove('active'));
+    contents.forEach(c => c.classList.remove('active'));
+
+    tab.classList.add('active');
+    const content = document.querySelector(`.member-tab-content[data-tab="${tabName}"]`);
+    if (content) content.classList.add('active');
+});
+
+// Workspace selection change handler
+document.addEventListener('change', async (e) => {
+    if (e.target.id === 'slack-workspace-select') {
+        const workspaceId = e.target.value;
+        const usersList = document.getElementById('slack-users-list');
+
+        if (!workspaceId) {
+            if (usersList) usersList.innerHTML = '<p class="text-muted">Select a workspace to load users</p>';
+            updateAddSlackMembersButton();
+            return;
+        }
+
+        if (usersList) usersList.innerHTML = '<p class="text-muted">Loading users...</p>';
+
+        const users = await fetchTeamSlackUsers(workspaceId);
+        renderSlackUsersList(users);
+    }
+});
+
+// Add selected Slack members button handler
+document.addEventListener('click', async (e) => {
+    if (e.target.id === 'add-slack-members-btn') {
+        const slackPicker = document.getElementById('slack-member-picker');
+        const teamId = slackPicker?.dataset.teamId;
+        if (!teamId) return;
+
+        const checkboxes = document.querySelectorAll('#slack-users-list .slack-user-checkbox:checked');
+        if (checkboxes.length === 0) return;
+
+        const btn = e.target;
+        const status = document.getElementById('slack-member-status');
+
+        btn.disabled = true;
+        btn.textContent = 'Adding...';
+        status.textContent = '';
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const cb of checkboxes) {
+            const userId = cb.dataset.userId;
+            const userName = cb.dataset.userName;
+
+            try {
+                const res = await fetch(`/teams/${teamId}/members`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'same-origin',
+                    body: JSON.stringify({
+                        name: userName,
+                        email: `${userId}@slack.user`,
+                        slack_id: userId
+                    })
+                });
+
+                if (res.ok) {
+                    successCount++;
+                } else {
+                    failCount++;
+                }
+            } catch (err) {
+                failCount++;
+            }
+        }
+
+        if (successCount > 0) {
+            status.textContent = `Added ${successCount} member${successCount > 1 ? 's' : ''}${failCount > 0 ? ` (${failCount} failed)` : ''}`;
+            status.className = 'modal-status status-success';
+
+            // Reload team details
+            await loadTeamDetails(teamId);
+
+            // Close modal after delay
+            setTimeout(() => {
+                document.getElementById('add-member-modal').classList.remove('active');
+                resetMemberModalTabs();
+                status.textContent = '';
+            }, 1500);
+        } else {
+            status.textContent = 'Failed to add members';
+            status.className = 'modal-status status-error';
+        }
+
+        btn.disabled = false;
+        btn.textContent = 'Add Selected Members';
+        updateAddSlackMembersButton();
     }
 });
 
