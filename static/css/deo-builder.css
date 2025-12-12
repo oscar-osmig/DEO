@@ -792,6 +792,22 @@ textarea.canvas-block-input {
     color: var(--text-primary);
 }
 
+/* Custom timeout input wrapper */
+.custom-timeout-input-wrapper {
+    display: flex;
+    gap: 8px;
+}
+
+.custom-timeout-input-wrapper .block-config-input {
+    flex: 1;
+    min-width: 80px;
+}
+
+.custom-timeout-input-wrapper .block-config-select {
+    flex: 1;
+    min-width: 100px;
+}
+
 /* Mode toggle buttons */
 .block-config-modes {
     display: flex;
@@ -841,4 +857,145 @@ textarea.canvas-block-input {
     margin-left: auto;
     white-space: nowrap;
     flex-shrink: 0;
+}
+
+/* Channel dropdown container */
+.config-channel-dropdown {
+    position: relative;
+}
+
+.channel-dropdown-selected {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+}
+
+.channel-dropdown-selected:hover {
+    border-color: var(--text-secondary);
+}
+
+.channel-dropdown-text {
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.channel-dropdown-arrow {
+    width: 16px;
+    height: 16px;
+    color: var(--text-muted);
+    transition: transform 0.15s ease;
+}
+
+.config-channel-dropdown.open .channel-dropdown-arrow {
+    transform: rotate(180deg);
+}
+
+/* Channel list (hidden by default) */
+.config-channel-list {
+    display: none;
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 4px;
+    margin-top: 4px;
+}
+
+.config-channel-dropdown.open .config-channel-list {
+    display: block;
+}
+
+.channel-select-empty {
+    padding: 12px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.channel-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.channel-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.channel-item.selected {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.channel-item .channel-name {
+    font-size: 13px;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+.channel-item .channel-private {
+    font-size: 11px;
+}
+
+/* Users multi-select container */
+.config-users-multiselect {
+    max-height: 200px;
+    overflow-y: auto;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 4px;
+}
+
+.users-select-empty {
+    padding: 12px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.user-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.user-checkbox-item:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.user-checkbox-item.selected {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.user-checkbox-item input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    accent-color: var(--text-secondary);
+}
+
+.user-checkbox-item .user-name {
+    font-size: 13px;
+    color: var(--text-primary);
+    flex: 1;
+}
+
+.user-checkbox-item .user-handle {
+    font-size: 11px;
+    color: var(--text-muted);
 }

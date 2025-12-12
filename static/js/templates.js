@@ -742,9 +742,9 @@ async function loadTemplateIntoCanvas(template) {
                 config.channel_name = blockConfig.channel_name;
                 config.message = blockConfig.message || '';
 
-                // Update UI
-                const channelInput = newNode.querySelector('.config-channel-input');
-                if (channelInput) channelInput.value = blockConfig.channel_name;
+                // Update UI - channel select will be populated when workspace is selected
+                const channelSelect = newNode.querySelector('.config-channel-select');
+                if (channelSelect) channelSelect.value = blockConfig.channel_name;
                 const msgInput = newNode.querySelector('.config-message-input');
                 if (msgInput) msgInput.value = blockConfig.message || '';
 
@@ -754,9 +754,7 @@ async function loadTemplateIntoCanvas(template) {
                 config.users = Array.isArray(blockConfig.users) ? blockConfig.users.join(', ') : blockConfig.users;
                 config.message = blockConfig.message || '';
 
-                // Update UI
-                const usersInput = newNode.querySelector('.config-users-input');
-                if (usersInput) usersInput.value = config.users;
+                // Update UI - user multiselect will be populated when workspace is selected
                 const msgInput = newNode.querySelector('.config-message-input');
                 if (msgInput) msgInput.value = blockConfig.message || '';
 
@@ -773,7 +771,26 @@ async function loadTemplateIntoCanvas(template) {
             const expectedInput = newNode.querySelector('.config-expected-response-input');
             if (expectedInput) expectedInput.value = config.expected_response;
             const timeoutSelect = newNode.querySelector('.config-timeout-select');
-            if (timeoutSelect) timeoutSelect.value = config.timeout;
+            const customRow = newNode.querySelector('.config-custom-timeout-row');
+
+            // Check if it's a preset value or custom
+            const presetValues = ['1h', '6h', '12h', '24h', '48h', '72h', '7d'];
+            if (presetValues.includes(config.timeout)) {
+                if (timeoutSelect) timeoutSelect.value = config.timeout;
+                if (customRow) customRow.style.display = 'none';
+            } else {
+                // Custom value - parse it
+                if (timeoutSelect) timeoutSelect.value = 'custom';
+                if (customRow) customRow.style.display = 'block';
+                const match = config.timeout.match(/^(\d+)(m|h|d)$/);
+                if (match) {
+                    const valueInput = newNode.querySelector('.config-custom-timeout-value');
+                    const unitSelect = newNode.querySelector('.config-custom-timeout-unit');
+                    if (valueInput) valueInput.value = match[1];
+                    if (unitSelect) unitSelect.value = match[2];
+                }
+            }
+
             const failureInput = newNode.querySelector('.config-failure-message-input');
             if (failureInput) failureInput.value = config.failure_message;
 
@@ -808,6 +825,11 @@ async function loadTemplateIntoCanvas(template) {
     if (saveRunBtn) {
         saveRunBtn.textContent = 'Update & Run';
         saveRunBtn.disabled = false;
+    }
+
+    // Refresh Slack data to populate channel/user dropdowns
+    if (selectedCanvasWorkspace) {
+        refreshSlackData();
     }
 }
 
@@ -868,6 +890,9 @@ document.addEventListener('click', (e) => {
         const wrapper = document.querySelector('.workspace-select-wrapper');
         if (wrapper) wrapper.classList.remove('open');
 
+        // Refresh Slack channels and users for the new workspace
+        refreshSlackData();
+
         // Auto-save after workspace selection
         triggerAutoSave();
         return;
@@ -886,6 +911,125 @@ document.addEventListener('click', (e) => {
         wrapper.classList.remove('open');
     }
 });
+
+// === SLACK DATA CACHE ===
+let slackChannelsCache = [];
+let slackUsersCache = [];
+
+// Fetch Slack channels for current workspace
+async function fetchSlackChannels() {
+    if (!selectedCanvasWorkspace) {
+        slackChannelsCache = [];
+        return [];
+    }
+
+    try {
+        const res = await fetch(`/workspace/${selectedCanvasWorkspace}/channels`);
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            slackChannelsCache = data.channels || [];
+            return slackChannelsCache;
+        }
+    } catch (err) {
+        console.error('Error fetching Slack channels:', err);
+    }
+
+    slackChannelsCache = [];
+    return [];
+}
+
+// Fetch Slack users for current workspace
+async function fetchSlackUsers() {
+    if (!selectedCanvasWorkspace) {
+        slackUsersCache = [];
+        return [];
+    }
+
+    try {
+        const res = await fetch(`/workspace/${selectedCanvasWorkspace}/users`);
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            slackUsersCache = data.users || [];
+            return slackUsersCache;
+        }
+    } catch (err) {
+        console.error('Error fetching Slack users:', err);
+    }
+
+    slackUsersCache = [];
+    return [];
+}
+
+// Update all channel dropdowns in message blocks
+function updateChannelDropdowns() {
+    const dropdowns = document.querySelectorAll('.config-channel-dropdown');
+    dropdowns.forEach(dropdown => {
+        const nodeId = dropdown.dataset.nodeId;
+        const config = nodeId ? nodeConfigs[nodeId] : null;
+        const selectedChannel = config?.channel_name || '';
+
+        // Update the selected text display
+        const selectedText = dropdown.querySelector('.channel-dropdown-text');
+        if (selectedText) {
+            selectedText.textContent = selectedChannel ? `#${selectedChannel}` : 'Select a channel...';
+        }
+
+        // Update the list
+        const container = dropdown.querySelector('.config-channel-list');
+        if (!container) return;
+
+        if (slackChannelsCache.length === 0) {
+            container.innerHTML = '<div class="channel-select-empty">Select a workspace first</div>';
+            return;
+        }
+
+        container.innerHTML = slackChannelsCache.map(ch => {
+            const isSelected = ch.name === selectedChannel;
+            return `
+                <div class="channel-item ${isSelected ? 'selected' : ''}" data-channel="${ch.name}">
+                    <span class="channel-name">#${ch.name}</span>
+                    ${ch.is_private ? '<span class="channel-private">🔒</span>' : ''}
+                </div>
+            `;
+        }).join('');
+    });
+}
+
+// Update all user multi-selects in message blocks
+function updateUserMultiSelects() {
+    const containers = document.querySelectorAll('.config-users-multiselect');
+    containers.forEach(container => {
+        const nodeId = container.dataset.nodeId;
+        const config = nodeConfigs[nodeId];
+        const selectedUsers = config?.users ? config.users.split(',').map(u => u.trim()).filter(u => u) : [];
+
+        if (slackUsersCache.length === 0) {
+            container.innerHTML = '<div class="users-select-empty">Select a workspace first</div>';
+            return;
+        }
+
+        container.innerHTML = slackUsersCache.map(user => {
+            const isSelected = selectedUsers.includes(user.id);
+            const displayName = user.real_name || user.display_name || user.name;
+            return `
+                <label class="user-checkbox-item ${isSelected ? 'selected' : ''}">
+                    <input type="checkbox" value="${user.id}" ${isSelected ? 'checked' : ''}>
+                    <span class="user-name">${displayName}</span>
+                    <span class="user-handle">@${user.name}</span>
+                </label>
+            `;
+        }).join('');
+    });
+}
+
+// Refresh Slack data when workspace changes
+async function refreshSlackData() {
+    await Promise.all([fetchSlackChannels(), fetchSlackUsers()]);
+    updateChannelDropdowns();
+    updateUserMultiSelects();
+}
 
 // === TRIGGER CONFIGURATION ===
 let triggerConfig = {
@@ -1194,11 +1338,7 @@ document.addEventListener('input', (e) => {
     if (!config) return;
 
     // Update config based on input
-    if (e.target.classList.contains('config-channel-input')) {
-        config.channel_name = e.target.value;
-    } else if (e.target.classList.contains('config-users-input')) {
-        config.users = e.target.value;
-    } else if (e.target.classList.contains('config-message-input')) {
+    if (e.target.classList.contains('config-message-input')) {
         config.message = e.target.value;
     } else if (e.target.classList.contains('config-response-input')) {
         config.message = e.target.value;
@@ -1211,7 +1351,7 @@ document.addEventListener('input', (e) => {
     updateNodeLabel(nodeId);
 });
 
-// Handle config select changes (for timeout, etc.)
+// Handle config select changes (for timeout)
 document.addEventListener('change', (e) => {
     const popup = e.target.closest('.block-config-popup');
     if (!popup) return;
@@ -1224,9 +1364,142 @@ document.addEventListener('change', (e) => {
     if (!config) return;
 
     if (e.target.classList.contains('config-timeout-select')) {
-        config.timeout = e.target.value;
+        const customRow = popup.querySelector('.config-custom-timeout-row');
+
+        if (e.target.value === 'custom') {
+            // Show custom timeout input
+            if (customRow) customRow.style.display = 'block';
+            // Build custom timeout value from inputs
+            const valueInput = popup.querySelector('.config-custom-timeout-value');
+            const unitSelect = popup.querySelector('.config-custom-timeout-unit');
+            const value = valueInput?.value || '30';
+            const unit = unitSelect?.value || 'h';
+            config.timeout = `${value}${unit}`;
+        } else {
+            // Hide custom timeout input
+            if (customRow) customRow.style.display = 'none';
+            config.timeout = e.target.value;
+        }
         updateNodeLabel(nodeId);
+        triggerAutoSave();
     }
+
+    // Handle custom timeout value/unit changes
+    if (e.target.classList.contains('config-custom-timeout-value') ||
+        e.target.classList.contains('config-custom-timeout-unit')) {
+        const valueInput = popup.querySelector('.config-custom-timeout-value');
+        const unitSelect = popup.querySelector('.config-custom-timeout-unit');
+        const value = valueInput?.value || '30';
+        const unit = unitSelect?.value || 'h';
+        config.timeout = `${value}${unit}`;
+        updateNodeLabel(nodeId);
+        triggerAutoSave();
+    }
+});
+
+// Handle custom timeout input changes (for number input)
+document.addEventListener('input', (e) => {
+    if (!e.target.classList.contains('config-custom-timeout-value')) return;
+
+    const popup = e.target.closest('.block-config-popup');
+    if (!popup) return;
+
+    const node = popup.closest('.flow-node');
+    if (!node) return;
+
+    const nodeId = node.dataset.nodeId;
+    const config = nodeConfigs[nodeId];
+    if (!config) return;
+
+    const unitSelect = popup.querySelector('.config-custom-timeout-unit');
+    const value = e.target.value || '30';
+    const unit = unitSelect?.value || 'h';
+    config.timeout = `${value}${unit}`;
+    updateNodeLabel(nodeId);
+});
+
+// Handle user checkbox changes
+document.addEventListener('click', (e) => {
+    const checkbox = e.target.closest('.user-checkbox-item input[type="checkbox"]');
+    if (!checkbox) return;
+
+    const multiselect = checkbox.closest('.config-users-multiselect');
+    if (!multiselect) return;
+
+    const nodeId = multiselect.dataset.nodeId;
+    const config = nodeConfigs[nodeId];
+    if (!config) return;
+
+    // Toggle visual selection
+    const label = checkbox.closest('.user-checkbox-item');
+    if (label) {
+        label.classList.toggle('selected', checkbox.checked);
+    }
+
+    // Update config with selected user IDs
+    const selectedCheckboxes = multiselect.querySelectorAll('input[type="checkbox"]:checked');
+    const selectedUserIds = Array.from(selectedCheckboxes).map(cb => cb.value);
+    config.users = selectedUserIds.join(', ');
+
+    updateNodeLabel(nodeId);
+    triggerAutoSave();
+});
+
+// Handle channel dropdown toggle
+document.addEventListener('click', (e) => {
+    const selectedArea = e.target.closest('.channel-dropdown-selected');
+    if (selectedArea) {
+        const dropdown = selectedArea.closest('.config-channel-dropdown');
+        if (dropdown) {
+            dropdown.classList.toggle('open');
+        }
+        return;
+    }
+
+    // Handle channel item clicks
+    const channelItem = e.target.closest('.channel-item');
+    if (channelItem) {
+        const dropdown = channelItem.closest('.config-channel-dropdown');
+        if (!dropdown) return;
+
+        const nodeId = dropdown.dataset.nodeId;
+        const config = nodeConfigs[nodeId];
+        if (!config) return;
+
+        const channelList = dropdown.querySelector('.config-channel-list');
+
+        // Remove selected class from all items in this list
+        channelList.querySelectorAll('.channel-item').forEach(item => {
+            item.classList.remove('selected');
+        });
+
+        // Add selected class to clicked item
+        channelItem.classList.add('selected');
+
+        // Update config with selected channel
+        config.channel_name = channelItem.dataset.channel;
+
+        // Update the selected text display
+        const selectedText = dropdown.querySelector('.channel-dropdown-text');
+        if (selectedText) {
+            selectedText.textContent = `#${channelItem.dataset.channel}`;
+        }
+
+        // Close the dropdown
+        dropdown.classList.remove('open');
+
+        updateNodeLabel(nodeId);
+        triggerAutoSave();
+        return;
+    }
+
+    // Close any open channel dropdowns when clicking elsewhere
+    const openDropdowns = document.querySelectorAll('.config-channel-dropdown.open');
+    openDropdowns.forEach(dropdown => {
+        if (!dropdown.contains(e.target)) {
+            dropdown.classList.remove('open');
+        }
+    });
 });
 
 // === CANVAS DRAG AND DROP (Flow-based) ===
@@ -1371,12 +1644,10 @@ function restoreCanvasFromState(state) {
         // Restore UI for each block type
         if (nodeData.type === 'message') {
             if (config.mode === 'channel') {
-                const channelInput = newNode.querySelector('.config-channel-input');
-                if (channelInput) channelInput.value = config.channel_name || '';
+                // Channel select will be populated when workspace is selected/refreshed
                 selectMessageMode(nodeId, 'channel');
             } else if (config.mode === 'users') {
-                const usersInput = newNode.querySelector('.config-users-input');
-                if (usersInput) usersInput.value = config.users || '';
+                // User multiselect will be populated when workspace is selected/refreshed
                 selectMessageMode(nodeId, 'users');
             }
             const msgInput = newNode.querySelector('.config-message-input');
@@ -1386,7 +1657,27 @@ function restoreCanvasFromState(state) {
             const expectedInput = newNode.querySelector('.config-expected-response-input');
             if (expectedInput) expectedInput.value = config.expected_response || '';
             const timeoutSelect = newNode.querySelector('.config-timeout-select');
-            if (timeoutSelect) timeoutSelect.value = config.timeout || '24h';
+            const customRow = newNode.querySelector('.config-custom-timeout-row');
+            const timeout = config.timeout || '24h';
+
+            // Check if it's a preset value or custom
+            const presetValues = ['1h', '6h', '12h', '24h', '48h', '72h', '7d'];
+            if (presetValues.includes(timeout)) {
+                if (timeoutSelect) timeoutSelect.value = timeout;
+                if (customRow) customRow.style.display = 'none';
+            } else {
+                // Custom value - parse it
+                if (timeoutSelect) timeoutSelect.value = 'custom';
+                if (customRow) customRow.style.display = 'block';
+                const match = timeout.match(/^(\d+)(m|h|d)$/);
+                if (match) {
+                    const valueInput = newNode.querySelector('.config-custom-timeout-value');
+                    const unitSelect = newNode.querySelector('.config-custom-timeout-unit');
+                    if (valueInput) valueInput.value = match[1];
+                    if (unitSelect) unitSelect.value = match[2];
+                }
+            }
+
             const failureInput = newNode.querySelector('.config-failure-message-input');
             if (failureInput) failureInput.value = config.failure_message || '';
             updateNodeLabel(nodeId);
@@ -1417,6 +1708,11 @@ function restoreCanvasFromState(state) {
         if (saveBtn) saveBtn.textContent = 'Update';
         const saveRunBtn = document.getElementById('save-run-deo-btn');
         if (saveRunBtn) saveRunBtn.textContent = 'Update & Run';
+    }
+
+    // Refresh Slack data if workspace is selected (will update dropdowns)
+    if (selectedCanvasWorkspace) {
+        refreshSlackData();
     }
 
     return true;
@@ -1735,12 +2031,24 @@ function createNode(blockType, x, y, optionalId = null) {
                     </div>
                 </div>
                 <div class="block-config-row config-channel-row">
-                    <div class="block-config-label">Channel Name</div>
-                    <input type="text" class="block-config-input config-channel-input" placeholder="general">
+                    <div class="block-config-label">Channel</div>
+                    <div class="config-channel-dropdown" data-node-id="${nodeId}">
+                        <div class="channel-dropdown-selected">
+                            <span class="channel-dropdown-text">Select a channel...</span>
+                            <svg class="channel-dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M6 9l6 6 6-6"></path>
+                            </svg>
+                        </div>
+                        <div class="config-channel-list">
+                            <div class="channel-select-empty">Select a workspace first</div>
+                        </div>
+                    </div>
                 </div>
                 <div class="block-config-row config-users-row" style="display: none;">
-                    <div class="block-config-label">User IDs (comma-separated)</div>
-                    <input type="text" class="block-config-input config-users-input" placeholder="U123, U456">
+                    <div class="block-config-label">Select Users</div>
+                    <div class="config-users-multiselect" data-node-id="${nodeId}">
+                        <div class="users-select-empty">Select a workspace first</div>
+                    </div>
                 </div>
                 <div class="block-config-row">
                     <div class="block-config-label">Message</div>
@@ -1766,7 +2074,19 @@ function createNode(blockType, x, y, optionalId = null) {
                         <option value="48h">48 hours</option>
                         <option value="72h">72 hours</option>
                         <option value="7d">7 days</option>
+                        <option value="custom">Custom...</option>
                     </select>
+                </div>
+                <div class="block-config-row config-custom-timeout-row" style="display: none;">
+                    <div class="block-config-label">Custom Timeout</div>
+                    <div class="custom-timeout-input-wrapper">
+                        <input type="number" class="block-config-input config-custom-timeout-value" placeholder="30" min="1" value="30">
+                        <select class="block-config-select config-custom-timeout-unit">
+                            <option value="m">Minutes</option>
+                            <option value="h" selected>Hours</option>
+                            <option value="d">Days</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="block-config-row">
                     <div class="block-config-label">Timeout Message</div>

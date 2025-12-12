@@ -11,6 +11,7 @@ from database import get_collection
 from datetime import datetime
 from bson import ObjectId
 import uuid
+import httpx
 
 router = APIRouter(prefix="/workspace", tags=["workspace"])
 
@@ -237,4 +238,120 @@ async def get_workspace(workspace_id: str):
     return {
         "success": True,
         "workspace": workspace
+    }
+
+
+@router.get("/{workspace_id}/channels")
+async def get_slack_channels(workspace_id: str):
+    """Get all Slack channels for a workspace using the bot token."""
+    workspaces_collection = get_collection("workspaces")
+
+    # Try to find workspace by MongoDB _id first, then by workspace_id
+    workspace = None
+    try:
+        workspace = await workspaces_collection.find_one({"_id": ObjectId(workspace_id)})
+    except:
+        pass
+
+    if not workspace:
+        workspace = await workspaces_collection.find_one({"workspace_id": workspace_id})
+
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+
+    bot_token = workspace.get("bot_token")
+    if not bot_token:
+        raise HTTPException(status_code=400, detail="Workspace has no bot token configured")
+
+    # Fetch channels from Slack API
+    url = "https://slack.com/api/conversations.list"
+    headers = {
+        "Authorization": f"Bearer {bot_token}",
+        "Content-Type": "application/json"
+    }
+    params = {
+        "types": "public_channel,private_channel",
+        "exclude_archived": "true",
+        "limit": 200
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, headers=headers, params=params)
+        data = response.json()
+
+    if not data.get("ok"):
+        raise HTTPException(status_code=400, detail=f"Slack API error: {data.get('error')}")
+
+    # Extract channel info
+    channels = []
+    for channel in data.get("channels", []):
+        channels.append({
+            "id": channel.get("id"),
+            "name": channel.get("name"),
+            "is_private": channel.get("is_private", False),
+            "num_members": channel.get("num_members", 0)
+        })
+
+    return {
+        "success": True,
+        "channels": channels
+    }
+
+
+@router.get("/{workspace_id}/users")
+async def get_slack_users(workspace_id: str):
+    """Get all Slack users for a workspace using the bot token."""
+    workspaces_collection = get_collection("workspaces")
+
+    # Try to find workspace by MongoDB _id first, then by workspace_id
+    workspace = None
+    try:
+        workspace = await workspaces_collection.find_one({"_id": ObjectId(workspace_id)})
+    except:
+        pass
+
+    if not workspace:
+        workspace = await workspaces_collection.find_one({"workspace_id": workspace_id})
+
+    if not workspace:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+
+    bot_token = workspace.get("bot_token")
+    if not bot_token:
+        raise HTTPException(status_code=400, detail="Workspace has no bot token configured")
+
+    # Fetch users from Slack API
+    url = "https://slack.com/api/users.list"
+    headers = {
+        "Authorization": f"Bearer {bot_token}",
+        "Content-Type": "application/json"
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(url, headers=headers)
+        data = response.json()
+
+    if not data.get("ok"):
+        raise HTTPException(status_code=400, detail=f"Slack API error: {data.get('error')}")
+
+    # Extract user info (exclude bots and deleted users)
+    users = []
+    for user in data.get("members", []):
+        if user.get("deleted") or user.get("is_bot"):
+            continue
+        # Skip Slackbot
+        if user.get("id") == "USLACKBOT":
+            continue
+
+        users.append({
+            "id": user.get("id"),
+            "name": user.get("name"),
+            "real_name": user.get("real_name", user.get("name")),
+            "display_name": user.get("profile", {}).get("display_name", ""),
+            "avatar": user.get("profile", {}).get("image_48", "")
+        })
+
+    return {
+        "success": True,
+        "users": users
     }
