@@ -487,10 +487,16 @@ async function loadTemplateIntoCanvas(template) {
     }
 
     // Create nodes for each block
+    // Support both NEW FORMAT (blocks with inline config) and OLD FORMAT (strings)
     const blocks = ac.blocks || [];
-    const msg = ac.message || {};
-    const awaitConfig = ac.await || {};
-    const responseText = ac.response || '';
+
+    // Detect format: new format has objects with 'type' key
+    const isNewFormat = blocks.length > 0 && typeof blocks[0] === 'object' && blocks[0].type;
+
+    // OLD FORMAT fallback configs
+    const oldMsg = ac.message || {};
+    const oldAwaitConfig = ac.await || {};
+    const oldResponseText = ac.response || '';
 
     // Position nodes vertically below trigger
     const triggerNode = document.getElementById('trigger-node');
@@ -503,7 +509,21 @@ async function loadTemplateIntoCanvas(template) {
 
     let previousNodeId = 'trigger-node';
 
-    blocks.forEach((blockType, index) => {
+    blocks.forEach((blockEntry, index) => {
+        // Handle both formats
+        let blockType, blockConfig;
+        if (isNewFormat) {
+            blockType = blockEntry.type;
+            blockConfig = blockEntry.config || {};
+        } else {
+            blockType = blockEntry;
+            // Use old format shared configs
+            if (blockType === 'message') blockConfig = oldMsg;
+            else if (blockType === 'await') blockConfig = oldAwaitConfig;
+            else if (blockType === 'response') blockConfig = { message: oldResponseText };
+            else blockConfig = {};
+        }
+
         // Create node
         const newNode = createNode(blockType, startX, currentY);
         if (!newNode) return;
@@ -519,37 +539,37 @@ async function loadTemplateIntoCanvas(template) {
         // Set node config based on block type
         if (blockType === 'message') {
             const config = nodeConfigs[nodeId];
-            if (msg.channel_name) {
+            if (blockConfig.channel_name) {
                 config.mode = 'channel';
-                config.channel_name = msg.channel_name;
-                config.message = msg.message || '';
+                config.channel_name = blockConfig.channel_name;
+                config.message = blockConfig.message || '';
 
                 // Update UI
                 const channelInput = newNode.querySelector('.config-channel-input');
-                if (channelInput) channelInput.value = msg.channel_name;
+                if (channelInput) channelInput.value = blockConfig.channel_name;
                 const msgInput = newNode.querySelector('.config-message-input');
-                if (msgInput) msgInput.value = msg.message || '';
+                if (msgInput) msgInput.value = blockConfig.message || '';
 
                 selectMessageMode(nodeId, 'channel');
-            } else if (msg.users) {
+            } else if (blockConfig.users) {
                 config.mode = 'users';
-                config.users = Array.isArray(msg.users) ? msg.users.join(', ') : msg.users;
-                config.message = msg.message || '';
+                config.users = Array.isArray(blockConfig.users) ? blockConfig.users.join(', ') : blockConfig.users;
+                config.message = blockConfig.message || '';
 
                 // Update UI
                 const usersInput = newNode.querySelector('.config-users-input');
                 if (usersInput) usersInput.value = config.users;
                 const msgInput = newNode.querySelector('.config-message-input');
-                if (msgInput) msgInput.value = msg.message || '';
+                if (msgInput) msgInput.value = blockConfig.message || '';
 
                 selectMessageMode(nodeId, 'users');
             }
             updateNodeLabel(nodeId);
         } else if (blockType === 'await') {
             const config = nodeConfigs[nodeId];
-            config.expected_response = awaitConfig.expected_response || '';
-            config.timeout = awaitConfig.timeout || '24h';
-            config.failure_message = awaitConfig.failed || awaitConfig.failure_message || '';
+            config.expected_response = blockConfig.expected_response || '';
+            config.timeout = blockConfig.timeout || '24h';
+            config.failure_message = blockConfig.failed || blockConfig.failure_message || '';
 
             // Update UI
             const expectedInput = newNode.querySelector('.config-expected-response-input');
@@ -562,11 +582,11 @@ async function loadTemplateIntoCanvas(template) {
             updateNodeLabel(nodeId);
         } else if (blockType === 'response') {
             const config = nodeConfigs[nodeId];
-            config.message = responseText;
+            config.message = blockConfig.message || '';
 
             // Update UI
             const responseInput = newNode.querySelector('.config-response-input');
-            if (responseInput) responseInput.value = responseText;
+            if (responseInput) responseInput.value = config.message;
 
             updateNodeLabel(nodeId);
         }
@@ -649,6 +669,9 @@ document.addEventListener('click', (e) => {
         // Close dropdown
         const wrapper = document.querySelector('.workspace-select-wrapper');
         if (wrapper) wrapper.classList.remove('open');
+
+        // Auto-save after workspace selection
+        triggerAutoSave();
         return;
     }
 
@@ -884,6 +907,9 @@ function updateNodeLabel(nodeId) {
             label.textContent = 'Response';
         }
     }
+
+    // Trigger auto-save when label updates (config changed)
+    triggerAutoSave();
 }
 
 // Toggle node config popup
@@ -1024,6 +1050,191 @@ let previewConnection = null;
 // Distance threshold for auto-connect (in pixels)
 const CONNECTION_THRESHOLD = 150;
 
+// === CANVAS STATE PERSISTENCE ===
+const CANVAS_STORAGE_KEY = 'deo_canvas_state';
+
+// Save canvas state to localStorage
+function saveCanvasState() {
+    const state = {
+        canvasNodes: canvasNodes,
+        connections: connections,
+        nodeConfigs: nodeConfigs,
+        nodeIdCounter: nodeIdCounter,
+        triggerConfig: triggerConfig,
+        selectedWorkspace: selectedCanvasWorkspace,
+        templateName: document.getElementById('template-name-input')?.value || '',
+        editingTemplateId: editingTemplateId
+    };
+    try {
+        localStorage.setItem(CANVAS_STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {
+        console.warn('Failed to save canvas state:', e);
+    }
+}
+
+// Load canvas state from localStorage
+function loadCanvasState() {
+    try {
+        const saved = localStorage.getItem(CANVAS_STORAGE_KEY);
+        if (!saved) return null;
+        return JSON.parse(saved);
+    } catch (e) {
+        console.warn('Failed to load canvas state:', e);
+        return null;
+    }
+}
+
+// Clear saved canvas state
+function clearCanvasState() {
+    try {
+        localStorage.removeItem(CANVAS_STORAGE_KEY);
+    } catch (e) {
+        console.warn('Failed to clear canvas state:', e);
+    }
+}
+
+// Restore canvas from saved state
+function restoreCanvasFromState(state) {
+    if (!state) return false;
+
+    const canvas = document.querySelector('.deo-canvas');
+    if (!canvas) return false;
+
+    // Hide placeholder
+    const placeholder = canvas.querySelector('.canvas-placeholder');
+    if (placeholder && state.canvasNodes.length > 0) {
+        placeholder.style.display = 'none';
+    }
+
+    // Restore global state
+    nodeIdCounter = state.nodeIdCounter || 0;
+    triggerConfig = state.triggerConfig || { type: 'manual', schedule: null };
+    selectedCanvasWorkspace = state.selectedWorkspace || null;
+    editingTemplateId = state.editingTemplateId || null;
+
+    // Restore template name
+    const templateNameInput = document.getElementById('template-name-input');
+    if (templateNameInput && state.templateName) {
+        templateNameInput.value = state.templateName;
+        if (state.editingTemplateId) {
+            templateNameInput.disabled = true;
+            templateNameInput.style.opacity = '0.7';
+            templateNameInput.title = 'Template name cannot be changed when editing';
+        }
+    }
+
+    // Restore workspace selection UI
+    if (state.selectedWorkspace) {
+        const workspaceNameSpan = document.getElementById('selected-workspace-name');
+        if (workspaceNameSpan) {
+            const dropdownItem = document.querySelector(`.workspace-dropdown-item[data-workspace-id="${state.selectedWorkspace}"]`);
+            if (dropdownItem) {
+                workspaceNameSpan.textContent = dropdownItem.dataset.workspaceName;
+            } else {
+                workspaceNameSpan.textContent = state.selectedWorkspace;
+            }
+        }
+    }
+
+    // Restore trigger UI
+    if (triggerConfig.type === 'schedule') {
+        selectTriggerType('schedule');
+        const sched = triggerConfig.schedule || {};
+        const regularitySelect = document.getElementById('trigger-schedule-regularity');
+        if (regularitySelect && sched.regularity) {
+            regularitySelect.value = sched.regularity;
+            regularitySelect.dispatchEvent(new Event('change'));
+        }
+        const timeInput = document.getElementById('trigger-schedule-time');
+        if (timeInput && sched.time) timeInput.value = sched.time;
+        const dayWeekSelect = document.getElementById('trigger-schedule-day-week');
+        if (dayWeekSelect && sched.day_of_week !== undefined) dayWeekSelect.value = sched.day_of_week;
+        const dayMonthInput = document.getElementById('trigger-schedule-day-month');
+        if (dayMonthInput && sched.day_of_month) dayMonthInput.value = sched.day_of_month;
+        const intervalInput = document.getElementById('trigger-schedule-interval');
+        if (intervalInput && sched.interval_minutes) intervalInput.value = sched.interval_minutes;
+    } else {
+        selectTriggerType('manual');
+    }
+
+    // Restore nodes
+    canvasNodes = [];
+    connections = [];
+    nodeConfigs = {};
+
+    for (const nodeData of state.canvasNodes) {
+        const newNode = createNode(nodeData.type, nodeData.x, nodeData.y, nodeData.id);
+        if (!newNode) continue;
+
+        const nodeId = newNode.dataset.nodeId;
+        const config = state.nodeConfigs[nodeData.id] || {};
+        nodeConfigs[nodeId] = config;
+
+        // Restore UI for each block type
+        if (nodeData.type === 'message') {
+            if (config.mode === 'channel') {
+                const channelInput = newNode.querySelector('.config-channel-input');
+                if (channelInput) channelInput.value = config.channel_name || '';
+                selectMessageMode(nodeId, 'channel');
+            } else if (config.mode === 'users') {
+                const usersInput = newNode.querySelector('.config-users-input');
+                if (usersInput) usersInput.value = config.users || '';
+                selectMessageMode(nodeId, 'users');
+            }
+            const msgInput = newNode.querySelector('.config-message-input');
+            if (msgInput) msgInput.value = config.message || '';
+            updateNodeLabel(nodeId);
+        } else if (nodeData.type === 'await') {
+            const expectedInput = newNode.querySelector('.config-expected-response-input');
+            if (expectedInput) expectedInput.value = config.expected_response || '';
+            const timeoutSelect = newNode.querySelector('.config-timeout-select');
+            if (timeoutSelect) timeoutSelect.value = config.timeout || '24h';
+            const failureInput = newNode.querySelector('.config-failure-message-input');
+            if (failureInput) failureInput.value = config.failure_message || '';
+            updateNodeLabel(nodeId);
+        } else if (nodeData.type === 'response') {
+            const responseInput = newNode.querySelector('.config-response-input');
+            if (responseInput) responseInput.value = config.message || '';
+            updateNodeLabel(nodeId);
+        }
+    }
+
+    // Restore connections (need to map old IDs to new IDs if they differ)
+    connections = state.connections || [];
+
+    // Update UI - use requestAnimationFrame to ensure DOM is fully rendered
+    // before calculating connector positions for lines
+    updateConnectorStates();
+
+    // Need to wait for the browser to finish layout before rendering connections
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            renderConnections();
+        });
+    });
+
+    // Update button states if editing
+    if (state.editingTemplateId) {
+        const saveBtn = document.getElementById('save-deo-btn');
+        if (saveBtn) saveBtn.textContent = 'Update';
+        const saveRunBtn = document.getElementById('save-run-deo-btn');
+        if (saveRunBtn) saveRunBtn.textContent = 'Update & Run';
+    }
+
+    return true;
+}
+
+// Auto-save debounce timer
+let autoSaveTimer = null;
+
+// Trigger auto-save with debounce
+function triggerAutoSave() {
+    if (autoSaveTimer) clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(() => {
+        saveCanvasState();
+    }, 500); // Save 500ms after last change
+}
+
 // Block drag start from sidebar
 document.addEventListener('dragstart', (e) => {
     const blockItem = e.target.closest('.block-item');
@@ -1088,8 +1299,9 @@ document.addEventListener('drop', (e) => {
         const newNode = createNode(draggedBlock, x, y);
 
         // Find closest existing connector and auto-connect (with threshold)
+        // Pass isNewNode=true since this is a brand new node being dropped
         if (newNode) {
-            autoConnectNode(newNode);
+            autoConnectNode(newNode, true);
         }
 
         draggedBlock = null;
@@ -1176,12 +1388,32 @@ function hasIncomingConnection(nodeId) {
     return connections.some(c => c.to.nodeId === nodeId);
 }
 
-// Check if a specific connector side is already used (as input or output)
-function isConnectorUsed(nodeId, side) {
+// Check if a node has an incoming connection from a SIDE (left or right)
+// This is used to disable the TOP connector when a node receives input from the side
+function hasIncomingFromSide(nodeId) {
     return connections.some(c =>
+        c.to.nodeId === nodeId && (c.to.side === 'left' || c.to.side === 'right')
+    );
+}
+
+// Check if a specific connector side is already used (as input or output)
+// Also checks if TOP should be disabled because node has incoming from side
+function isConnectorUsed(nodeId, side) {
+    // Direct check: is this specific side already used?
+    const directlyUsed = connections.some(c =>
         (c.from.nodeId === nodeId && c.from.side === side) ||
         (c.to.nodeId === nodeId && c.to.side === side)
     );
+
+    if (directlyUsed) return true;
+
+    // Special rule: If checking TOP connector and node has incoming from side (left/right),
+    // then TOP is also considered "used" (disabled) to prevent ambiguous multiple inputs
+    if (side === 'top' && hasIncomingFromSide(nodeId)) {
+        return true;
+    }
+
+    return false;
 }
 
 // Check if a node already has an outgoing connection (from any side)
@@ -1237,11 +1469,20 @@ function findClosestAvailableConnector(x, y, excludeNodeId) {
 }
 
 // Create a node on the canvas
-function createNode(blockType, x, y) {
+// optionalId: if provided, use this ID instead of generating a new one (for restoration)
+function createNode(blockType, x, y, optionalId = null) {
     const canvas = document.querySelector('.deo-canvas');
     if (!canvas) return null;
 
-    const nodeId = `node-${++nodeIdCounter}`;
+    const nodeId = optionalId || `node-${++nodeIdCounter}`;
+    // Update counter if optionalId is higher
+    if (optionalId) {
+        const num = parseInt(optionalId.replace('node-', ''), 10);
+        if (!isNaN(num) && num > nodeIdCounter) {
+            nodeIdCounter = num;
+        }
+    }
+
     const node = document.createElement('div');
     node.className = 'flow-node';
     node.dataset.nodeId = nodeId;
@@ -1370,8 +1611,13 @@ function createNode(blockType, x, y) {
     canvasNodes.push({
         id: nodeId,
         type: blockType,
+        x: x,
+        y: y,
         element: node
     });
+
+    // Trigger auto-save
+    triggerAutoSave();
 
     return node;
 }
@@ -1453,12 +1699,13 @@ function findClosestConnector(x, y, excludeNodeId = null) {
 
 // Auto-connect node to closest available connector (with threshold)
 // Rules:
-// - Find closest connector that is NOT already used
+// - IMPORTANT: If the node already has an incoming connection, do NOT auto-connect to new unconnected blocks
+//   This prevents tangled connections when moving already-connected nodes near other blocks
+// - Only reconnect to nodes that the dragged node was ALREADY connected to (allow re-snapping to existing connection partner)
+// - For NEW nodes (no incoming connection), find closest available connector
 // - The dragged node's connector side we want to use is the opposite of the target
 // - If dragged node's connector side is already used as OUTPUT, we can't connect there
-// - Remove ALL incoming connections to this node (a node can only have one parent connection when auto-connecting)
-// - If there's already ANY connection between these two nodes, remove it first (only one connection per node pair)
-function autoConnectNode(newNode) {
+function autoConnectNode(newNode, isNewNode = false) {
     const nodeId = newNode.dataset.nodeId;
     const nodeRect = newNode.getBoundingClientRect();
     const canvas = document.querySelector('.deo-canvas');
@@ -1466,6 +1713,17 @@ function autoConnectNode(newNode) {
 
     const nodeCenterX = nodeRect.left + nodeRect.width / 2 - canvasRect.left;
     const nodeCenterY = nodeRect.top + nodeRect.height / 2 - canvasRect.top;
+
+    // Check if this node already has an incoming connection
+    const existingIncoming = connections.find(c => c.to.nodeId === nodeId);
+
+    // If node already has an incoming connection AND this is not a new node drop,
+    // only allow reconnecting to the node it's already connected to (for re-snapping)
+    if (existingIncoming && !isNewNode) {
+        // Node is already connected - don't try to auto-connect to other blocks
+        // The existing connection will be maintained, just re-render at new position
+        return;
+    }
 
     // Find closest available connector within threshold
     const closest = findClosestAvailableConnector(nodeCenterX, nodeCenterY, nodeId);
@@ -1495,13 +1753,19 @@ function autoConnectNode(newNode) {
         });
 
         updateConnectorStates();
+        triggerAutoSave();
     }
 }
 
 // Update connector visual states
 function updateConnectorStates() {
-    document.querySelectorAll('.flow-node-connector').forEach(c => c.classList.remove('connected'));
+    // Reset all connector states
+    document.querySelectorAll('.flow-node-connector').forEach(c => {
+        c.classList.remove('connected');
+        c.classList.remove('disabled');
+    });
 
+    // Mark connected connectors
     connections.forEach(conn => {
         if (conn.from.nodeId === 'trigger-node') {
             const trigger = document.getElementById('trigger-node');
@@ -1513,6 +1777,14 @@ function updateConnectorStates() {
 
         const toNode = document.querySelector(`[data-node-id="${conn.to.nodeId}"]`);
         toNode?.querySelector(`[data-connector="${conn.to.side}"]`)?.classList.add('connected');
+
+        // If connected via side (left/right), disable the TOP connector
+        if (conn.to.side === 'left' || conn.to.side === 'right') {
+            const topConnector = toNode?.querySelector('[data-connector="top"]');
+            if (topConnector) {
+                topConnector.classList.add('disabled');
+            }
+        }
     });
 }
 
@@ -1572,6 +1844,15 @@ function makeNodeDraggable(node) {
 
             removePreviewLine();
             renderConnections();
+
+            // Update node position in canvasNodes and trigger auto-save
+            const nodeId = node.dataset.nodeId;
+            const nodeData = canvasNodes.find(n => n.id === nodeId);
+            if (nodeData) {
+                nodeData.x = node.offsetLeft + 100; // Restore center position
+                nodeData.y = node.offsetTop + 22;
+            }
+            triggerAutoSave();
         }
     };
 
@@ -1580,7 +1861,19 @@ function makeNodeDraggable(node) {
 }
 
 // Show preview line while dragging existing node
+// IMPORTANT: If the node already has an incoming connection, don't show preview
+// because we won't auto-connect it to new blocks anyway
 function showNodeDragPreview(nodeId, nodeCenterX, nodeCenterY) {
+    // Check if this node already has an incoming connection
+    const hasExistingIncoming = connections.some(c => c.to.nodeId === nodeId);
+
+    // If node is already connected, don't show preview for potential new connections
+    // This matches the behavior in autoConnectNode which skips already-connected nodes
+    if (hasExistingIncoming) {
+        removePreviewLine();
+        return;
+    }
+
     const closest = findClosestAvailableConnector(nodeCenterX, nodeCenterY, nodeId);
 
     if (closest && closest.distance < CONNECTION_THRESHOLD) {
@@ -1798,6 +2091,7 @@ document.addEventListener('click', (e) => {
             delete nodeConfigs[nodeId]; // Clean up node config
             updateConnectorStates();
             renderConnections();
+            triggerAutoSave();
 
             if (canvasNodes.length === 0) {
                 const placeholder = document.querySelector('.canvas-placeholder');
@@ -1862,6 +2156,9 @@ document.addEventListener('click', (e) => {
 
             // Clear editing mode
             editingTemplateId = null;
+
+            // Clear saved canvas state
+            clearCanvasState();
         }
     }
 });
@@ -1869,20 +2166,15 @@ document.addEventListener('click', (e) => {
 // === SAVE TEMPLATE ===
 
 // Traverse connections from trigger to get ordered blocks
-// Uses BFS with priority: bottom -> right -> left
-// This ensures ALL connected nodes are found, not just one linear path
+// Uses DFS (Depth-First Search) with priority: bottom -> right -> left
+// This ensures we follow each branch completely before moving to the next sibling
+// Example: Trigger -> Message -> (right: Await -> its children) -> (left: Response -> its children)
 function getOrderedBlocks() {
     const orderedBlocks = [];
     const visited = new Set();
 
-    // Queue for BFS: each item has nodeId
-    // We process nodes in order, but for each node we check connections with priority
-    const queue = ['trigger-node'];
-    visited.add('trigger-node');
-
-    while (queue.length > 0) {
-        const currentNodeId = queue.shift();
-
+    // DFS recursive helper function
+    function dfsTraverse(currentNodeId) {
         // Find all outgoing connections from current node, sorted by priority
         const priorities = ['bottom', 'right', 'left'];
 
@@ -1899,22 +2191,32 @@ function getOrderedBlocks() {
                 const nodeData = canvasNodes.find(n => n.id === nextNodeId);
 
                 if (nodeData) {
+                    // Add this node to the ordered list
                     orderedBlocks.push({
                         nodeId: nextNodeId,
                         type: nodeData.type,
                         config: nodeConfigs[nextNodeId] || {}
                     });
                     visited.add(nextNodeId);
-                    queue.push(nextNodeId);
+
+                    // Recursively traverse this node's children BEFORE moving to siblings
+                    // This is the key difference from BFS - we go deep first
+                    dfsTraverse(nextNodeId);
                 }
             }
         }
     }
 
+    // Start DFS from trigger node
+    visited.add('trigger-node');
+    dfsTraverse('trigger-node');
+
     return orderedBlocks;
 }
 
 // Build template payload from canvas state
+// NEW FORMAT: Each block has its own config inline
+// This supports multiple message blocks with different configs
 function buildTemplatePayload() {
     const templateName = document.getElementById('template-name-input')?.value?.trim();
     const workspaceId = selectedCanvasWorkspace;
@@ -1934,39 +2236,61 @@ function buildTemplatePayload() {
         return { error: 'Please add at least one block connected to the trigger' };
     }
 
-    // Extract block types for the blocks array
-    const blockTypes = orderedBlocks.map(b => b.type);
+    // Check for required blocks
+    const hasMessage = orderedBlocks.some(b => b.type === 'message');
+    const hasAwait = orderedBlocks.some(b => b.type === 'await');
+    const hasResponse = orderedBlocks.some(b => b.type === 'response');
 
-    // Find specific block configs
-    const messageBlock = orderedBlocks.find(b => b.type === 'message');
-    const awaitBlock = orderedBlocks.find(b => b.type === 'await');
-    const responseBlock = orderedBlocks.find(b => b.type === 'response');
-
-    // Validate required blocks
-    if (!messageBlock) {
-        return { error: 'Template requires a Message block' };
-    }
-    if (!responseBlock) {
-        return { error: 'Template requires a Response block' };
+    if (!hasMessage) {
+        return { error: 'Template requires at least one Message block' };
     }
 
-    // Build message config
-    const msgConfig = messageBlock.config;
-    if (!msgConfig.message) {
-        return { error: 'Message block requires a message' };
+    // Response block is only required if there's an await block
+    if (hasAwait && !hasResponse) {
+        return { error: 'Template with Await block requires a Response block' };
     }
 
-    const messagePayload = { message: msgConfig.message };
-    if (msgConfig.mode === 'channel') {
-        if (!msgConfig.channel_name) {
-            return { error: 'Message block requires a channel name' };
+    // Build blocks array with inline configs
+    const blocksWithConfig = [];
+
+    for (const block of orderedBlocks) {
+        const blockEntry = { type: block.type };
+
+        if (block.type === 'message') {
+            const msgConfig = block.config;
+            if (!msgConfig.message) {
+                return { error: `Message block requires a message` };
+            }
+
+            blockEntry.config = { message: msgConfig.message };
+
+            if (msgConfig.mode === 'channel') {
+                if (!msgConfig.channel_name) {
+                    return { error: `Message block requires a channel name` };
+                }
+                blockEntry.config.channel_name = msgConfig.channel_name;
+            } else {
+                if (!msgConfig.users) {
+                    return { error: `Message block requires user IDs` };
+                }
+                blockEntry.config.users = msgConfig.users.split(',').map(u => u.trim()).filter(u => u);
+            }
+        } else if (block.type === 'await') {
+            const awaitConfig = block.config;
+            blockEntry.config = {
+                expected_response: awaitConfig.expected_response || '',
+                timeout: awaitConfig.timeout || '24h',
+                failure_message: awaitConfig.failure_message || ''
+            };
+        } else if (block.type === 'response') {
+            const respConfig = block.config;
+            if (!respConfig.message) {
+                return { error: `Response block requires a message` };
+            }
+            blockEntry.config = { message: respConfig.message };
         }
-        messagePayload.channel_name = msgConfig.channel_name;
-    } else {
-        if (!msgConfig.users) {
-            return { error: 'Message block requires user IDs' };
-        }
-        messagePayload.users = msgConfig.users.split(',').map(u => u.trim()).filter(u => u);
+
+        blocksWithConfig.push(blockEntry);
     }
 
     // Build trigger config
@@ -1980,33 +2304,15 @@ function buildTemplatePayload() {
         };
     }
 
-    // Build response
-    const respConfig = responseBlock.config;
-    if (!respConfig.message) {
-        return { error: 'Response block requires a message' };
-    }
-
-    // Build payload
+    // Build payload with new format
     const payload = {
         template_id: templateName,
         workspace_id: workspaceId,
         action_chain: {
-            blocks: blockTypes,
-            trigger: triggerPayload,
-            message: messagePayload,
-            response: respConfig.message
+            blocks: blocksWithConfig,
+            trigger: triggerPayload
         }
     };
-
-    // Add await config if present
-    if (awaitBlock) {
-        const awaitConfig = awaitBlock.config;
-        payload.action_chain.await = {
-            expected_response: awaitConfig.expected_response || '',
-            timeout: awaitConfig.timeout || '24h',
-            failure_message: awaitConfig.failure_message || ''
-        };
-    }
 
     return { payload };
 }
@@ -2162,3 +2468,35 @@ document.addEventListener('click', async (e) => {
         }
     }
 });
+
+// === PAGE INITIALIZATION ===
+// Restore canvas state on page load (if on canvas page)
+(function initCanvasPage() {
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', tryRestoreCanvas);
+    } else {
+        // DOM already ready, run with a small delay to ensure all elements are set up
+        setTimeout(tryRestoreCanvas, 100);
+    }
+
+    function tryRestoreCanvas() {
+        const canvas = document.querySelector('.deo-canvas');
+        if (!canvas) return; // Not on canvas page
+
+        // Add listener for template name changes
+        const templateNameInput = document.getElementById('template-name-input');
+        if (templateNameInput) {
+            templateNameInput.addEventListener('input', () => {
+                triggerAutoSave();
+            });
+        }
+
+        // Try to restore saved state
+        const savedState = loadCanvasState();
+        if (savedState && savedState.canvasNodes && savedState.canvasNodes.length > 0) {
+            console.log('Restoring canvas state from localStorage');
+            restoreCanvasFromState(savedState);
+        }
+    }
+})();

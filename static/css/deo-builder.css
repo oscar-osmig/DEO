@@ -515,6 +515,22 @@ textarea.canvas-block-input {
     border-color: var(--text-secondary);
 }
 
+.flow-node-connector.disabled {
+    opacity: 0.3;
+    pointer-events: none;
+    cursor: not-allowed;
+}
+
+.flow-node-connector.disabled:hover {
+    transform: none;
+    border-color: var(--border-color);
+    background-color: var(--bg-tertiary);
+}
+
+.flow-node-connector.top.disabled:hover {
+    transform: translateX(-50%);
+}
+
 /* Trigger Node - fixed at top center */
 .trigger-node {
     position: absolute;

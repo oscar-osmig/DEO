@@ -45,6 +45,17 @@ class MessageBlock(BaseModel):
         return self
 
 
+class BlockWithConfig(BaseModel):
+    """
+    Block with inline configuration.
+
+    NEW FORMAT: Each block in the sequence has its own config.
+    This supports multiple message blocks with different configs.
+    """
+    type: str
+    config: Optional[Dict[str, Any]] = None
+
+
 class ScheduleConfig(BaseModel):
     """
     Schedule configuration model.
@@ -80,12 +91,23 @@ class ActionChain(BaseModel):
     Action chain configuration model.
 
     Defines the sequence of blocks and their configurations for a template.
+
+    NEW FORMAT: blocks is a list of BlockWithConfig objects, each containing
+    type and config inline. This supports multiple blocks of the same type
+    with different configurations.
+
+    OLD FORMAT (deprecated but still supported for backwards compatibility):
+    blocks as list of strings with separate message/await/response fields.
     """
-    blocks: List[str]
+    # NEW FORMAT: blocks as list of objects with type and config
+    # OLD FORMAT: blocks as list of strings
+    blocks: Union[List[BlockWithConfig], List[str], List[Dict[str, Any]]]
     trigger: Union[str, TriggerConfig, Dict[str, Any]]  # Accept dict too
-    message: MessageBlock
+
+    # OLD FORMAT fields (optional for backwards compatibility)
+    message: Optional[MessageBlock] = None
     await_response: Optional[Union[str, Dict[str, str]]] = Field(None, alias="await")
-    response: str
+    response: Optional[str] = None
 
     class Config:
         populate_by_name = True
@@ -94,9 +116,21 @@ class ActionChain(BaseModel):
     @classmethod
     def validate_trigger(cls, v):
         """Convert dict to TriggerConfig if needed."""
-        if isinstance(v, dict):
+        if isinstance(v, dict) and 'type' in v:
             # Convert dict to TriggerConfig
             return TriggerConfig(**v)
+        return v
+
+    @field_validator('blocks', mode='before')
+    @classmethod
+    def validate_blocks(cls, v):
+        """Convert blocks to proper format."""
+        if not v:
+            return v
+        # Check if new format (list of dicts with 'type' key)
+        if isinstance(v[0], dict) and 'type' in v[0]:
+            return [BlockWithConfig(**b) for b in v]
+        # Old format (list of strings)
         return v
 
 
@@ -150,13 +184,15 @@ async def create_template(request: CreateTemplateRequest):
     """
     Create a new workflow template.
 
-    Creates a template with blocks that execute in sequence. Supports two message modes:
-    - Channel mode: Send to a channel (use channel_name)
-    - Users mode: Send DMs to users (use users list)
+    Creates a template with blocks that execute in sequence. Supports two formats:
 
-    Trigger types:
-    - "manual": Single execution via /templates/run
-    - {"type": "schedule", "schedule": {...}}: Recurring scheduled execution
+    NEW FORMAT (recommended):
+    - blocks: List of {type, config} objects with inline configurations
+    - Supports multiple blocks of the same type with different configs
+
+    OLD FORMAT (backwards compatible):
+    - blocks: List of strings
+    - message, await, response as separate fields
 
     Args:
         request (CreateTemplateRequest): Contains template_id, workspace_id, action_chain
@@ -174,39 +210,57 @@ async def create_template(request: CreateTemplateRequest):
     if existing:
         raise HTTPException(status_code=400, detail="Template ID already exists")
 
-    # Build message block based on mode
-    message_block = {"message": request.action_chain.message.message}
-
-    if request.action_chain.message.channel_name:
-        message_block["channel_name"] = request.action_chain.message.channel_name
-    elif request.action_chain.message.users:
-        message_block["users"] = request.action_chain.message.users
-
     # Handle trigger serialization
     trigger_data = request.action_chain.trigger
     if isinstance(trigger_data, TriggerConfig):
-        # Serialize TriggerConfig to dict
         trigger_data = trigger_data.model_dump(exclude_none=True)
     elif isinstance(trigger_data, str):
-        # Keep as string for manual trigger
         trigger_data = trigger_data
 
-    # Create template document
-    template_doc = {
-        "template_id": request.template_id,
-        "workspace_id": request.workspace_id,
-        "action_chain": {
-            "blocks": request.action_chain.blocks,
-            "trigger": trigger_data,
-            "message": message_block,
-            "response": request.action_chain.response
-        },
-        "created_at": datetime.utcnow()
-    }
+    # Check if new format (blocks with inline config)
+    blocks = request.action_chain.blocks
+    is_new_format = blocks and isinstance(blocks[0], BlockWithConfig)
 
-    # Add await field if present
-    if request.action_chain.await_response:
-        template_doc["action_chain"]["await"] = request.action_chain.await_response
+    if is_new_format:
+        # NEW FORMAT: blocks as list of {type, config} objects
+        blocks_data = [
+            {"type": b.type, "config": b.config}
+            for b in blocks
+        ]
+
+        template_doc = {
+            "template_id": request.template_id,
+            "workspace_id": request.workspace_id,
+            "action_chain": {
+                "blocks": blocks_data,
+                "trigger": trigger_data
+            },
+            "created_at": datetime.utcnow()
+        }
+    else:
+        # OLD FORMAT: blocks as list of strings with separate message/await/response
+        message_block = {"message": request.action_chain.message.message}
+
+        if request.action_chain.message.channel_name:
+            message_block["channel_name"] = request.action_chain.message.channel_name
+        elif request.action_chain.message.users:
+            message_block["users"] = request.action_chain.message.users
+
+        template_doc = {
+            "template_id": request.template_id,
+            "workspace_id": request.workspace_id,
+            "action_chain": {
+                "blocks": request.action_chain.blocks,
+                "trigger": trigger_data,
+                "message": message_block,
+                "response": request.action_chain.response
+            },
+            "created_at": datetime.utcnow()
+        }
+
+        # Add await field if present
+        if request.action_chain.await_response:
+            template_doc["action_chain"]["await"] = request.action_chain.await_response
 
     result = await templates_collection.insert_one(template_doc)
 
@@ -222,8 +276,7 @@ async def update_template(template_id: str, request: UpdateTemplateRequest):
     """
     Update an existing template's action chain.
 
-    Modifies workflow configuration for a template. Template_id and workspace_id cannot be changed.
-    Only the action_chain is updated with new blocks, trigger, message, await, and response settings.
+    Supports both new format (blocks with inline config) and old format.
 
     Args:
         template_id (str): ID of template to update
@@ -242,14 +295,6 @@ async def update_template(template_id: str, request: UpdateTemplateRequest):
     if not existing_template:
         raise HTTPException(status_code=404, detail="Template not found")
 
-    # Build message block based on mode
-    message_block = {"message": request.action_chain.message.message}
-
-    if request.action_chain.message.channel_name:
-        message_block["channel_name"] = request.action_chain.message.channel_name
-    elif request.action_chain.message.users:
-        message_block["users"] = request.action_chain.message.users
-
     # Handle trigger serialization
     trigger_data = request.action_chain.trigger
     if isinstance(trigger_data, TriggerConfig):
@@ -257,20 +302,46 @@ async def update_template(template_id: str, request: UpdateTemplateRequest):
     elif isinstance(trigger_data, str):
         trigger_data = trigger_data
 
-    # Prepare updated action chain
-    updated_data = {
-        "action_chain": {
-            "blocks": request.action_chain.blocks,
-            "trigger": trigger_data,
-            "message": message_block,
-            "response": request.action_chain.response
-        },
-        "updated_at": datetime.utcnow()
-    }
+    # Check if new format (blocks with inline config)
+    blocks = request.action_chain.blocks
+    is_new_format = blocks and isinstance(blocks[0], BlockWithConfig)
 
-    # Add await field if present
-    if request.action_chain.await_response:
-        updated_data["action_chain"]["await"] = request.action_chain.await_response
+    if is_new_format:
+        # NEW FORMAT: blocks as list of {type, config} objects
+        blocks_data = [
+            {"type": b.type, "config": b.config}
+            for b in blocks
+        ]
+
+        updated_data = {
+            "action_chain": {
+                "blocks": blocks_data,
+                "trigger": trigger_data
+            },
+            "updated_at": datetime.utcnow()
+        }
+    else:
+        # OLD FORMAT: blocks as list of strings with separate message/await/response
+        message_block = {"message": request.action_chain.message.message}
+
+        if request.action_chain.message.channel_name:
+            message_block["channel_name"] = request.action_chain.message.channel_name
+        elif request.action_chain.message.users:
+            message_block["users"] = request.action_chain.message.users
+
+        updated_data = {
+            "action_chain": {
+                "blocks": request.action_chain.blocks,
+                "trigger": trigger_data,
+                "message": message_block,
+                "response": request.action_chain.response
+            },
+            "updated_at": datetime.utcnow()
+        }
+
+        # Add await field if present
+        if request.action_chain.await_response:
+            updated_data["action_chain"]["await"] = request.action_chain.await_response
 
     # Update template in database
     result = await templates_collection.update_one(

@@ -68,25 +68,12 @@ class TemplateOrchestrator:
         """
         Validate that the template is properly structured.
 
-        Performs several validation checks:
-        1. Ensures 'blocks' list exists and is not empty
-        2. Verifies all blocks in the list are present in the action_chain
-        3. Confirms all blocks are supported block types
+        Supports two formats:
+        NEW FORMAT: blocks as list of {type, config} objects
+        OLD FORMAT: blocks as list of strings with separate config fields
 
         Raises:
             ValueError: If any validation check fails with descriptive error
-
-        Example of valid template structure:
-            {
-                "blocks": ["trigger", "message", "await", "response"],
-                "trigger": "manual",
-                "message": {
-                    "users": ["U123"],
-                    "message": "Hello"
-                },
-                "await": "got it",
-                "response": "Task completed"
-            }
         """
         blocks_list = self.action_chain.get("blocks", [])
 
@@ -94,67 +81,77 @@ class TemplateOrchestrator:
         if not blocks_list:
             raise ValueError("Template error: 'blocks' list is empty or missing")
 
-        # Validate each block in the execution list
-        for block_name in blocks_list:
-            # Check if block definition exists in action_chain
-            if block_name not in self.action_chain:
-                raise ValueError(
-                    f"Template not created correctly: Block '{block_name}' "
-                    f"is listed but not present in the payload"
-                )
+        # Detect format: new format has dicts with 'type' key
+        self.is_new_format = isinstance(blocks_list[0], dict) and 'type' in blocks_list[0]
 
-            # Check if block type is supported
-            if block_name not in self.BLOCK_EXECUTORS:
-                raise ValueError(
-                    f"Template error: Block '{block_name}' is not a supported block type"
-                )
+        if self.is_new_format:
+            # NEW FORMAT: Validate each block has valid type
+            for block in blocks_list:
+                block_type = block.get('type')
+                if block_type not in self.BLOCK_EXECUTORS:
+                    raise ValueError(
+                        f"Template error: Block type '{block_type}' is not supported"
+                    )
+        else:
+            # OLD FORMAT: Validate each block in the execution list
+            for block_name in blocks_list:
+                # Check if block definition exists in action_chain
+                if block_name not in self.action_chain:
+                    raise ValueError(
+                        f"Template not created correctly: Block '{block_name}' "
+                        f"is listed but not present in the payload"
+                    )
+
+                # Check if block type is supported
+                if block_name not in self.BLOCK_EXECUTORS:
+                    raise ValueError(
+                        f"Template error: Block '{block_name}' is not a supported block type"
+                    )
 
     async def execute(self, start_from_block: int = 0) -> List[Dict[str, Any]]:
         """
         Execute all blocks in the template sequentially.
 
-        Executes each block in the order specified by the 'blocks' list,
-        passing appropriate parameters and maintaining context between blocks.
-        The response block uses the channel from the previous message block.
+        Supports two formats:
+        NEW FORMAT: blocks as list of {type, config} objects with inline configs
+        OLD FORMAT: blocks as list of strings with separate config fields
 
         Args:
             start_from_block (int): Index to start execution from (for resuming)
 
         Returns:
-            List[Dict[str, Any]]: List of execution results, each containing:
-                - block (str): Name of the executed block
-                - result (dict): Execution result from the block
+            List[Dict[str, Any]]: List of execution results
 
         Raises:
-            ValueError: If required parameters are missing (bot_token, channel)
+            ValueError: If required parameters are missing
             Exception: If any block execution fails
-
-        Note:
-            - Blocks are executed in sequential order
-            - Await block pauses execution and stores state in database
-            - Response block requires a prior message block to determine the channel
-            - Execution stops if any block raises an exception
         """
         blocks_list = self.action_chain.get("blocks", [])
         results = []
 
         print(f"Starting orchestration with blocks: {blocks_list}")
+        print(f"Format: {'NEW' if self.is_new_format else 'OLD'}")
         if start_from_block > 0:
             print(f"Resuming from block index {start_from_block}")
 
         # Execute each block in sequence, starting from the specified index
-        for i, block_name in enumerate(blocks_list[start_from_block:], start=start_from_block):
-            print(f"\nExecuting block: {block_name}")
+        for i, block_entry in enumerate(blocks_list[start_from_block:], start=start_from_block):
+            # Handle both formats
+            if self.is_new_format:
+                block_name = block_entry.get('type')
+                block_data = block_entry.get('config', {})
+            else:
+                block_name = block_entry
+                block_data = self.action_chain.get(block_name)
 
-            # Get block configuration data
-            block_data = self.action_chain.get(block_name)
+            print(f"\nExecuting block: {block_name} (index {i})")
+
             executor = self.BLOCK_EXECUTORS[block_name]
 
             # Execute based on block type with appropriate parameters
             if block_name == "trigger":
                 # Trigger block doesn't need bot_token
                 result = await executor(block_data)
-
 
             elif block_name == "message":
                 # Message block requires bot_token
@@ -184,7 +181,6 @@ class TemplateOrchestrator:
                     if self.user_channels:
                         self.last_channel = self.user_channels[0]
 
-
             elif block_name == "await":
                 # Await block requires bot_token
                 if not self.bot_token:
@@ -207,11 +203,8 @@ class TemplateOrchestrator:
                         self.action_chain,
                         mode="channel",
                         channel_name=self.last_channel
-
                     )
-
                 else:
-
                     # Users mode: wait for first user to respond
                     if not self.user_channels:
                         raise ValueError("Await block requires a message block with users to be executed first")
@@ -242,13 +235,19 @@ class TemplateOrchestrator:
                 if not self.last_channel:
                     raise ValueError("Response block requires a message block to be executed first")
 
+                # For new format, extract message from config
+                if self.is_new_format:
+                    response_message = block_data.get('message', '')
+                else:
+                    response_message = block_data
+
                 # If message was sent to multiple users, send response to each
                 if self.message_mode == "users" and len(self.user_channels) > 1:
                     # Send response to all user DM channels
                     response_results = []
                     for channel_id in self.user_channels:
                         try:
-                            single_result = await executor(block_data, self.bot_token, channel_id)
+                            single_result = await executor(response_message, self.bot_token, channel_id)
                             response_results.append({
                                 "channel": channel_id,
                                 "result": single_result
@@ -265,7 +264,7 @@ class TemplateOrchestrator:
                     }
                 else:
                     # Single channel response (either channel mode or single user)
-                    result = await executor(block_data, self.bot_token, self.last_channel)
+                    result = await executor(response_message, self.bot_token, self.last_channel)
 
             else:
                 # Generic execution for any other block types
