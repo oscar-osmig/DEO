@@ -22,9 +22,14 @@ let panStartOffsetY = 0;
 
 function updateCanvasTransform() {
     const canvasContent = document.querySelector('.deo-canvas-content');
+    const canvas = document.querySelector('.deo-canvas');
     if (canvasContent) {
         canvasContent.style.transform = `translate(${panOffsetX}px, ${panOffsetY}px) scale(${canvasZoom})`;
         canvasContent.style.transformOrigin = 'top left';
+    }
+    // Update background position to move with pan (creates parallax effect)
+    if (canvas) {
+        canvas.style.backgroundPosition = `${panOffsetX}px ${panOffsetY}px, ${panOffsetX}px ${panOffsetY}px`;
     }
 }
 
@@ -3184,6 +3189,9 @@ document.addEventListener('click', async (e) => {
     function tryRestoreCanvas() {
         const canvas = document.querySelector('.deo-canvas');
         if (!canvas) return; // Not on canvas page
+
+        // Apply initial canvas transform (syncs background position)
+        updateCanvasTransform();
 
         // Add listener for template name changes
         const templateNameInput = document.getElementById('template-name-input');
