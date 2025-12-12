@@ -33,9 +33,24 @@ function updateCanvasTransform() {
     }
 }
 
-function updateCanvasZoom(newZoom) {
+function updateCanvasZoom(newZoom, centerX = null, centerY = null) {
+    const oldZoom = canvasZoom;
     canvasZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, newZoom));
     const zoomLabel = document.getElementById('zoom-level');
+
+    // Adjust pan offset to zoom toward center of viewport (or provided point)
+    const canvasWrapper = document.querySelector('.deo-canvas-wrapper');
+    if (canvasWrapper && oldZoom !== canvasZoom) {
+        const rect = canvasWrapper.getBoundingClientRect();
+        // Use center of viewport if no specific point provided
+        const zoomCenterX = centerX !== null ? centerX : rect.width / 2;
+        const zoomCenterY = centerY !== null ? centerY : rect.height / 2;
+
+        // Calculate adjustment to keep zoom centered
+        const zoomRatio = canvasZoom / oldZoom;
+        panOffsetX = zoomCenterX - (zoomCenterX - panOffsetX) * zoomRatio;
+        panOffsetY = zoomCenterY - (zoomCenterY - panOffsetY) * zoomRatio;
+    }
 
     updateCanvasTransform();
 
@@ -83,9 +98,14 @@ document.addEventListener('wheel', (e) => {
         if (now - lastWheelZoom < 50) return;
         lastWheelZoom = now;
 
+        // Get mouse position relative to canvas wrapper for zoom centering
+        const rect = canvasWrapper.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
         // Use smaller delta for smoother, less sensitive zoom
         const delta = -e.deltaY * ZOOM_WHEEL_SENSITIVITY;
-        updateCanvasZoom(canvasZoom + delta);
+        updateCanvasZoom(canvasZoom + delta, mouseX, mouseY);
     }
 }, { passive: false });
 
@@ -758,6 +778,7 @@ document.addEventListener('click', async (e) => {
 // Load template data into the canvas for editing
 async function loadTemplateIntoCanvas(template) {
     const canvasContent = document.querySelector('.deo-canvas-content');
+    const canvasElement = document.querySelector('.deo-canvas');
     if (!canvasContent) return;
 
     // Set editing mode
@@ -798,6 +819,7 @@ async function loadTemplateIntoCanvas(template) {
     }
 
     const ac = template.action_chain || {};
+    const canvasLayout = ac.canvas_layout || null;
 
     // Set trigger configuration
     const trigger = ac.trigger;
@@ -848,16 +870,30 @@ async function loadTemplateIntoCanvas(template) {
     const oldAwaitConfig = ac.await || {};
     const oldResponseText = ac.response || '';
 
-    // Position nodes vertically below trigger
-    const triggerNode = document.getElementById('trigger-node');
-    const triggerRect = triggerNode ? triggerNode.getBoundingClientRect() : { left: 300, bottom: 100 };
-    const canvasRect = canvas.getBoundingClientRect();
+    // Check if we have canvas_layout with saved positions
+    const hasLayout = canvasLayout && canvasLayout.nodes && canvasLayout.nodes.length > 0;
 
-    const startX = triggerRect.left - canvasRect.left + (triggerNode ? triggerNode.offsetWidth / 2 : 100);
+    // Default positioning for fallback
+    const triggerNode = document.getElementById('trigger-node');
+    const canvasRect = canvasElement ? canvasElement.getBoundingClientRect() : { left: 0, top: 0 };
+    const triggerRect = triggerNode ? triggerNode.getBoundingClientRect() : { left: 300 + canvasRect.left };
+    const defaultStartX = triggerRect.left - canvasRect.left + (triggerNode ? triggerNode.offsetWidth / 2 : 100);
     let currentY = 150; // Start below trigger
     const nodeSpacing = 120;
 
     let previousNodeId = 'trigger-node';
+
+    // Create a map from layout node positions
+    const layoutPositions = {};
+    const layoutConfigs = canvasLayout?.nodeConfigs || {};
+    if (hasLayout) {
+        canvasLayout.nodes.forEach(n => {
+            layoutPositions[n.id] = { x: n.x, y: n.y, type: n.type };
+        });
+    }
+
+    // Track created node ID mapping (old layout ID -> new created ID)
+    const nodeIdMap = {};
 
     blocks.forEach((blockEntry, index) => {
         // Handle both formats
@@ -874,17 +910,27 @@ async function loadTemplateIntoCanvas(template) {
             else blockConfig = {};
         }
 
-        // Create node
-        const newNode = createNode(blockType, startX, currentY);
+        // Determine position - use layout if available, otherwise fallback
+        let nodeX = defaultStartX;
+        let nodeY = currentY;
+
+        // Find matching node in layout by index (nodes are stored in order)
+        if (hasLayout && canvasLayout.nodes[index]) {
+            const layoutNode = canvasLayout.nodes[index];
+            nodeX = layoutNode.x;
+            nodeY = layoutNode.y;
+        }
+
+        // Create node at position
+        const newNode = createNode(blockType, nodeX, nodeY);
         if (!newNode) return;
 
         const nodeId = newNode.dataset.nodeId;
 
-        // Connect to previous node
-        connections.push({
-            from: { nodeId: previousNodeId, side: 'bottom' },
-            to: { nodeId: nodeId, side: 'top' }
-        });
+        // Store mapping for connections
+        if (hasLayout && canvasLayout.nodes[index]) {
+            nodeIdMap[canvasLayout.nodes[index].id] = nodeId;
+        }
 
         // Set node config based on block type
         if (blockType === 'message') {
@@ -961,6 +1007,32 @@ async function loadTemplateIntoCanvas(template) {
         previousNodeId = nodeId;
         currentY += nodeSpacing;
     });
+
+    // Restore connections from layout or create default chain
+    if (hasLayout && canvasLayout.connections && canvasLayout.connections.length > 0) {
+        // Use saved connections, mapping old IDs to new IDs
+        canvasLayout.connections.forEach(conn => {
+            const fromId = conn.from.nodeId === 'trigger-node' ? 'trigger-node' : nodeIdMap[conn.from.nodeId];
+            const toId = conn.to.nodeId === 'trigger-node' ? 'trigger-node' : nodeIdMap[conn.to.nodeId];
+
+            if (fromId && toId) {
+                connections.push({
+                    from: { nodeId: fromId, side: conn.from.side },
+                    to: { nodeId: toId, side: conn.to.side }
+                });
+            }
+        });
+    } else {
+        // Create default chain connections
+        let prevId = 'trigger-node';
+        canvasNodes.forEach(node => {
+            connections.push({
+                from: { nodeId: prevId, side: 'bottom' },
+                to: { nodeId: node.id, side: 'top' }
+            });
+            prevId = node.id;
+        });
+    }
 
     // Update connector states and render connections
     updateConnectorStates();
