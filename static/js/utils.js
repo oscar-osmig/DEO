@@ -110,9 +110,10 @@ function initNewDeo() {
 // Check if there's a hash in URL and set header section accordingly
 function initFromHash() {
     const hash = window.location.hash;
+    const isHome = !hash || hash === '' || hash === '#' || hash === '#home';
 
     // Manage the has-route class for preventing home view flash
-    if (hash && hash.length > 1) {
+    if (!isHome) {
         document.documentElement.classList.add('has-route');
     } else {
         document.documentElement.classList.remove('has-route');
@@ -132,7 +133,8 @@ function initFromHash() {
     } else if (hash === '#teams') {
         setHeaderSection('Teams');
     } else {
-        setHeaderSection('');
+        // Home or unknown hash
+        setHeaderSection('Home');
     }
 
     // Ensure target view is properly activated on refresh

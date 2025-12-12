@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DEO</title>
     <script>
-        // Immediately hide home view if there's a hash route - prevents flash
-        if(location.hash.length>1)document.documentElement.className='has-route';
+        // Immediately hide home view if there's a hash route (except #home) - prevents flash
+        var h=location.hash;if(h.length>1&&h!=='#home')document.documentElement.className='has-route';
     </script>
     <style>
         /* Hide home view when navigating to a hash route */
