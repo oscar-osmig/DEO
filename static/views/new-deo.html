@@ -52,74 +52,99 @@
                     <button class="btn" id="save-run-deo-btn">Save & Run</button>
                 </div>
             </div>
-            <div class="deo-canvas">
-                <div class="trigger-node" id="trigger-node">
-                    <div class="flow-node-header">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-                        </svg>
-                        <span>Trigger</span>
-                        <span class="trigger-type-label" id="trigger-type-label">Manual</span>
-                    </div>
-                    <div class="flow-node-connector bottom" data-connector="bottom"></div>
-                    <div class="trigger-config-popup">
-                        <div class="trigger-config-title">Trigger Type</div>
-                        <div class="trigger-config-options">
-                            <div class="trigger-config-option selected" data-trigger-type="manual">
+            <div class="deo-canvas-wrapper">
+                <div class="deo-canvas">
+                    <div class="deo-canvas-content">
+                        <div class="trigger-node" id="trigger-node">
+                            <div class="flow-node-header">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
-                                    <polyline points="10 17 15 12 10 7"></polyline>
-                                    <line x1="15" y1="12" x2="3" y2="12"></line>
+                                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
                                 </svg>
-                                <span>Manual</span>
+                                <span>Trigger</span>
+                                <span class="trigger-type-label" id="trigger-type-label">Manual</span>
                             </div>
-                            <div class="trigger-config-option" data-trigger-type="schedule">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <polyline points="12 6 12 12 16 14"></polyline>
-                                </svg>
-                                <span>Schedule</span>
+                            <div class="flow-node-connector bottom" data-connector="bottom"></div>
+                            <div class="trigger-config-popup">
+                                <div class="trigger-config-title">Trigger Type</div>
+                                <div class="trigger-config-options">
+                                    <div class="trigger-config-option selected" data-trigger-type="manual">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                                            <polyline points="10 17 15 12 10 7"></polyline>
+                                            <line x1="15" y1="12" x2="3" y2="12"></line>
+                                        </svg>
+                                        <span>Manual</span>
+                                    </div>
+                                    <div class="trigger-config-option" data-trigger-type="schedule">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"></circle>
+                                            <polyline points="12 6 12 12 16 14"></polyline>
+                                        </svg>
+                                        <span>Schedule</span>
+                                    </div>
+                                </div>
+                                <div class="trigger-schedule-config" id="trigger-schedule-config">
+                                    <div class="trigger-schedule-row">
+                                        <div class="trigger-schedule-label">Frequency</div>
+                                        <select class="trigger-schedule-select" id="trigger-schedule-regularity">
+                                            <option value="daily">Daily</option>
+                                            <option value="weekly">Weekly</option>
+                                            <option value="monthly">Monthly</option>
+                                            <option value="interval">Interval</option>
+                                        </select>
+                                    </div>
+                                    <div class="trigger-schedule-row" id="trigger-time-row">
+                                        <div class="trigger-schedule-label">Time</div>
+                                        <input type="time" class="trigger-schedule-input" id="trigger-schedule-time" value="09:00">
+                                    </div>
+                                    <div class="trigger-schedule-row" id="trigger-day-week-row" style="display: none;">
+                                        <div class="trigger-schedule-label">Day of Week</div>
+                                        <select class="trigger-schedule-select" id="trigger-schedule-day-week">
+                                            <option value="0">Monday</option>
+                                            <option value="1">Tuesday</option>
+                                            <option value="2">Wednesday</option>
+                                            <option value="3">Thursday</option>
+                                            <option value="4">Friday</option>
+                                            <option value="5">Saturday</option>
+                                            <option value="6">Sunday</option>
+                                        </select>
+                                    </div>
+                                    <div class="trigger-schedule-row" id="trigger-day-month-row" style="display: none;">
+                                        <div class="trigger-schedule-label">Day of Month</div>
+                                        <input type="number" class="trigger-schedule-input" id="trigger-schedule-day-month" min="1" max="31" value="1">
+                                    </div>
+                                    <div class="trigger-schedule-row" id="trigger-interval-row" style="display: none;">
+                                        <div class="trigger-schedule-label">Interval (minutes)</div>
+                                        <input type="number" class="trigger-schedule-input" id="trigger-schedule-interval" min="1" value="30">
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div class="trigger-schedule-config" id="trigger-schedule-config">
-                            <div class="trigger-schedule-row">
-                                <div class="trigger-schedule-label">Frequency</div>
-                                <select class="trigger-schedule-select" id="trigger-schedule-regularity">
-                                    <option value="daily">Daily</option>
-                                    <option value="weekly">Weekly</option>
-                                    <option value="monthly">Monthly</option>
-                                    <option value="interval">Interval</option>
-                                </select>
-                            </div>
-                            <div class="trigger-schedule-row" id="trigger-time-row">
-                                <div class="trigger-schedule-label">Time</div>
-                                <input type="time" class="trigger-schedule-input" id="trigger-schedule-time" value="09:00">
-                            </div>
-                            <div class="trigger-schedule-row" id="trigger-day-week-row" style="display: none;">
-                                <div class="trigger-schedule-label">Day of Week</div>
-                                <select class="trigger-schedule-select" id="trigger-schedule-day-week">
-                                    <option value="0">Monday</option>
-                                    <option value="1">Tuesday</option>
-                                    <option value="2">Wednesday</option>
-                                    <option value="3">Thursday</option>
-                                    <option value="4">Friday</option>
-                                    <option value="5">Saturday</option>
-                                    <option value="6">Sunday</option>
-                                </select>
-                            </div>
-                            <div class="trigger-schedule-row" id="trigger-day-month-row" style="display: none;">
-                                <div class="trigger-schedule-label">Day of Month</div>
-                                <input type="number" class="trigger-schedule-input" id="trigger-schedule-day-month" min="1" max="31" value="1">
-                            </div>
-                            <div class="trigger-schedule-row" id="trigger-interval-row" style="display: none;">
-                                <div class="trigger-schedule-label">Interval (minutes)</div>
-                                <input type="number" class="trigger-schedule-input" id="trigger-schedule-interval" min="1" value="30">
-                            </div>
+                        <div class="canvas-placeholder">
+                            <p>Drag blocks here to build your bot</p>
                         </div>
                     </div>
                 </div>
-                <div class="canvas-placeholder">
-                    <p>Drag blocks here to build your bot</p>
+                <!-- Zoom Controls -->
+                <div class="canvas-zoom-controls">
+                    <button class="zoom-btn" id="zoom-in-btn" title="Zoom In">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </button>
+                    <span class="zoom-level" id="zoom-level">100%</span>
+                    <button class="zoom-btn" id="zoom-out-btn" title="Zoom Out">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="5" y1="12" x2="19" y2="12"></line>
+                        </svg>
+                    </button>
+                    <button class="zoom-btn zoom-reset" id="zoom-reset-btn" title="Reset Zoom">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                            <path d="M3 3v5h5"></path>
+                        </svg>
+                    </button>
                 </div>
             </div>
         </div>

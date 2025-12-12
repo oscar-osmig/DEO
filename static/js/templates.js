@@ -3,6 +3,71 @@
 // Store current template data for diagram rendering
 let currentTemplateData = null;
 
+// === CANVAS ZOOM ===
+let canvasZoom = 1;
+const ZOOM_MIN = 0.25;
+const ZOOM_MAX = 2;
+const ZOOM_STEP = 0.1;
+const ZOOM_WHEEL_SENSITIVITY = 0.002; // Lower = less sensitive
+let lastWheelZoom = 0;
+
+function updateCanvasZoom(newZoom) {
+    canvasZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, newZoom));
+    const canvasContent = document.querySelector('.deo-canvas-content');
+    const zoomLabel = document.getElementById('zoom-level');
+
+    if (canvasContent) {
+        canvasContent.style.transform = `scale(${canvasZoom})`;
+        canvasContent.style.transformOrigin = 'top center';
+    }
+
+    if (zoomLabel) {
+        zoomLabel.textContent = `${Math.round(canvasZoom * 100)}%`;
+    }
+
+    // Update button states
+    const zoomInBtn = document.getElementById('zoom-in-btn');
+    const zoomOutBtn = document.getElementById('zoom-out-btn');
+    if (zoomInBtn) zoomInBtn.disabled = canvasZoom >= ZOOM_MAX;
+    if (zoomOutBtn) zoomOutBtn.disabled = canvasZoom <= ZOOM_MIN;
+
+    // Update connection lines after zoom - wait for CSS transition to complete (150ms)
+    // Use 160ms to ensure transform is fully applied
+    setTimeout(() => renderConnections(), 160);
+}
+
+// Zoom controls event handlers
+document.addEventListener('click', (e) => {
+    if (e.target.closest('#zoom-in-btn')) {
+        updateCanvasZoom(canvasZoom + ZOOM_STEP);
+    }
+    if (e.target.closest('#zoom-out-btn')) {
+        updateCanvasZoom(canvasZoom - ZOOM_STEP);
+    }
+    if (e.target.closest('#zoom-reset-btn')) {
+        updateCanvasZoom(1);
+    }
+});
+
+// Mouse wheel zoom (with Ctrl key) - throttled for less sensitivity
+document.addEventListener('wheel', (e) => {
+    const canvasWrapper = e.target.closest('.deo-canvas-wrapper');
+    if (!canvasWrapper) return;
+
+    if (e.ctrlKey) {
+        e.preventDefault();
+
+        // Throttle wheel zoom events (50ms minimum between zooms)
+        const now = Date.now();
+        if (now - lastWheelZoom < 50) return;
+        lastWheelZoom = now;
+
+        // Use smaller delta for smoother, less sensitive zoom
+        const delta = -e.deltaY * ZOOM_WHEEL_SENSITIVITY;
+        updateCanvasZoom(canvasZoom + delta);
+    }
+}, { passive: false });
+
 // Load template details by ID
 async function loadTemplateDetails(templateId) {
     try {
@@ -605,18 +670,18 @@ document.addEventListener('click', async (e) => {
 
 // Load template data into the canvas for editing
 async function loadTemplateIntoCanvas(template) {
-    const canvas = document.querySelector('.deo-canvas');
-    if (!canvas) return;
+    const canvasContent = document.querySelector('.deo-canvas-content');
+    if (!canvasContent) return;
 
     // Set editing mode
     editingTemplateId = template.template_id;
 
     // Reset canvas first
-    const placeholder = canvas.querySelector('.canvas-placeholder');
+    const placeholder = canvasContent.querySelector('.canvas-placeholder');
     if (placeholder) placeholder.style.display = 'none';
 
     // Clear existing nodes (but keep trigger)
-    canvas.querySelectorAll('.flow-node').forEach(n => n.remove());
+    canvasContent.querySelectorAll('.flow-node').forEach(n => n.remove());
     canvasNodes = [];
     connections = [];
     nodeConfigs = {};
@@ -1568,11 +1633,11 @@ function clearCanvasState() {
 function restoreCanvasFromState(state) {
     if (!state) return false;
 
-    const canvas = document.querySelector('.deo-canvas');
-    if (!canvas) return false;
+    const canvasContent = document.querySelector('.deo-canvas-content');
+    if (!canvasContent) return false;
 
     // Hide placeholder
-    const placeholder = canvas.querySelector('.canvas-placeholder');
+    const placeholder = canvasContent.querySelector('.canvas-placeholder');
     if (placeholder && state.canvasNodes.length > 0) {
         placeholder.style.display = 'none';
     }
@@ -1758,10 +1823,11 @@ document.addEventListener('dragover', (e) => {
         e.dataTransfer.dropEffect = 'copy';
         canvas.classList.add('drag-over');
 
-        // Show preview connection while dragging
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        // Show preview connection while dragging (adjust for zoom)
+        const canvasContent = canvas.querySelector('.deo-canvas-content');
+        const rect = canvasContent ? canvasContent.getBoundingClientRect() : canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / canvasZoom;
+        const y = (e.clientY - rect.top) / canvasZoom;
         showDropPreview(x, y);
     }
 });
@@ -1783,11 +1849,13 @@ document.addEventListener('drop', (e) => {
         canvas.classList.remove('drag-over');
         removePreviewLine();
 
-        const rect = canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        // Adjust drop position for zoom scale
+        const canvasContent = canvas.querySelector('.deo-canvas-content');
+        const rect = canvasContent ? canvasContent.getBoundingClientRect() : canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / canvasZoom;
+        const y = (e.clientY - rect.top) / canvasZoom;
 
-        const placeholder = canvas.querySelector('.canvas-placeholder');
+        const placeholder = canvasContent ? canvasContent.querySelector('.canvas-placeholder') : canvas.querySelector('.canvas-placeholder');
         if (placeholder) placeholder.style.display = 'none';
 
         const newNode = createNode(draggedBlock, x, y);
@@ -1805,8 +1873,8 @@ document.addEventListener('drop', (e) => {
 
 // Show preview line while dragging block from sidebar
 function showDropPreview(dropX, dropY) {
-    const canvas = document.querySelector('.deo-canvas');
-    if (!canvas) return;
+    const canvasContent = document.querySelector('.deo-canvas-content');
+    if (!canvasContent) return;
 
     // Find closest available connector
     const closest = findClosestAvailableConnector(dropX, dropY, null);
@@ -1832,11 +1900,11 @@ function showDropPreview(dropX, dropY) {
         }
 
         // Create or update preview line
-        let svg = canvas.querySelector('.connections-svg');
+        let svg = canvasContent.querySelector('.connections-svg');
         if (!svg) {
             svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             svg.classList.add('connections-svg');
-            canvas.insertBefore(svg, canvas.firstChild);
+            canvasContent.insertBefore(svg, canvasContent.firstChild);
         }
 
         if (!previewLine) {
@@ -1917,10 +1985,8 @@ function hasOutgoingConnection(nodeId) {
 
 // Find closest available connector for auto-connect
 // This finds connectors that are NOT already used (as input or output)
+// x, y are in unscaled canvas content coordinates
 function findClosestAvailableConnector(x, y, excludeNodeId) {
-    const canvas = document.querySelector('.deo-canvas');
-    if (!canvas) return null;
-    const canvasRect = canvas.getBoundingClientRect();
     let closest = null;
     let minDist = Infinity;
 
@@ -1929,13 +1995,13 @@ function findClosestAvailableConnector(x, y, excludeNodeId) {
     const triggerBottomUsed = isConnectorUsed('trigger-node', 'bottom');
 
     if (trigger && excludeNodeId !== 'trigger-node' && !triggerBottomUsed) {
-        const triggerRect = trigger.getBoundingClientRect();
-        const tx = triggerRect.left + triggerRect.width / 2 - canvasRect.left;
-        const ty = triggerRect.bottom - canvasRect.top;
-        const dist = Math.hypot(x - tx, y - ty);
-        if (dist < minDist) {
-            minDist = dist;
-            closest = { nodeId: 'trigger-node', side: 'bottom', x: tx, y: ty, distance: dist };
+        const pos = getConnectorPos('trigger-node', 'bottom');
+        if (pos) {
+            const dist = Math.hypot(x - pos.x, y - pos.y);
+            if (dist < minDist) {
+                minDist = dist;
+                closest = { nodeId: 'trigger-node', side: 'bottom', x: pos.x, y: pos.y, distance: dist };
+            }
         }
     }
 
@@ -1965,8 +2031,8 @@ function findClosestAvailableConnector(x, y, excludeNodeId) {
 // Create a node on the canvas
 // optionalId: if provided, use this ID instead of generating a new one (for restoration)
 function createNode(blockType, x, y, optionalId = null) {
-    const canvas = document.querySelector('.deo-canvas');
-    if (!canvas) return null;
+    const canvasContent = document.querySelector('.deo-canvas-content');
+    if (!canvasContent) return null;
 
     const nodeId = optionalId || `node-${++nodeIdCounter}`;
     // Update counter if optionalId is higher
@@ -2120,7 +2186,7 @@ function createNode(blockType, x, y, optionalId = null) {
         ${configPopupHtml}
     `;
 
-    canvas.appendChild(node);
+    canvasContent.appendChild(node);
     makeNodeDraggable(node);
 
     // Initialize config for this node
@@ -2140,58 +2206,70 @@ function createNode(blockType, x, y, optionalId = null) {
     return node;
 }
 
-// Get connector position
+// Get connector position (relative to canvas content for SVG drawing)
+// Returns coordinates in the unscaled canvas content coordinate system
 function getConnectorPos(nodeId, side) {
-    const canvas = document.querySelector('.deo-canvas');
-    if (!canvas) return null;
-    const canvasRect = canvas.getBoundingClientRect();
+    const canvasContent = document.querySelector('.deo-canvas-content');
+    if (!canvasContent) return null;
 
-    let node, nodeRect;
+    let node;
     if (nodeId === 'trigger-node') {
         node = document.getElementById('trigger-node');
-        if (!node) return null;
-        nodeRect = node.getBoundingClientRect();
-        return {
-            x: nodeRect.left + nodeRect.width / 2 - canvasRect.left,
-            y: nodeRect.bottom - canvasRect.top
-        };
+    } else {
+        node = document.querySelector(`[data-node-id="${nodeId}"]`);
+    }
+    if (!node) return null;
+
+    // Get the connector element for precise positioning
+    const connector = node.querySelector(`.flow-node-connector.${side}, .flow-node-connector[data-connector="${side}"]`);
+
+    if (connector) {
+        // Use the actual connector element position
+        const connectorRect = connector.getBoundingClientRect();
+        const contentRect = canvasContent.getBoundingClientRect();
+        // Convert screen coords to unscaled canvas content coords
+        const x = (connectorRect.left + connectorRect.width / 2 - contentRect.left) / canvasZoom;
+        const y = (connectorRect.top + connectorRect.height / 2 - contentRect.top) / canvasZoom;
+        return { x, y };
     }
 
-    node = document.querySelector(`[data-node-id="${nodeId}"]`);
-    if (!node) return null;
-    nodeRect = node.getBoundingClientRect();
+    // Fallback: calculate from node position
+    const nodeRect = node.getBoundingClientRect();
+    const contentRect = canvasContent.getBoundingClientRect();
+    const left = (nodeRect.left - contentRect.left) / canvasZoom;
+    const top = (nodeRect.top - contentRect.top) / canvasZoom;
+    const width = nodeRect.width / canvasZoom;
+    const height = nodeRect.height / canvasZoom;
 
     switch (side) {
         case 'top':
-            return { x: nodeRect.left + nodeRect.width / 2 - canvasRect.left, y: nodeRect.top - canvasRect.top };
+            return { x: left + width / 2, y: top };
         case 'bottom':
-            return { x: nodeRect.left + nodeRect.width / 2 - canvasRect.left, y: nodeRect.bottom - canvasRect.top };
+            return { x: left + width / 2, y: top + height };
         case 'left':
-            return { x: nodeRect.left - canvasRect.left, y: nodeRect.top + nodeRect.height / 2 - canvasRect.top };
+            return { x: left, y: top + height / 2 };
         case 'right':
-            return { x: nodeRect.right - canvasRect.left, y: nodeRect.top + nodeRect.height / 2 - canvasRect.top };
+            return { x: left + width, y: top + height / 2 };
     }
     return null;
 }
 
 // Find closest connector (for manual connection dragging)
+// x, y are in unscaled canvas content coordinates
 function findClosestConnector(x, y, excludeNodeId = null) {
-    const canvas = document.querySelector('.deo-canvas');
-    if (!canvas) return null;
-    const canvasRect = canvas.getBoundingClientRect();
     let closest = null;
     let minDist = Infinity;
 
     // Check trigger node bottom connector
     const trigger = document.getElementById('trigger-node');
     if (trigger && excludeNodeId !== 'trigger-node') {
-        const triggerRect = trigger.getBoundingClientRect();
-        const tx = triggerRect.left + triggerRect.width / 2 - canvasRect.left;
-        const ty = triggerRect.bottom - canvasRect.top;
-        const dist = Math.hypot(x - tx, y - ty);
-        if (dist < minDist) {
-            minDist = dist;
-            closest = { nodeId: 'trigger-node', side: 'bottom', x: tx, y: ty, distance: dist };
+        const pos = getConnectorPos('trigger-node', 'bottom');
+        if (pos) {
+            const dist = Math.hypot(x - pos.x, y - pos.y);
+            if (dist < minDist) {
+                minDist = dist;
+                closest = { nodeId: 'trigger-node', side: 'bottom', x: pos.x, y: pos.y, distance: dist };
+            }
         }
     }
 
@@ -2225,12 +2303,13 @@ function findClosestConnector(x, y, excludeNodeId = null) {
 // - If dragged node's connector side is already used as OUTPUT, we can't connect there
 function autoConnectNode(newNode, isNewNode = false) {
     const nodeId = newNode.dataset.nodeId;
-    const nodeRect = newNode.getBoundingClientRect();
-    const canvas = document.querySelector('.deo-canvas');
-    const canvasRect = canvas.getBoundingClientRect();
 
-    const nodeCenterX = nodeRect.left + nodeRect.width / 2 - canvasRect.left;
-    const nodeCenterY = nodeRect.top + nodeRect.height / 2 - canvasRect.top;
+    // Use getBoundingClientRect with zoom adjustment for consistent coordinates
+    const canvasContent = document.querySelector('.deo-canvas-content');
+    const contentRect = canvasContent.getBoundingClientRect();
+    const nodeRect = newNode.getBoundingClientRect();
+    const nodeCenterX = (nodeRect.left + nodeRect.width / 2 - contentRect.left) / canvasZoom;
+    const nodeCenterY = (nodeRect.top + nodeRect.height / 2 - contentRect.top) / canvasZoom;
 
     // Check if this node already has an incoming connection
     const existingIncoming = connections.find(c => c.to.nodeId === nodeId);
@@ -2332,19 +2411,21 @@ function makeNodeDraggable(node) {
     const onMouseMove = (e) => {
         if (!isDragging) return;
 
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
+        // Adjust movement for zoom scale
+        const dx = (e.clientX - startX) / canvasZoom;
+        const dy = (e.clientY - startY) / canvasZoom;
 
         node.style.left = `${initialX + dx}px`;
         node.style.top = `${initialY + dy}px`;
 
         // Show preview for potential new connection
         const nodeId = node.dataset.nodeId;
-        const canvas = document.querySelector('.deo-canvas');
-        const canvasRect = canvas.getBoundingClientRect();
+        // Use getBoundingClientRect with zoom adjustment for consistent coordinates
+        const canvasContent = document.querySelector('.deo-canvas-content');
+        const contentRect = canvasContent.getBoundingClientRect();
         const nodeRect = node.getBoundingClientRect();
-        const nodeCenterX = nodeRect.left + nodeRect.width / 2 - canvasRect.left;
-        const nodeCenterY = nodeRect.top + nodeRect.height / 2 - canvasRect.top;
+        const nodeCenterX = (nodeRect.left + nodeRect.width / 2 - contentRect.left) / canvasZoom;
+        const nodeCenterY = (nodeRect.top + nodeRect.height / 2 - contentRect.top) / canvasZoom;
 
         showNodeDragPreview(nodeId, nodeCenterX, nodeCenterY);
 
@@ -2395,12 +2476,12 @@ function showNodeDragPreview(nodeId, nodeCenterX, nodeCenterY) {
     const closest = findClosestAvailableConnector(nodeCenterX, nodeCenterY, nodeId);
 
     if (closest && closest.distance < CONNECTION_THRESHOLD) {
-        const canvas = document.querySelector('.deo-canvas');
-        let svg = canvas.querySelector('.connections-svg');
+        const canvasContent = document.querySelector('.deo-canvas-content');
+        let svg = canvasContent.querySelector('.connections-svg');
         if (!svg) {
             svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
             svg.classList.add('connections-svg');
-            canvas.insertBefore(svg, canvas.firstChild);
+            canvasContent.insertBefore(svg, canvasContent.firstChild);
         }
 
         if (!previewLine) {
@@ -2439,12 +2520,12 @@ document.addEventListener('mousedown', (e) => {
     connectionStart = { nodeId, side, element: connector };
     connector.classList.add('active');
 
-    const canvas = document.querySelector('.deo-canvas');
-    let svg = canvas.querySelector('.connections-svg');
+    const canvasContent = document.querySelector('.deo-canvas-content');
+    let svg = canvasContent.querySelector('.connections-svg');
     if (!svg) {
         svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         svg.classList.add('connections-svg');
-        canvas.insertBefore(svg, canvas.firstChild);
+        canvasContent.insertBefore(svg, canvasContent.firstChild);
     }
 
     tempLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -2455,14 +2536,15 @@ document.addEventListener('mousedown', (e) => {
 document.addEventListener('mousemove', (e) => {
     if (!isConnecting || !tempLine || !connectionStart) return;
 
-    const canvas = document.querySelector('.deo-canvas');
-    const canvasRect = canvas.getBoundingClientRect();
+    const canvasContent = document.querySelector('.deo-canvas-content');
+    const contentRect = canvasContent.getBoundingClientRect();
     const startPos = getConnectorPos(connectionStart.nodeId, connectionStart.side);
 
     if (!startPos) return;
 
-    const endX = e.clientX - canvasRect.left;
-    const endY = e.clientY - canvasRect.top;
+    // Adjust mouse position for zoom scale
+    const endX = (e.clientX - contentRect.left) / canvasZoom;
+    const endY = (e.clientY - contentRect.top) / canvasZoom;
 
     const path = createCurvedPath(startPos.x, startPos.y, endX, endY, connectionStart.side, null);
     tempLine.setAttribute('d', path);
@@ -2550,14 +2632,14 @@ function createCurvedPath(x1, y1, x2, y2, fromSide, toSide) {
 
 // Render all connections
 function renderConnections() {
-    const canvas = document.querySelector('.deo-canvas');
-    if (!canvas) return;
+    const canvasContent = document.querySelector('.deo-canvas-content');
+    if (!canvasContent) return;
 
-    let svg = canvas.querySelector('.connections-svg');
+    let svg = canvasContent.querySelector('.connections-svg');
     if (!svg) {
         svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
         svg.classList.add('connections-svg');
-        canvas.insertBefore(svg, canvas.firstChild);
+        canvasContent.insertBefore(svg, canvasContent.firstChild);
     }
 
     // Keep temp and preview lines
@@ -2622,14 +2704,14 @@ document.addEventListener('click', (e) => {
 // Reset canvas
 document.addEventListener('click', (e) => {
     if (e.target.id === 'reset-deo-btn') {
-        const canvas = document.querySelector('.deo-canvas');
-        if (canvas) {
-            canvas.querySelectorAll('.flow-node').forEach(n => n.remove());
+        const canvasContent = document.querySelector('.deo-canvas-content');
+        if (canvasContent) {
+            canvasContent.querySelectorAll('.flow-node').forEach(n => n.remove());
 
-            const svg = canvas.querySelector('.connections-svg');
+            const svg = canvasContent.querySelector('.connections-svg');
             if (svg) svg.innerHTML = '';
 
-            const placeholder = canvas.querySelector('.canvas-placeholder');
+            const placeholder = canvasContent.querySelector('.canvas-placeholder');
             if (placeholder) placeholder.style.display = 'flex';
 
             canvasNodes = [];
@@ -2674,6 +2756,9 @@ document.addEventListener('click', (e) => {
 
             // Clear editing mode
             editingTemplateId = null;
+
+            // Reset zoom to 100%
+            updateCanvasZoom(1);
 
             // Clear saved canvas state
             clearCanvasState();
