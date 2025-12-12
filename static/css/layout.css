@@ -53,10 +53,19 @@
 }
 
 .view-home {
-    display: block;
     max-width: none;
     position: relative;
     height: calc(100vh - var(--header-height) - 96px);
+}
+
+/* Use :has() to detect if any view is targeted - hide home immediately */
+html:has(.view:target) .view-home {
+    display: none;
+}
+
+/* Show home only when no view is targeted */
+html:not(:has(.view:target)) .view-home {
+    display: block;
 }
 
 .view:target {

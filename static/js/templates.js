@@ -102,9 +102,8 @@ function renderTemplateDiagram(template) {
 
     const ac = template.action_chain || {};
     const blocks = ac.blocks || [];
-    const msg = ac.message || {};
-    const awaitConfig = ac.await || {};
     const trigger = ac.trigger;
+    const canvasLayout = ac.canvas_layout;
 
     // Clear canvas
     canvas.innerHTML = '';
@@ -132,6 +131,196 @@ function renderTemplateDiagram(template) {
         else triggerLabel = 'Schedule';
     }
 
+    // Check if we have canvas layout (NEW FORMAT with positions)
+    if (canvasLayout && canvasLayout.nodes && canvasLayout.nodes.length > 0) {
+        // Render using saved canvas layout
+        renderDiagramFromLayout(canvas, svg, canvasLayout, icons, triggerLabel);
+    } else {
+        // Fall back to simple vertical layout (OLD FORMAT or no layout saved)
+        renderDiagramSimple(canvas, svg, blocks, ac, icons, triggerLabel);
+    }
+}
+
+// Render diagram from saved canvas layout (matches the canvas exactly)
+function renderDiagramFromLayout(canvas, svg, layout, icons, triggerLabel) {
+    const nodes = layout.nodes || [];
+    const connections = layout.connections || [];
+    const nodeConfigs = layout.nodeConfigs || {};
+
+    // Create trigger node (always at a fixed position at top)
+    const triggerNode = document.createElement('div');
+    triggerNode.className = 'diagram-node diagram-trigger';
+    triggerNode.id = 'diagram-trigger-node';
+    triggerNode.innerHTML = `
+        <div class="diagram-node-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${icons.trigger}</svg>
+            <span class="node-title">Trigger</span>
+            <span class="node-label">${triggerLabel}</span>
+        </div>
+        <div class="diagram-connector bottom"></div>
+    `;
+    canvas.appendChild(triggerNode);
+
+    // Create a map of node IDs to their DOM elements
+    const nodeElements = {};
+    nodeElements['trigger-node'] = triggerNode;
+
+    // Create block nodes at their saved positions
+    nodes.forEach(nodeData => {
+        const node = document.createElement('div');
+        node.className = 'diagram-node';
+        node.dataset.nodeId = nodeData.id;
+
+        // Position the node
+        node.style.left = `${nodeData.x}px`;
+        node.style.top = `${nodeData.y}px`;
+        node.style.position = 'absolute';
+
+        // Get config for this node
+        const config = nodeConfigs[nodeData.id] || {};
+        let label = '';
+        let bodyContent = '';
+
+        if (nodeData.type === 'message') {
+            if (config.mode === 'channel' && config.channel_name) {
+                label = `#${config.channel_name}`;
+            } else if (config.mode === 'users' && config.users) {
+                const userCount = config.users.split(',').filter(u => u.trim()).length;
+                label = `${userCount} user(s)`;
+            } else {
+                label = 'Channel';
+            }
+            bodyContent = config.message ? (config.message.length > 40 ? config.message.substring(0, 40) + '...' : config.message) : '';
+        } else if (nodeData.type === 'await') {
+            label = config.timeout || '24h';
+            bodyContent = config.expected_response ? `Wait for: "${config.expected_response}"` : '';
+        } else if (nodeData.type === 'response') {
+            label = 'Success';
+            bodyContent = config.message ? (config.message.length > 40 ? config.message.substring(0, 40) + '...' : config.message) : '';
+        }
+
+        node.innerHTML = `
+            <div class="diagram-connector top"></div>
+            <div class="diagram-node-header">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${icons[nodeData.type] || ''}</svg>
+                <span class="node-title">${nodeData.type.charAt(0).toUpperCase() + nodeData.type.slice(1)}</span>
+                <span class="node-label">${label}</span>
+            </div>
+            ${bodyContent ? `<div class="diagram-node-body">${bodyContent}</div>` : ''}
+            <div class="diagram-connector bottom"></div>
+            <div class="diagram-connector left"></div>
+            <div class="diagram-connector right"></div>
+        `;
+
+        canvas.appendChild(node);
+        nodeElements[nodeData.id] = node;
+    });
+
+    // Draw connections after nodes are rendered
+    setTimeout(() => {
+        drawDiagramConnectionsFromLayout(canvas, svg, connections, nodeElements);
+    }, 10);
+}
+
+// Draw connections from saved layout data
+function drawDiagramConnectionsFromLayout(canvas, svg, connections, nodeElements) {
+    svg.innerHTML = '';
+    const canvasRect = canvas.getBoundingClientRect();
+
+    connections.forEach(conn => {
+        const fromNode = nodeElements[conn.from.nodeId];
+        const toNode = nodeElements[conn.to.nodeId];
+
+        if (!fromNode || !toNode) return;
+
+        const fromPos = getDiagramConnectorPos(fromNode, conn.from.side, canvasRect, conn.from.nodeId);
+        const toPos = getDiagramConnectorPos(toNode, conn.to.side, canvasRect, conn.to.nodeId);
+
+        if (!fromPos || !toPos) return;
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', createDiagramCurvedPath(fromPos.x, fromPos.y, toPos.x, toPos.y, conn.from.side, conn.to.side));
+        path.classList.add('diagram-line');
+        svg.appendChild(path);
+    });
+}
+
+// Get connector position for diagram nodes
+function getDiagramConnectorPos(node, side, canvasRect, nodeId) {
+    const nodeRect = node.getBoundingClientRect();
+
+    // Trigger node only has bottom connector
+    if (nodeId === 'trigger-node') {
+        return {
+            x: nodeRect.left + nodeRect.width / 2 - canvasRect.left,
+            y: nodeRect.bottom - canvasRect.top
+        };
+    }
+
+    switch (side) {
+        case 'top':
+            return { x: nodeRect.left + nodeRect.width / 2 - canvasRect.left, y: nodeRect.top - canvasRect.top };
+        case 'bottom':
+            return { x: nodeRect.left + nodeRect.width / 2 - canvasRect.left, y: nodeRect.bottom - canvasRect.top };
+        case 'left':
+            return { x: nodeRect.left - canvasRect.left, y: nodeRect.top + nodeRect.height / 2 - canvasRect.top };
+        case 'right':
+            return { x: nodeRect.right - canvasRect.left, y: nodeRect.top + nodeRect.height / 2 - canvasRect.top };
+        default:
+            return null;
+    }
+}
+
+// Create curved path for diagram connections
+function createDiagramCurvedPath(x1, y1, x2, y2, fromSide, toSide) {
+    const dx = Math.abs(x2 - x1);
+    const dy = Math.abs(y2 - y1);
+    const curvature = Math.min(50, Math.max(dx, dy) * 0.3);
+
+    let cp1x, cp1y, cp2x, cp2y;
+
+    switch (fromSide) {
+        case 'bottom':
+            cp1x = x1; cp1y = y1 + curvature;
+            break;
+        case 'top':
+            cp1x = x1; cp1y = y1 - curvature;
+            break;
+        case 'right':
+            cp1x = x1 + curvature; cp1y = y1;
+            break;
+        case 'left':
+            cp1x = x1 - curvature; cp1y = y1;
+            break;
+        default:
+            cp1x = x1; cp1y = y1 + curvature;
+    }
+
+    switch (toSide) {
+        case 'top':
+            cp2x = x2; cp2y = y2 - curvature;
+            break;
+        case 'bottom':
+            cp2x = x2; cp2y = y2 + curvature;
+            break;
+        case 'left':
+            cp2x = x2 - curvature; cp2y = y2;
+            break;
+        case 'right':
+            cp2x = x2 + curvature; cp2y = y2;
+            break;
+        default:
+            cp2x = x2; cp2y = y2 - curvature;
+    }
+
+    return `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
+}
+
+// Render simple vertical layout (fallback for old format or no layout)
+function renderDiagramSimple(canvas, svg, blocks, ac, icons, triggerLabel) {
+    const msg = ac.message || {};
+    const awaitConfig = ac.await || {};
+
     // Create trigger node
     const triggerNode = document.createElement('div');
     triggerNode.className = 'diagram-node diagram-trigger';
@@ -150,8 +339,11 @@ function renderTemplateDiagram(template) {
     const nodeSpacing = 100;
     const centerX = canvas.offsetWidth / 2;
 
-    // Create block nodes
-    blocks.forEach((blockType, index) => {
+    // Handle both NEW format (objects with type/config) and OLD format (strings)
+    blocks.forEach((blockEntry, index) => {
+        const blockType = typeof blockEntry === 'string' ? blockEntry : blockEntry.type;
+        const blockConfig = typeof blockEntry === 'object' ? blockEntry.config : null;
+
         const node = document.createElement('div');
         node.className = 'diagram-node';
 
@@ -163,20 +355,26 @@ function renderTemplateDiagram(template) {
         let bodyContent = '';
 
         if (blockType === 'message') {
-            if (msg.channel_name) {
-                label = `#${msg.channel_name}`;
-            } else if (msg.users && msg.users.length) {
-                label = `${msg.users.length} user(s)`;
+            // Use inline config if available (new format), otherwise use shared config (old format)
+            const msgConfig = blockConfig || msg;
+            if (msgConfig.channel_name) {
+                label = `#${msgConfig.channel_name}`;
+            } else if (msgConfig.users && msgConfig.users.length) {
+                const userCount = Array.isArray(msgConfig.users) ? msgConfig.users.length : 1;
+                label = `${userCount} user(s)`;
             } else {
                 label = 'Message';
             }
-            bodyContent = msg.message ? (msg.message.length > 50 ? msg.message.substring(0, 50) + '...' : msg.message) : '';
+            const msgText = msgConfig.message || '';
+            bodyContent = msgText ? (msgText.length > 50 ? msgText.substring(0, 50) + '...' : msgText) : '';
         } else if (blockType === 'await') {
-            label = awaitConfig.timeout || '24h';
-            bodyContent = awaitConfig.expected_response ? `Wait for: "${awaitConfig.expected_response}"` : '';
+            const awaitCfg = blockConfig || awaitConfig;
+            label = awaitCfg.timeout || '24h';
+            bodyContent = awaitCfg.expected_response ? `Wait for: "${awaitCfg.expected_response}"` : '';
         } else if (blockType === 'response') {
             label = 'Success';
-            bodyContent = ac.response ? (ac.response.length > 50 ? ac.response.substring(0, 50) + '...' : ac.response) : '';
+            const respMsg = blockConfig ? blockConfig.message : ac.response;
+            bodyContent = respMsg ? (respMsg.length > 50 ? respMsg.substring(0, 50) + '...' : respMsg) : '';
         }
 
         node.innerHTML = `
@@ -2304,13 +2502,29 @@ function buildTemplatePayload() {
         };
     }
 
+    // Build canvas layout for read-only diagram display
+    const canvasLayout = {
+        nodes: canvasNodes.map(node => ({
+            id: node.id,
+            type: node.type,
+            x: node.x,
+            y: node.y
+        })),
+        connections: connections.map(conn => ({
+            from: { nodeId: conn.from.nodeId, side: conn.from.side },
+            to: { nodeId: conn.to.nodeId, side: conn.to.side }
+        })),
+        nodeConfigs: { ...nodeConfigs }
+    };
+
     // Build payload with new format
     const payload = {
         template_id: templateName,
         workspace_id: workspaceId,
         action_chain: {
             blocks: blocksWithConfig,
-            trigger: triggerPayload
+            trigger: triggerPayload,
+            canvas_layout: canvasLayout
         }
     };
 

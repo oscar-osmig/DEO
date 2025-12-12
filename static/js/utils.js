@@ -110,6 +110,14 @@ function initNewDeo() {
 // Check if there's a hash in URL and set header section accordingly
 function initFromHash() {
     const hash = window.location.hash;
+
+    // Manage the has-route class for preventing home view flash
+    if (hash && hash.length > 1) {
+        document.documentElement.classList.add('has-route');
+    } else {
+        document.documentElement.classList.remove('has-route');
+    }
+
     if (hash === '#settings') {
         setHeaderSection('Settings');
     } else if (hash === '#new-deo') {

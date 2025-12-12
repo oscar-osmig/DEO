@@ -104,6 +104,9 @@ class ActionChain(BaseModel):
     blocks: Union[List[BlockWithConfig], List[str], List[Dict[str, Any]]]
     trigger: Union[str, TriggerConfig, Dict[str, Any]]  # Accept dict too
 
+    # Canvas layout for read-only diagram display
+    canvas_layout: Optional[Dict[str, Any]] = None
+
     # OLD FORMAT fields (optional for backwards compatibility)
     message: Optional[MessageBlock] = None
     await_response: Optional[Union[str, Dict[str, str]]] = Field(None, alias="await")
@@ -228,13 +231,19 @@ async def create_template(request: CreateTemplateRequest):
             for b in blocks
         ]
 
+        action_chain_data = {
+            "blocks": blocks_data,
+            "trigger": trigger_data
+        }
+
+        # Include canvas_layout if provided (for read-only diagram display)
+        if request.action_chain.canvas_layout:
+            action_chain_data["canvas_layout"] = request.action_chain.canvas_layout
+
         template_doc = {
             "template_id": request.template_id,
             "workspace_id": request.workspace_id,
-            "action_chain": {
-                "blocks": blocks_data,
-                "trigger": trigger_data
-            },
+            "action_chain": action_chain_data,
             "created_at": datetime.utcnow()
         }
     else:
@@ -313,11 +322,17 @@ async def update_template(template_id: str, request: UpdateTemplateRequest):
             for b in blocks
         ]
 
+        action_chain_data = {
+            "blocks": blocks_data,
+            "trigger": trigger_data
+        }
+
+        # Include canvas_layout if provided (for read-only diagram display)
+        if request.action_chain.canvas_layout:
+            action_chain_data["canvas_layout"] = request.action_chain.canvas_layout
+
         updated_data = {
-            "action_chain": {
-                "blocks": blocks_data,
-                "trigger": trigger_data
-            },
+            "action_chain": action_chain_data,
             "updated_at": datetime.utcnow()
         }
     else:

@@ -4,7 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DEO</title>
-    <link rel="stylesheet" href="/static/css/app.css?v=14">
+    <script>
+        // Immediately hide home view if there's a hash route - prevents flash
+        if(location.hash.length>1)document.documentElement.className='has-route';
+    </script>
+    <style>
+        /* Hide home view when navigating to a hash route */
+        .has-route .view-home{display:none!important}
+    </style>
+    <link rel="stylesheet" href="/static/css/app.css?v=15">
 </head>
 <body>
     <div class="app-layout">
