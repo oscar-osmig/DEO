@@ -11,15 +11,28 @@ const ZOOM_STEP = 0.1;
 const ZOOM_WHEEL_SENSITIVITY = 0.002; // Lower = less sensitive
 let lastWheelZoom = 0;
 
+// === CANVAS PANNING ===
+let isPanning = false;
+let panStartX = 0;
+let panStartY = 0;
+let panOffsetX = 0;  // Current pan offset
+let panOffsetY = 0;
+let panStartOffsetX = 0;  // Offset when pan started
+let panStartOffsetY = 0;
+
+function updateCanvasTransform() {
+    const canvasContent = document.querySelector('.deo-canvas-content');
+    if (canvasContent) {
+        canvasContent.style.transform = `translate(${panOffsetX}px, ${panOffsetY}px) scale(${canvasZoom})`;
+        canvasContent.style.transformOrigin = 'top left';
+    }
+}
+
 function updateCanvasZoom(newZoom) {
     canvasZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, newZoom));
-    const canvasContent = document.querySelector('.deo-canvas-content');
     const zoomLabel = document.getElementById('zoom-level');
 
-    if (canvasContent) {
-        canvasContent.style.transform = `scale(${canvasZoom})`;
-        canvasContent.style.transformOrigin = 'top center';
-    }
+    updateCanvasTransform();
 
     if (zoomLabel) {
         zoomLabel.textContent = `${Math.round(canvasZoom * 100)}%`;
@@ -45,6 +58,9 @@ document.addEventListener('click', (e) => {
         updateCanvasZoom(canvasZoom - ZOOM_STEP);
     }
     if (e.target.closest('#zoom-reset-btn')) {
+        // Reset both zoom and pan
+        panOffsetX = 0;
+        panOffsetY = 0;
         updateCanvasZoom(1);
     }
 });
@@ -67,6 +83,72 @@ document.addEventListener('wheel', (e) => {
         updateCanvasZoom(canvasZoom + delta);
     }
 }, { passive: false });
+
+// === CANVAS PANNING (click and drag to move content) ===
+document.addEventListener('mousedown', (e) => {
+    const canvasWrapper = e.target.closest('.deo-canvas-wrapper');
+    if (!canvasWrapper) return;
+
+    // Only start panning if clicking directly on canvas background (not on nodes, connectors, etc.)
+    const isCanvasBackground = e.target.closest('.deo-canvas') &&
+        !e.target.closest('.flow-node') &&
+        !e.target.closest('.trigger-node') &&
+        !e.target.closest('.flow-node-connector') &&
+        !e.target.closest('.block-config-popup') &&
+        !e.target.closest('.trigger-config-popup') &&
+        !e.target.closest('.canvas-zoom-controls');
+
+    if (!isCanvasBackground) return;
+
+    isPanning = true;
+    panStartX = e.clientX;
+    panStartY = e.clientY;
+    panStartOffsetX = panOffsetX;
+    panStartOffsetY = panOffsetY;
+
+    // Change cursor to grabbing
+    canvasWrapper.style.cursor = 'grabbing';
+
+    // Disable transition during drag for smooth movement
+    const canvasContent = document.querySelector('.deo-canvas-content');
+    if (canvasContent) {
+        canvasContent.style.transition = 'none';
+    }
+
+    e.preventDefault();
+});
+
+document.addEventListener('mousemove', (e) => {
+    if (!isPanning) return;
+
+    const dx = e.clientX - panStartX;
+    const dy = e.clientY - panStartY;
+
+    // Update pan offset - dragging left moves content left, etc.
+    panOffsetX = panStartOffsetX + dx;
+    panOffsetY = panStartOffsetY + dy;
+
+    updateCanvasTransform();
+
+    // Update connections in real-time during pan
+    renderConnections();
+});
+
+document.addEventListener('mouseup', () => {
+    if (isPanning) {
+        isPanning = false;
+        const canvasWrapper = document.querySelector('.deo-canvas-wrapper');
+        if (canvasWrapper) {
+            canvasWrapper.style.cursor = '';
+        }
+
+        // Re-enable transition after drag
+        const canvasContent = document.querySelector('.deo-canvas-content');
+        if (canvasContent) {
+            canvasContent.style.transition = 'transform 0.15s ease';
+        }
+    }
+});
 
 // Load template details by ID
 async function loadTemplateDetails(templateId) {
