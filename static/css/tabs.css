@@ -230,7 +230,8 @@
 
 #workspace,
 #template,
-#dashboards {
+#dashboards,
+#apps {
     max-width: none;
     position: absolute;
     top: 0;
@@ -240,14 +241,35 @@
     padding: 0;
 }
 
+/* Ensure tabs-content fills height and doesn't cause scrolling for empty states */
+#workspace .tabs-content,
+#template .tabs-content,
+#dashboards .tabs-content,
+#teams .tabs-content,
+#apps .tabs-content {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Allow scrolling for details content */
+.workspace-details,
+.template-details,
+.dashboard-details,
+.team-details {
+    overflow-y: auto;
+    flex: 1;
+}
+
 /* Empty state for tabs - with list inside dotted border */
 .empty-state-container {
     display: flex;
-    height: 100%;
-    min-height: 400px;
+    flex: 1;
+    min-height: 0;
     border: 2px dashed var(--border-color);
     border-radius: 12px;
     overflow: hidden;
+    box-sizing: border-box;
 }
 
 /* List on the left side inside dotted border */

@@ -70,6 +70,14 @@
                         <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
                     </svg>
                 </button>
+                <button class="sidebar-btn" data-view="apps" title="Apps">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                        <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                        <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                        <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+                    </svg>
+                </button>
             </div>
             <div class="sidebar-bottom">
                 <button class="sidebar-btn" id="logout-sidebar-btn" title="Logout">
@@ -203,6 +211,27 @@
                 <div class="card">
                     <div class="card-title">Current Rankings</div>
                     <div class="leaderboard-list" id="leaderboard-list"></div>
+                </div>
+            </section>
+
+            <!-- Apps View -->
+            <section class="view" id="view-apps">
+                <div class="view-header">
+                    <h2 class="view-title">Apps</h2>
+                    <p class="view-subtitle">Extend your dashboard with powerful integrations.</p>
+                </div>
+
+                <div class="apps-coming-soon">
+                    <div class="coming-soon-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                            <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                            <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                            <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+                        </svg>
+                    </div>
+                    <h3 class="coming-soon-title">Apps Coming Soon</h3>
+                    <p class="coming-soon-text">We're working on exciting integrations and tools to supercharge your team's productivity.</p>
                 </div>
             </section>
         </main>

@@ -4,7 +4,7 @@
 const dashboardId = document.body.dataset.dashboardId;
 const reportingPeriod = document.body.dataset.reportingPeriod;
 
-const views = ['metrics', 'charts', 'leaderboard'];
+const views = ['metrics', 'charts', 'leaderboard', 'apps'];
 let currentViewIndex = 0;
 let currentUser = null;
 let hasSubmittedThisPeriod = false;
