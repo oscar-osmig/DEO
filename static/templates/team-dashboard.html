@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ dashboard_name }} - Team Dashboard</title>
     <link rel="stylesheet" href="/static/css/team-dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body data-dashboard-id="{{ dashboard_id }}" data-reporting-period="{{ reporting_period }}">
     <!-- Login View -->
@@ -120,41 +121,34 @@
                         Metrics Submitted
                     </div>
 
-                    <div class="card">
-                        <div class="card-title">Your Submitted Metrics</div>
-                        <div class="metrics-display" id="metrics-display"></div>
-                        <div class="card-footer">
-                            <div class="submitted-info" id="submitted-time">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <polyline points="12 6 12 12 16 14"></polyline>
-                                </svg>
-                                <span id="submitted-at-text">Submitted this period</span>
-                            </div>
-                            <button class="edit-btn" id="edit-metrics-btn">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                </svg>
-                                Edit
-                            </button>
-                        </div>
+                    <div class="metrics-display" id="metrics-display"></div>
+
+                    <div style="margin-top: 16px;">
+                        <button class="edit-btn" id="edit-metrics-btn">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                            Edit Metrics
+                        </button>
                     </div>
                 </div>
 
                 <!-- Form State -->
                 <div id="metrics-form-state">
-                    <div class="card">
-                        <div class="card-title">Your Metrics</div>
+                    <div class="metrics-form-card">
                         <form id="metrics-form">
-                            {% for metric in metrics %}
-                            <div class="metric-input-group">
-                                <label class="metric-label" for="metric-{{ metric }}">{{ metric }}</label>
-                                <input type="number" id="metric-{{ metric }}" class="form-input" placeholder="Enter value" data-metric="{{ metric }}" step="any">
+                            <div class="metrics-form-grid">
+                                {% for metric in metrics %}
+                                <div class="metric-input-group">
+                                    <label class="metric-label" for="metric-{{ metric }}">{{ metric }}</label>
+                                    <input type="number" id="metric-{{ metric }}" class="form-input" placeholder="0" data-metric="{{ metric }}" step="any">
+                                </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
                             <div class="submit-section">
                                 <button type="submit" class="btn" id="submit-btn">Submit Metrics</button>
+                                <button type="button" class="btn-cancel" id="cancel-edit-btn" style="display: none;">Cancel</button>
                                 <span class="submit-status" id="submit-status"></span>
                             </div>
                         </form>
@@ -165,20 +159,36 @@
             <!-- Charts View -->
             <section class="view" id="view-charts">
                 <div class="view-header">
-                    <h2 class="view-title">Charts & Analytics</h2>
-                    <p class="view-subtitle">View your performance and team trends over time.</p>
+                    <h2 class="view-title">Your Performance</h2>
+                    <p class="view-subtitle">Track your metrics and progress over time.</p>
                 </div>
 
-                <div class="chart-container">
-                    <div class="card-title">Performance Over Time</div>
-                    <div class="chart-placeholder">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                            <line x1="18" y1="20" x2="18" y2="10"></line>
-                            <line x1="12" y1="20" x2="12" y2="4"></line>
-                            <line x1="6" y1="20" x2="6" y2="14"></line>
-                        </svg>
-                        <p>Charts coming soon</p>
-                        <p class="hint">Historical data visualization will appear here</p>
+                <!-- Member Profile Card -->
+                <div class="member-profile" id="member-profile">
+                    <div class="member-avatar" id="member-avatar">-</div>
+                    <div class="member-details">
+                        <div class="member-name-large" id="profile-name">Loading...</div>
+                        <div class="member-email-sub" id="profile-email">-</div>
+                    </div>
+                    <div class="member-badge-container" id="profile-badge-container">
+                        <!-- Badge will be inserted here -->
+                    </div>
+                </div>
+
+                <!-- Stats Row -->
+                <div class="stats-row" id="stats-row">
+                    <!-- Stats cards will be dynamically inserted -->
+                </div>
+
+                <!-- Charts Grid -->
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <div class="chart-title">Your Metrics Over Time</div>
+                        </div>
+                        <div class="chart-canvas-container">
+                            <canvas id="performance-chart"></canvas>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -211,6 +221,48 @@
             </button>
         </div>
     </div>
+
+    <!-- SVG Definitions for Badge Gradients -->
+    <svg style="position: absolute; width: 0; height: 0; overflow: hidden;">
+        <defs>
+            <!-- Badge Gradients -->
+            <linearGradient id="bronze-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#cd7f32"/>
+                <stop offset="50%" style="stop-color:#b87333"/>
+                <stop offset="100%" style="stop-color:#8b4513"/>
+            </linearGradient>
+            <linearGradient id="silver-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#e8e8e8"/>
+                <stop offset="50%" style="stop-color:#c0c0c0"/>
+                <stop offset="100%" style="stop-color:#808080"/>
+            </linearGradient>
+            <linearGradient id="gold-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#ffd700"/>
+                <stop offset="50%" style="stop-color:#ffcc00"/>
+                <stop offset="100%" style="stop-color:#daa520"/>
+            </linearGradient>
+            <linearGradient id="platinum-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#e5e4e2"/>
+                <stop offset="50%" style="stop-color:#d4d4d4"/>
+                <stop offset="100%" style="stop-color:#a8a9ad"/>
+            </linearGradient>
+            <linearGradient id="diamond-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#b9f2ff"/>
+                <stop offset="50%" style="stop-color:#7dd3fc"/>
+                <stop offset="100%" style="stop-color:#00bfff"/>
+            </linearGradient>
+            <linearGradient id="master-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#9400d3"/>
+                <stop offset="50%" style="stop-color:#7b2cbf"/>
+                <stop offset="100%" style="stop-color:#4b0082"/>
+            </linearGradient>
+            <linearGradient id="grandmaster-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#ff6b35"/>
+                <stop offset="50%" style="stop-color:#ff4500"/>
+                <stop offset="100%" style="stop-color:#dc143c"/>
+            </linearGradient>
+        </defs>
+    </svg>
 
     <script src="/static/js/team-dashboard.js"></script>
 </body>

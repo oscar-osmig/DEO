@@ -1202,3 +1202,110 @@ async def get_graph_data(
         "filtered_metric": metric,
         "filtered_member": member_email
     }
+
+
+@router.get("/{dashboard_id}/my-metrics-history")
+async def get_my_metrics_history(
+    dashboard_id: str,
+    email: str,
+    weeks: int = 8
+):
+    """
+    Get historical metrics data for a specific member (public endpoint for team dashboard).
+    Returns data formatted for Chart.js visualization.
+    """
+    dashboard_templates = get_collection("dashboard_templates")
+    dashboard_data = get_collection("dashboard_data")
+    dashboard_logins = get_collection("dashboard_logins")
+
+    try:
+        dashboard = await dashboard_templates.find_one({"_id": ObjectId(dashboard_id)})
+    except:
+        raise HTTPException(status_code=400, detail="Invalid dashboard ID")
+
+    if not dashboard:
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+
+    # Verify member has access to this dashboard
+    login_doc = await dashboard_logins.find_one({"dashboard_id": dashboard_id})
+    if not login_doc:
+        raise HTTPException(status_code=404, detail="Dashboard access not configured")
+
+    member_emails = [m.get("email", "").lower().strip() for m in login_doc.get("members", [])]
+    if email.lower().strip() not in member_emails:
+        raise HTTPException(status_code=403, detail="Not authorized to view this data")
+
+    # Get metrics list
+    metrics_list = dashboard.get("metrics", [])
+
+    # Generate week identifiers for the time range
+    now = datetime.utcnow()
+    weeks_data = []
+    month_abbrevs = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+    for i in range(weeks - 1, -1, -1):
+        week_date = now - timedelta(weeks=i)
+        week_number = week_date.isocalendar()[1]
+        year = week_date.isocalendar()[0]
+        week_id = f"week-{year}-W{week_number:02d}"
+
+        # Calculate label
+        month = week_date.month
+        month_abbr = month_abbrevs[month - 1]
+        week_of_month = ((week_date.day - 1) // 7) + 1
+
+        weeks_data.append({
+            "week_id": week_id,
+            "label": f"{month_abbr}-{week_of_month}"
+        })
+
+    # Fetch all data for these weeks
+    week_ids = [w["week_id"] for w in weeks_data]
+    data_docs = await dashboard_data.find({
+        "dashboard_id": dashboard_id,
+        "reporting_period": {"$in": week_ids}
+    }).to_list(length=100)
+
+    # Create lookup by period
+    data_by_period = {doc["reporting_period"]: doc for doc in data_docs}
+
+    # Build chart data structure
+    labels = [w["label"] for w in weeks_data]
+    datasets = []
+
+    # Initialize datasets for each metric
+    for metric_name in metrics_list:
+        dataset = {
+            "label": metric_name,
+            "data": []
+        }
+
+        for week in weeks_data:
+            week_id = week["week_id"]
+            data_doc = data_by_period.get(week_id)
+
+            if not data_doc:
+                dataset["data"].append(0)
+            else:
+                metrics_data = data_doc.get("metrics_data", {})
+                metric_values = metrics_data.get(metric_name, {})
+
+                # Find this member's value
+                value = 0
+                member_clean = email.lower().strip()
+                for stored_email, value_data in metric_values.items():
+                    if stored_email.lower().strip() == member_clean:
+                        if isinstance(value_data, dict):
+                            value = value_data.get("value", 0)
+                        else:
+                            value = value_data
+                        break
+
+                dataset["data"].append(value)
+
+        datasets.append(dataset)
+
+    return {
+        "labels": labels,
+        "datasets": datasets
+    }
