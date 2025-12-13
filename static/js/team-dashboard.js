@@ -175,6 +175,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
             status.textContent = '✓ Access granted';
             status.className = 'status success';
             currentUser = { email, name: data.member_name };
+            saveSession(); // Save session immediately after login
 
             setTimeout(() => {
                 document.getElementById('login-view').classList.add('hidden');
@@ -696,10 +697,14 @@ async function loadPerformanceChart() {
 // === RESTORE SESSION ===
 async function restoreSession() {
     const session = loadSession();
+    console.log('Restoring session:', session);
+
     if (session && session.user) {
         // Verify the session is still valid by checking with the server
         try {
             const res = await fetch(`/dashboards/${dashboardId}/my-metrics?email=${encodeURIComponent(session.user.email)}`);
+            console.log('Session validation response:', res.status);
+
             if (res.ok) {
                 // Session is valid, restore state
                 currentUser = session.user;
@@ -717,10 +722,13 @@ async function restoreSession() {
 
                 // Refresh metrics data
                 await checkExistingMetrics();
+                console.log('Session restored successfully');
                 return true;
+            } else {
+                console.log('Session validation failed with status:', res.status);
             }
         } catch (err) {
-            console.log('Session validation failed:', err);
+            console.log('Session validation error:', err);
         }
         // Session invalid, clear it
         clearSession();

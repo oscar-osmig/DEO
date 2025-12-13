@@ -33,6 +33,40 @@
                     </div>
                     <div class="template-actions">
                         <span id="template-action-status"></span>
+
+                        <!-- Schedule Control Buttons (hidden by default, shown when scheduled) -->
+                        <div class="schedule-controls" id="schedule-controls" style="display: none;">
+                            <span class="schedule-status-badge" id="schedule-status-badge">
+                                <span class="status-dot"></span>
+                                <span class="status-text">Running</span>
+                            </span>
+                            <button class="btn btn-icon btn-schedule btn-start" id="start-schedule-btn" title="Start Schedule" style="display: none;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                </svg>
+                                Start
+                            </button>
+                            <button class="btn btn-icon btn-schedule btn-pause" id="pause-schedule-btn" title="Pause Schedule">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="6" y="4" width="4" height="16"></rect>
+                                    <rect x="14" y="4" width="4" height="16"></rect>
+                                </svg>
+                                Pause
+                            </button>
+                            <button class="btn btn-icon btn-schedule btn-resume" id="resume-schedule-btn" title="Resume Schedule" style="display: none;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                </svg>
+                                Resume
+                            </button>
+                            <button class="btn btn-icon btn-schedule btn-stop" id="stop-schedule-btn" title="Stop Schedule">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                                </svg>
+                                Stop
+                            </button>
+                        </div>
+
                         <button class="btn btn-icon" id="run-template-btn" title="Run Template">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polygon points="5 3 19 12 5 21 5 3"></polygon>

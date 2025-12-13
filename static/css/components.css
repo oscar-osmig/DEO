@@ -37,6 +37,120 @@
     z-index: 10;
 }
 
+/* Schedule Controls */
+.schedule-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-right: 12px;
+    margin-right: 4px;
+    border-right: 1px solid var(--border-color);
+}
+
+.schedule-status-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.schedule-status-badge .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4ade80;
+    animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.schedule-status-badge.running .status-dot {
+    background: #4ade80;
+}
+
+.schedule-status-badge.paused .status-dot {
+    background: #fbbf24;
+    animation: none;
+}
+
+@keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.9); }
+}
+
+.btn-schedule {
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.btn-schedule svg {
+    width: 14px;
+    height: 14px;
+}
+
+.btn-pause {
+    background-color: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    color: #fbbf24;
+}
+
+.btn-pause:hover {
+    background-color: rgba(251, 191, 36, 0.2);
+    border-color: rgba(251, 191, 36, 0.5);
+}
+
+.btn-resume {
+    background-color: rgba(74, 222, 128, 0.1);
+    border: 1px solid rgba(74, 222, 128, 0.3);
+    color: #4ade80;
+}
+
+.btn-resume:hover {
+    background-color: rgba(74, 222, 128, 0.2);
+    border-color: rgba(74, 222, 128, 0.5);
+}
+
+.btn-stop {
+    background-color: rgba(248, 113, 113, 0.1);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    color: #f87171;
+}
+
+.btn-stop:hover {
+    background-color: rgba(248, 113, 113, 0.2);
+    border-color: rgba(248, 113, 113, 0.5);
+}
+
+.btn-start {
+    background-color: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #3b82f6;
+}
+
+.btn-start:hover {
+    background-color: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.5);
+}
+
+.btn-schedule:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.schedule-status-badge.stopped .status-dot {
+    background: #6b7280;
+    animation: none;
+}
+
 /* View toggle button */
 .template-view-toggle {
     margin-bottom: 16px;

@@ -610,6 +610,96 @@ async def list_schedules():
         "count": len(active)
     }
 
+
+class PauseScheduleRequest(BaseModel):
+    """Request to pause scheduled execution."""
+    template_id: str
+
+
+class ResumeScheduleRequest(BaseModel):
+    """Request to resume scheduled execution."""
+    template_id: str
+
+
+@router.post("/schedule/pause")
+async def pause_schedule(request: PauseScheduleRequest):
+    """
+    Pause scheduled execution of a template.
+    The job is kept but won't execute until resumed.
+    """
+    from orchestra.scheduler import pause_template
+
+    templates_collection = get_collection("templates")
+    template = await templates_collection.find_one({"template_id": request.template_id})
+
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    workspace_id = template.get("workspace_id")
+    job_id = f"{request.template_id}_{workspace_id}"
+
+    try:
+        await pause_template(job_id)
+        return {
+            "success": True,
+            "template_id": request.template_id,
+            "job_id": job_id,
+            "status": "paused"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to pause schedule: {str(e)}")
+
+
+@router.post("/schedule/resume")
+async def resume_schedule(request: ResumeScheduleRequest):
+    """
+    Resume a paused scheduled execution.
+    """
+    from orchestra.scheduler import resume_template
+
+    templates_collection = get_collection("templates")
+    template = await templates_collection.find_one({"template_id": request.template_id})
+
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    workspace_id = template.get("workspace_id")
+    job_id = f"{request.template_id}_{workspace_id}"
+
+    try:
+        await resume_template(job_id)
+        return {
+            "success": True,
+            "template_id": request.template_id,
+            "job_id": job_id,
+            "status": "active"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to resume schedule: {str(e)}")
+
+
+@router.get("/schedule/status/{template_id}")
+async def get_schedule_status(template_id: str):
+    """
+    Get the schedule status for a specific template.
+    """
+    from orchestra.scheduler import get_schedule_status as get_status
+
+    templates_collection = get_collection("templates")
+    template = await templates_collection.find_one({"template_id": template_id})
+
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    workspace_id = template.get("workspace_id")
+    status = await get_status(template_id, workspace_id)
+
+    return {
+        "success": True,
+        "template_id": template_id,
+        "schedule": status
+    }
+
 @router.get("")
 async def get_templates(workspace_id: Optional[str] = Query(None)):
     """

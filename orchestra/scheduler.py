@@ -231,6 +231,85 @@ async def unschedule_template(job_id: str):
     print(f"🛑 Unscheduled job: {job_id}")
 
 
+async def pause_template(job_id: str):
+    """
+    Pause a scheduled template (keeps job but prevents execution).
+
+    Args:
+        job_id: APScheduler job ID
+    """
+    global scheduler
+
+    job = scheduler.get_job(job_id)
+    if job:
+        job.pause()
+
+    # Update database
+    schedules_collection = get_collection("active_schedules")
+    await schedules_collection.update_one(
+        {"job_id": job_id},
+        {"$set": {"status": "paused", "paused_at": datetime.utcnow()}}
+    )
+
+    print(f"⏸️ Paused job: {job_id}")
+
+
+async def resume_template(job_id: str):
+    """
+    Resume a paused scheduled template.
+
+    Args:
+        job_id: APScheduler job ID
+    """
+    global scheduler
+
+    job = scheduler.get_job(job_id)
+    if job:
+        job.resume()
+
+    # Update database
+    schedules_collection = get_collection("active_schedules")
+    await schedules_collection.update_one(
+        {"job_id": job_id},
+        {"$set": {"status": "active", "resumed_at": datetime.utcnow()}}
+    )
+    # Remove the paused_at field
+    await schedules_collection.update_one(
+        {"job_id": job_id},
+        {"$unset": {"paused_at": ""}}
+    )
+
+    print(f"▶️ Resumed job: {job_id}")
+
+
+async def get_schedule_status(template_id: str, workspace_id: str) -> dict:
+    """
+    Get the schedule status for a template.
+
+    Args:
+        template_id: Template ID
+        workspace_id: Workspace ID
+
+    Returns:
+        dict with status info or None if not scheduled
+    """
+    job_id = f"{template_id}_{workspace_id}"
+    schedules_collection = get_collection("active_schedules")
+    schedule = await schedules_collection.find_one({"job_id": job_id})
+
+    if not schedule:
+        return None
+
+    return {
+        "job_id": job_id,
+        "status": schedule.get("status", "unknown"),
+        "schedule_config": schedule.get("schedule_config"),
+        "created_at": schedule.get("created_at"),
+        "paused_at": schedule.get("paused_at"),
+        "stopped_at": schedule.get("stopped_at")
+    }
+
+
 async def load_active_schedules():
     """
     Load and restore active schedules from database on startup.

@@ -257,6 +257,17 @@ async function loadTemplateDetails(templateId) {
             if (simpleView) simpleView.style.display = 'none';
             if (toggleBtn) toggleBtn.textContent = 'Simplify';
 
+            // Check schedule status if template has schedule trigger
+            if (trigger && typeof trigger === 'object' && trigger.type === 'schedule') {
+                checkScheduleStatus(t.template_id);
+                // Hide Run button for scheduled templates
+                if (runBtn) runBtn.style.display = 'none';
+            } else {
+                hideScheduleControls();
+                // Show Run button for manual templates
+                if (runBtn) runBtn.style.display = 'inline-flex';
+            }
+
         } else {
             const subtitle = document.getElementById('template-subtitle');
             if (subtitle) subtitle.textContent = 'Template not found';
@@ -739,6 +750,291 @@ document.addEventListener('click', async (e) => {
 
         e.target.textContent = 'Delete';
         e.target.disabled = false;
+    }
+});
+
+// === SCHEDULE CONTROLS ===
+
+// Check schedule status for a template
+async function checkScheduleStatus(templateId) {
+    try {
+        const res = await fetch(`/templates/schedule/status/${encodeURIComponent(templateId)}`);
+        const data = await res.json();
+
+        if (res.ok && data.success && data.schedule) {
+            const schedule = data.schedule;
+            updateScheduleControls(schedule.status, templateId);
+        } else {
+            // No schedule exists yet - show "Not Started" state for scheduled templates
+            showScheduleNotStarted(templateId);
+        }
+    } catch (err) {
+        console.error('Error checking schedule status:', err);
+        hideScheduleControls();
+    }
+}
+
+// Show "Not Started" state for scheduled templates that haven't been started yet
+function showScheduleNotStarted(templateId) {
+    const controls = document.getElementById('schedule-controls');
+    const badge = document.getElementById('schedule-status-badge');
+    const pauseBtn = document.getElementById('pause-schedule-btn');
+    const resumeBtn = document.getElementById('resume-schedule-btn');
+    const stopBtn = document.getElementById('stop-schedule-btn');
+    const startBtn = document.getElementById('start-schedule-btn');
+
+    if (!controls) return;
+
+    controls.style.display = 'flex';
+
+    const statusDot = badge?.querySelector('.status-dot');
+    const statusText = badge?.querySelector('.status-text');
+
+    badge?.classList.remove('running', 'paused');
+    badge?.classList.add('stopped');
+    if (statusDot) statusDot.style.background = '#6b7280';
+    if (statusText) statusText.textContent = 'Not Started';
+    if (pauseBtn) pauseBtn.style.display = 'none';
+    if (resumeBtn) resumeBtn.style.display = 'none';
+    if (stopBtn) stopBtn.style.display = 'none';
+
+    // Show start button if it exists
+    if (startBtn) {
+        startBtn.style.display = 'inline-flex';
+        startBtn.dataset.templateId = templateId;
+    }
+}
+
+// Update schedule control buttons based on status
+function updateScheduleControls(status, templateId) {
+    const controls = document.getElementById('schedule-controls');
+    const badge = document.getElementById('schedule-status-badge');
+    const pauseBtn = document.getElementById('pause-schedule-btn');
+    const resumeBtn = document.getElementById('resume-schedule-btn');
+    const stopBtn = document.getElementById('stop-schedule-btn');
+    const startBtn = document.getElementById('start-schedule-btn');
+
+    if (!controls) return;
+
+    controls.style.display = 'flex';
+
+    const statusDot = badge?.querySelector('.status-dot');
+    const statusText = badge?.querySelector('.status-text');
+
+    // Hide start button when schedule is active/paused
+    if (startBtn) startBtn.style.display = 'none';
+
+    if (status === 'active') {
+        // Running state
+        badge?.classList.remove('paused', 'stopped');
+        badge?.classList.add('running');
+        if (statusDot) statusDot.style.background = '#4ade80';
+        if (statusText) statusText.textContent = 'Running';
+        if (pauseBtn) pauseBtn.style.display = 'inline-flex';
+        if (resumeBtn) resumeBtn.style.display = 'none';
+        if (stopBtn) stopBtn.style.display = 'inline-flex';
+    } else if (status === 'paused') {
+        // Paused state
+        badge?.classList.remove('running', 'stopped');
+        badge?.classList.add('paused');
+        if (statusDot) statusDot.style.background = '#fbbf24';
+        if (statusText) statusText.textContent = 'Paused';
+        if (pauseBtn) pauseBtn.style.display = 'none';
+        if (resumeBtn) resumeBtn.style.display = 'inline-flex';
+        if (stopBtn) stopBtn.style.display = 'inline-flex';
+    } else if (status === 'stopped') {
+        // Stopped - show "Not Started" state with start button
+        showScheduleNotStarted(templateId);
+    } else {
+        hideScheduleControls();
+    }
+}
+
+// Hide schedule controls
+function hideScheduleControls() {
+    const controls = document.getElementById('schedule-controls');
+    if (controls) controls.style.display = 'none';
+}
+
+// Pause schedule button
+document.addEventListener('click', async (e) => {
+    if (e.target.closest('#pause-schedule-btn')) {
+        const btn = e.target.closest('#pause-schedule-btn');
+        const runBtn = document.getElementById('run-template-btn');
+        const templateId = runBtn?.dataset.templateId;
+        const status = document.getElementById('template-action-status');
+
+        if (!templateId) return;
+
+        btn.disabled = true;
+        const originalText = btn.textContent;
+
+        try {
+            const res = await fetch('/templates/schedule/pause', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ template_id: templateId })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                if (status) {
+                    status.textContent = 'Schedule paused';
+                    status.style.color = '#fbbf24';
+                }
+                updateScheduleControls('paused');
+            } else {
+                if (status) {
+                    status.textContent = data.detail || 'Failed to pause';
+                    status.style.color = '#f87171';
+                }
+            }
+        } catch (err) {
+            if (status) {
+                status.textContent = 'Error pausing schedule';
+                status.style.color = '#f87171';
+            }
+        }
+
+        btn.disabled = false;
+        setTimeout(() => { if (status) status.textContent = ''; }, 3000);
+    }
+});
+
+// Resume schedule button
+document.addEventListener('click', async (e) => {
+    if (e.target.closest('#resume-schedule-btn')) {
+        const btn = e.target.closest('#resume-schedule-btn');
+        const runBtn = document.getElementById('run-template-btn');
+        const templateId = runBtn?.dataset.templateId;
+        const status = document.getElementById('template-action-status');
+
+        if (!templateId) return;
+
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/templates/schedule/resume', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ template_id: templateId })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                if (status) {
+                    status.textContent = 'Schedule resumed';
+                    status.style.color = '#4ade80';
+                }
+                updateScheduleControls('active');
+            } else {
+                if (status) {
+                    status.textContent = data.detail || 'Failed to resume';
+                    status.style.color = '#f87171';
+                }
+            }
+        } catch (err) {
+            if (status) {
+                status.textContent = 'Error resuming schedule';
+                status.style.color = '#f87171';
+            }
+        }
+
+        btn.disabled = false;
+        setTimeout(() => { if (status) status.textContent = ''; }, 3000);
+    }
+});
+
+// Stop schedule button
+document.addEventListener('click', async (e) => {
+    if (e.target.closest('#stop-schedule-btn')) {
+        const btn = e.target.closest('#stop-schedule-btn');
+        const runBtn = document.getElementById('run-template-btn');
+        const templateId = runBtn?.dataset.templateId;
+        const status = document.getElementById('template-action-status');
+
+        if (!templateId) return;
+
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/templates/schedule/stop', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ template_id: templateId })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                if (status) {
+                    status.textContent = 'Schedule stopped';
+                    status.style.color = '#f87171';
+                }
+                // Show "Not Started" state so user can restart
+                showScheduleNotStarted(templateId);
+            } else {
+                if (status) {
+                    status.textContent = data.detail || 'Failed to stop';
+                    status.style.color = '#f87171';
+                }
+            }
+        } catch (err) {
+            if (status) {
+                status.textContent = 'Error stopping schedule';
+                status.style.color = '#f87171';
+            }
+        }
+
+        btn.disabled = false;
+        setTimeout(() => { if (status) status.textContent = ''; }, 3000);
+    }
+});
+
+// Start schedule button
+document.addEventListener('click', async (e) => {
+    if (e.target.closest('#start-schedule-btn')) {
+        const btn = e.target.closest('#start-schedule-btn');
+        const runBtn = document.getElementById('run-template-btn');
+        const templateId = runBtn?.dataset.templateId;
+        const status = document.getElementById('template-action-status');
+
+        if (!templateId) return;
+
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/templates/schedule/start', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ template_id: templateId })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                if (status) {
+                    status.textContent = 'Schedule started';
+                    status.style.color = '#4ade80';
+                }
+                updateScheduleControls('active', templateId);
+            } else {
+                if (status) {
+                    status.textContent = data.detail || 'Failed to start';
+                    status.style.color = '#f87171';
+                }
+            }
+        } catch (err) {
+            if (status) {
+                status.textContent = 'Error starting schedule';
+                status.style.color = '#f87171';
+            }
+        }
+
+        btn.disabled = false;
+        setTimeout(() => { if (status) status.textContent = ''; }, 3000);
     }
 });
 
@@ -3194,38 +3490,64 @@ document.addEventListener('click', async (e) => {
         const templateId = await saveTemplate(btn, true);
 
         if (templateId) {
-            // Now run the template
-            btn.textContent = 'Running...';
+            // Check if this is a scheduled template or immediate run
+            const isScheduled = triggerConfig.type === 'schedule';
 
-            try {
-                const runRes = await fetch('/templates/run', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ template_id: templateId })
-                });
+            if (isScheduled) {
+                // For scheduled templates, start the schedule instead of running immediately
+                btn.textContent = 'Starting Schedule...';
 
-                const runData = await runRes.json();
+                try {
+                    const scheduleRes = await fetch('/templates/schedule/start', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ template_id: templateId })
+                    });
 
-                if (runRes.ok && runData.success) {
-                    btn.textContent = 'Done!';
-                    if (saveBtn) saveBtn.textContent = isUpdate ? 'Updated!' : 'Saved!';
+                    const scheduleData = await scheduleRes.json();
 
-                    // Clear editing mode after successful save
-                    editingTemplateId = null;
+                    if (scheduleRes.ok && scheduleData.success) {
+                        btn.textContent = 'Scheduled!';
+                        if (saveBtn) saveBtn.textContent = isUpdate ? 'Updated!' : 'Saved!';
 
-                    // Show success notification
-                    setTimeout(async () => {
-                        await showAlert({ title: 'Success', message: `Template "${templateId}" ${isUpdate ? 'updated' : 'saved'} and executed successfully!`, type: 'success' });
-                        // Reset buttons after notification
+                        // Clear editing mode after successful save
+                        editingTemplateId = null;
+
+                        // Show success notification with schedule info
+                        const scheduleInfo = scheduleData.schedule;
+                        let scheduleMsg = 'Schedule started';
+                        if (scheduleInfo) {
+                            if (scheduleInfo.regularity === 'daily') {
+                                scheduleMsg = `Scheduled daily at ${scheduleInfo.time}`;
+                            } else if (scheduleInfo.regularity === 'weekly') {
+                                const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+                                scheduleMsg = `Scheduled weekly on ${days[scheduleInfo.day_of_week || 0]} at ${scheduleInfo.time}`;
+                            } else if (scheduleInfo.regularity === 'interval') {
+                                scheduleMsg = `Scheduled every ${scheduleInfo.interval_minutes} minutes`;
+                            }
+                        }
+
+                        setTimeout(async () => {
+                            await showAlert({ title: 'Schedule Started', message: `Template "${templateId}" ${isUpdate ? 'updated' : 'saved'} and ${scheduleMsg}!`, type: 'success' });
+                            btn.textContent = 'Save & Run';
+                            btn.disabled = false;
+                            if (saveBtn) {
+                                saveBtn.textContent = 'Save';
+                                saveBtn.disabled = false;
+                            }
+                        }, 300);
+                    } else {
+                        await showAlert({ title: 'Schedule Failed', message: `Template ${isUpdate ? 'updated' : 'saved'} but failed to start schedule: ` + (scheduleData.detail || 'Unknown error'), type: 'error' });
                         btn.textContent = 'Save & Run';
                         btn.disabled = false;
                         if (saveBtn) {
                             saveBtn.textContent = 'Save';
                             saveBtn.disabled = false;
                         }
-                    }, 300);
-                } else {
-                    await showAlert({ title: 'Run Failed', message: `Template ${isUpdate ? 'updated' : 'saved'} but failed to run: ` + (runData.detail || 'Unknown error'), type: 'error' });
+                    }
+                } catch (err) {
+                    console.error('Schedule error:', err);
+                    await showAlert({ title: 'Error', message: 'Template saved but error starting schedule: ' + err.message, type: 'error' });
                     btn.textContent = 'Save & Run';
                     btn.disabled = false;
                     if (saveBtn) {
@@ -3233,14 +3555,55 @@ document.addEventListener('click', async (e) => {
                         saveBtn.disabled = false;
                     }
                 }
-            } catch (err) {
-                console.error('Run error:', err);
-                await showAlert({ title: 'Error', message: 'Template saved but error running: ' + err.message, type: 'error' });
-                btn.textContent = 'Save & Run';
-                btn.disabled = false;
-                if (saveBtn) {
-                    saveBtn.textContent = 'Save';
-                    saveBtn.disabled = false;
+            } else {
+                // For manual templates, run immediately
+                btn.textContent = 'Running...';
+
+                try {
+                    const runRes = await fetch('/templates/run', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ template_id: templateId })
+                    });
+
+                    const runData = await runRes.json();
+
+                    if (runRes.ok && runData.success) {
+                        btn.textContent = 'Done!';
+                        if (saveBtn) saveBtn.textContent = isUpdate ? 'Updated!' : 'Saved!';
+
+                        // Clear editing mode after successful save
+                        editingTemplateId = null;
+
+                        // Show success notification
+                        setTimeout(async () => {
+                            await showAlert({ title: 'Success', message: `Template "${templateId}" ${isUpdate ? 'updated' : 'saved'} and executed successfully!`, type: 'success' });
+                            // Reset buttons after notification
+                            btn.textContent = 'Save & Run';
+                            btn.disabled = false;
+                            if (saveBtn) {
+                                saveBtn.textContent = 'Save';
+                                saveBtn.disabled = false;
+                            }
+                        }, 300);
+                    } else {
+                        await showAlert({ title: 'Run Failed', message: `Template ${isUpdate ? 'updated' : 'saved'} but failed to run: ` + (runData.detail || 'Unknown error'), type: 'error' });
+                        btn.textContent = 'Save & Run';
+                        btn.disabled = false;
+                        if (saveBtn) {
+                            saveBtn.textContent = 'Save';
+                            saveBtn.disabled = false;
+                        }
+                    }
+                } catch (err) {
+                    console.error('Run error:', err);
+                    await showAlert({ title: 'Error', message: 'Template saved but error running: ' + err.message, type: 'error' });
+                    btn.textContent = 'Save & Run';
+                    btn.disabled = false;
+                    if (saveBtn) {
+                        saveBtn.textContent = 'Save';
+                        saveBtn.disabled = false;
+                    }
                 }
             }
         }
