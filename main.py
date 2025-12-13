@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from orchestra import account_router, workspace_router, oauth_router, templates_router, teams_router, dashboards_router
+from orchestra import account_router, workspace_router, oauth_router, templates_router, teams_router, dashboards_router, applications_router
 
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, HTMLResponse
@@ -124,12 +124,50 @@ async def team_dashboard_page(request: Request, dashboard_id: str):
     })
 
 
+@app.get("/application/{form_id}", response_class=HTMLResponse)
+async def application_page(request: Request, form_id: str):
+    """Serve the public job application form page."""
+    from database import get_collection
+    from bson import ObjectId
+
+    applications_collection = get_collection("application_forms")
+
+    try:
+        form = await applications_collection.find_one({"_id": ObjectId(form_id)})
+    except:
+        return templates.TemplateResponse("templates/error.html", {
+            "request": request,
+            "error": "Invalid application form ID"
+        })
+
+    if not form:
+        return templates.TemplateResponse("templates/error.html", {
+            "request": request,
+            "error": "Application form not found"
+        })
+
+    if not form.get("is_active"):
+        return templates.TemplateResponse("templates/error.html", {
+            "request": request,
+            "error": "This application form is no longer accepting applications"
+        })
+
+    return templates.TemplateResponse("templates/application.html", {
+        "request": request,
+        "form_id": form_id,
+        "position_title": form.get("position_title", "Position"),
+        "company_name": form.get("company_name", "Company"),
+        "team_name": form.get("team_name", "Team")
+    })
+
+
 app.include_router(account_router)
 app.include_router(workspace_router)
 app.include_router(oauth_router)
 app.include_router(templates_router)
 app.include_router(teams_router)
 app.include_router(dashboards_router)
+app.include_router(applications_router)
 
 # Use NoCacheStaticFiles in development, regular StaticFiles in production
 app.mount("/static", NoCacheStaticFiles(directory="static"), name="static")

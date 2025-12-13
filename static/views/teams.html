@@ -80,7 +80,25 @@
                         <div class="members-list" id="team-members-list">
                             <p class="text-muted">No members yet</p>
                         </div>
-                        <button class="btn btn-small" id="add-member-btn">+ Add Member</button>
+                        <div class="member-actions-row">
+                            <button class="btn btn-small" id="add-member-btn">+ Add Member</button>
+                            <button class="btn btn-small btn-secondary" id="hire-btn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="8.5" cy="7" r="4"></circle>
+                                    <line x1="20" y1="8" x2="20" y2="14"></line>
+                                    <line x1="23" y1="11" x2="17" y2="11"></line>
+                                </svg>
+                                Hire
+                            </button>
+                            <button class="btn btn-small btn-secondary" id="app-links-btn">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                                </svg>
+                                Application Links
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -192,6 +210,135 @@
                     <button type="button" class="btn" id="add-slack-members-btn" disabled>Add Selected Members</button>
                 </div>
                 <p class="modal-status" id="slack-member-status"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hire Modal -->
+    <div class="modal-overlay" id="hire-modal">
+        <div class="modal modal-wide">
+            <div class="modal-header">
+                <h3 class="modal-title">Create Application Form</h3>
+                <button class="modal-close" id="close-hire-modal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <form id="hire-form">
+                <div class="form-group">
+                    <label class="form-label" for="hire-position">Position Title</label>
+                    <input type="text" id="hire-position" class="form-input" placeholder="e.g. Software Engineer" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="hire-company">Company Name</label>
+                    <input type="text" id="hire-company" class="form-input" placeholder="e.g. Acme Inc." required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="hire-workspace">Select Workspace</label>
+                    <select id="hire-workspace" class="form-input" required>
+                        <option value="">Select a workspace...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Send Applications To</label>
+                    <div class="send-to-tabs">
+                        <button type="button" class="send-to-tab active" data-type="channel">Channel</button>
+                        <button type="button" class="send-to-tab" data-type="user">User</button>
+                    </div>
+                </div>
+                <div class="form-group" id="hire-channel-group">
+                    <label class="form-label" for="hire-channel">Select Channel</label>
+                    <select id="hire-channel" class="form-input">
+                        <option value="">Select a workspace first...</option>
+                    </select>
+                </div>
+                <div class="form-group" id="hire-user-group" style="display: none;">
+                    <label class="form-label" for="hire-user">Select User</label>
+                    <select id="hire-user" class="form-input">
+                        <option value="">Select a workspace first...</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-hire-btn">Cancel</button>
+                    <button type="submit" class="btn" id="submit-hire-btn">Generate Application Link</button>
+                </div>
+                <p class="modal-status" id="hire-status"></p>
+            </form>
+
+            <!-- Success state with URL -->
+            <div id="hire-success" style="display: none;">
+                <div class="success-content">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="success-icon">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    <h4>Application Form Created!</h4>
+                    <p class="success-subtitle">Share this link with candidates:</p>
+                    <div class="url-copy-box">
+                        <input type="text" id="hire-url" class="form-input" readonly>
+                        <button type="button" class="btn btn-icon" id="copy-hire-url" title="Copy URL">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="success-note">Applications will be sent to <span id="hire-destination"></span></p>
+                    <div class="invite-hint">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        <span>Make sure your Slack app is added to the channel. Use <code>/invite @YourAppName</code> in Slack.</span>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn" id="close-hire-success">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Links Modal -->
+    <div class="modal-overlay" id="app-links-modal">
+        <div class="modal modal-wide">
+            <div class="modal-header">
+                <h3 class="modal-title">Application Links</h3>
+                <button class="modal-close" id="close-app-links-modal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="app-links-content">
+                <div class="app-links-list" id="app-links-list">
+                    <p class="text-muted">Loading application links...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete App Link Confirmation Modal -->
+    <div class="modal-overlay" id="delete-app-link-modal">
+        <div class="modal modal-small modal-centered">
+            <div class="delete-modal-content">
+                <div class="delete-modal-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                </div>
+                <h3 class="delete-modal-title">Delete Application Link</h3>
+                <p class="delete-modal-text">Are you sure you want to delete this application link?</p>
+                <p class="delete-modal-subtext">All candidates using this link will no longer be able to apply. This action cannot be undone.</p>
+            </div>
+            <div class="delete-modal-actions">
+                <button type="button" class="btn btn-secondary btn-wide" id="cancel-delete-app-link">Cancel</button>
+                <button type="button" class="btn btn-danger btn-wide" id="confirm-delete-app-link">Delete</button>
             </div>
         </div>
     </div>

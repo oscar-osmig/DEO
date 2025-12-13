@@ -19,16 +19,29 @@
     "scopes": {
       "bot": [
         "app_mentions:read",
+        "assistant:write",
+        "channels:history",
         "channels:read",
         "chat:write",
+        "chat:write.customize",
         "chat:write.public",
+        "files:read",
+        "files:write",
+        "groups:history",
         "groups:read",
         "im:history",
         "im:read",
         "im:write",
+        "im:write.topic",
+        "mpim:history",
+        "pins:write",
+        "remote_files:read",
+        "remote_files:share",
+        "remote_files:write",
+        "search:read.files",
+        "users.profile:read",
         "users:read",
-        "users:read.email",
-        "users.profile:read"
+        "users:read.email"
       ]
     }
   }

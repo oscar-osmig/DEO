@@ -4,5 +4,6 @@ from .oauth import router as oauth_router
 from .templates import router as templates_router
 from .teams import router as teams_router
 from .dashboards import router as dashboards_router
+from .applications import router as applications_router
 
-__all__ = ['account_router', 'workspace_router', 'oauth_router', 'templates_router', 'teams_router', 'dashboards_router']
+__all__ = ['account_router', 'workspace_router', 'oauth_router', 'templates_router', 'teams_router', 'dashboards_router', 'applications_router']
