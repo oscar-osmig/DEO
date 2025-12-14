@@ -1882,7 +1882,8 @@ function initNodeConfig(nodeId, nodeType) {
             mode: 'channel', // 'channel' or 'users'
             channel_name: '',
             users: '',
-            message: ''
+            message: '',
+            file: null // { filename, content_type, data (base64) }
         };
     } else if (nodeType === 'scan') {
         nodeConfigs[nodeId] = {
@@ -1917,14 +1918,20 @@ function updateNodeLabel(nodeId) {
     const nodeType = node.dataset.nodeType;
 
     if (nodeType === 'message') {
+        let labelText = '';
         if (config.mode === 'channel' && config.channel_name) {
-            label.textContent = `#${config.channel_name}`;
+            labelText = `#${config.channel_name}`;
         } else if (config.mode === 'users' && config.users) {
             const userCount = config.users.split(',').filter(u => u.trim()).length;
-            label.textContent = `${userCount} user${userCount !== 1 ? 's' : ''}`;
+            labelText = `${userCount} user${userCount !== 1 ? 's' : ''}`;
         } else {
-            label.textContent = config.mode === 'channel' ? 'Channel' : 'Users';
+            labelText = config.mode === 'channel' ? 'Channel' : 'Users';
         }
+        // Add file indicator if file is attached
+        if (config.file) {
+            labelText += ' + File';
+        }
+        label.textContent = labelText;
     } else if (nodeType === 'scan') {
         if (config.channel_name && config.command) {
             label.textContent = `#${config.channel_name}`;
@@ -2151,6 +2158,77 @@ document.addEventListener('input', (e) => {
     const unit = unitSelect?.value || 'h';
     config.timeout = `${value}${unit}`;
     updateNodeLabel(nodeId);
+});
+
+// Handle file upload for message block
+document.addEventListener('change', (e) => {
+    if (!e.target.classList.contains('config-file-input')) return;
+
+    const uploadContainer = e.target.closest('.config-file-upload');
+    if (!uploadContainer) return;
+
+    const nodeId = uploadContainer.dataset.nodeId;
+    const config = nodeConfigs[nodeId];
+    if (!config) return;
+
+    const file = e.target.files[0];
+    if (!file) {
+        // File was cleared
+        config.file = null;
+        uploadContainer.classList.remove('has-file');
+        uploadContainer.querySelector('.config-file-name').textContent = '';
+        updateNodeLabel(nodeId);
+        triggerAutoSave();
+        return;
+    }
+
+    // Check file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+        alertModal.show({
+            type: 'warning',
+            title: 'File Too Large',
+            message: 'File size must be less than 10MB.'
+        });
+        e.target.value = '';
+        return;
+    }
+
+    // Read file and convert to base64
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const base64Data = event.target.result.split(',')[1]; // Remove data URL prefix
+        config.file = {
+            filename: file.name,
+            content_type: file.type,
+            data: base64Data,
+            size: file.size
+        };
+        uploadContainer.classList.add('has-file');
+        uploadContainer.querySelector('.config-file-name').textContent = file.name;
+        updateNodeLabel(nodeId);
+        triggerAutoSave();
+    };
+    reader.readAsDataURL(file);
+});
+
+// Handle file remove button
+document.addEventListener('click', (e) => {
+    if (!e.target.classList.contains('config-file-remove')) return;
+
+    const uploadContainer = e.target.closest('.config-file-upload');
+    if (!uploadContainer) return;
+
+    const nodeId = uploadContainer.dataset.nodeId;
+    const config = nodeConfigs[nodeId];
+    if (!config) return;
+
+    // Clear file
+    config.file = null;
+    uploadContainer.classList.remove('has-file');
+    uploadContainer.querySelector('.config-file-name').textContent = '';
+    uploadContainer.querySelector('.config-file-input').value = '';
+    updateNodeLabel(nodeId);
+    triggerAutoSave();
 });
 
 // Handle user checkbox changes
@@ -2387,6 +2465,16 @@ function restoreCanvasFromState(state) {
             }
             const msgInput = newNode.querySelector('.config-message-input');
             if (msgInput) msgInput.value = config.message || '';
+
+            // Restore file attachment if present
+            if (config.file) {
+                const fileUpload = newNode.querySelector('.config-file-upload');
+                if (fileUpload) {
+                    fileUpload.classList.add('has-file');
+                    const fileName = fileUpload.querySelector('.config-file-name');
+                    if (fileName) fileName.textContent = config.file.filename || '';
+                }
+            }
             updateNodeLabel(nodeId);
         } else if (nodeData.type === 'await') {
             const expectedInput = newNode.querySelector('.config-expected-response-input');
@@ -2813,8 +2901,25 @@ function createNode(blockType, x, y, optionalId = null) {
                     </div>
                 </div>
                 <div class="block-config-row">
-                    <div class="block-config-label">Message</div>
+                    <div class="block-config-label">Message <span class="config-optional">(optional if file attached)</span></div>
                     <textarea class="block-config-textarea config-message-input" placeholder="Enter your message..."></textarea>
+                </div>
+                <div class="block-config-row">
+                    <div class="block-config-label">File Attachment <span class="config-optional">(optional)</span></div>
+                    <div class="config-file-upload" data-node-id="${nodeId}">
+                        <input type="file" class="config-file-input" accept="image/*,.pdf,.txt,.log,.json,.csv,.doc,.docx,.xls,.xlsx">
+                        <svg class="config-file-upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        <p class="config-file-upload-text">Click or drag to upload</p>
+                        <p class="config-file-upload-hint">Images, PDF, or documents up to 10MB</p>
+                        <div class="config-file-info">
+                            <span class="config-file-name"></span>
+                            <button type="button" class="config-file-remove" title="Remove file">&times;</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
@@ -3609,11 +3714,18 @@ function buildTemplatePayload() {
 
         if (block.type === 'message') {
             const msgConfig = block.config;
-            if (!msgConfig.message) {
-                return { error: `Message block requires a message` };
+            // Require either message or file (or both)
+            if (!msgConfig.message && !msgConfig.file) {
+                return { error: `Message block requires a message or file attachment` };
             }
 
-            blockEntry.config = { message: msgConfig.message };
+            blockEntry.config = {};
+            if (msgConfig.message) {
+                blockEntry.config.message = msgConfig.message;
+            }
+            if (msgConfig.file) {
+                blockEntry.config.file = msgConfig.file;
+            }
 
             if (msgConfig.mode === 'channel') {
                 if (!msgConfig.channel_name) {
