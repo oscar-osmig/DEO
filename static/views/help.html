@@ -11,6 +11,7 @@
                     <span class="help-nav-title">Getting Started</span>
                     <a href="#" class="help-nav-item active" data-topic="overview">Overview</a>
                     <a href="#" class="help-nav-item" data-topic="quick-start">Quick Start Guide</a>
+                    <a href="#" class="help-nav-item" data-topic="slack-app">Slack App Setup</a>
                 </div>
                 <div class="help-nav-section">
                     <span class="help-nav-title">Workspaces</span>
@@ -167,6 +168,129 @@
                         <li>Link it to a team and define your metrics (e.g., sales, calls)</li>
                         <li>Share the dashboard URL with your team</li>
                     </ol>
+                </div>
+            </article>
+
+            <!-- Slack App Setup -->
+            <article class="help-article" id="help-slack-app">
+                <h1>Slack App Setup</h1>
+                <p class="help-intro">Create a Slack app using an app manifest for quick and easy setup. The manifest pre-configures all required permissions and features.</p>
+
+                <div class="help-section">
+                    <h2>What is an App Manifest?</h2>
+                    <p>An app manifest is a JSON configuration file that defines your Slack app's settings, permissions, and features. Using a manifest allows you to:</p>
+                    <ul class="help-list">
+                        <li>Skip manual configuration of OAuth scopes</li>
+                        <li>Ensure all required permissions are set correctly</li>
+                        <li>Quickly replicate the app across workspaces</li>
+                        <li>Version control your app configuration</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h2>Creating Your Slack App</h2>
+                    <ol class="help-steps">
+                        <li>Go to <a href="https://api.slack.com/apps" target="_blank">api.slack.com/apps</a> and click <strong>Create New App</strong></li>
+                        <li>Select <strong>From an app manifest</strong></li>
+                        <li>Choose your workspace and click <strong>Next</strong></li>
+                        <li>Select <strong>JSON</strong> as the format</li>
+                        <li>Paste the manifest below and click <strong>Next</strong></li>
+                        <li>Review the configuration and click <strong>Create</strong></li>
+                    </ol>
+                </div>
+
+                <div class="help-section">
+                    <h2>DEO App Manifest</h2>
+                    <p>Copy this manifest to create your DEO Slack app:</p>
+                    <div class="help-manifest-wrapper">
+                        <button class="help-copy-btn" onclick="copyManifest(this)">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                            <span>Copy</span>
+                        </button>
+                        <pre class="help-code-block help-manifest">{
+  "display_information": {
+    "name": "DEO",
+    "description": "Onboarding and metrics tracking bot for marketing teams",
+    "background_color": "#2c3e50"
+  },
+  "features": {
+    "app_home": {
+      "home_tab_enabled": false,
+      "messages_tab_enabled": true,
+      "messages_tab_read_only_enabled": false
+    },
+    "bot_user": {
+      "display_name": "DEO",
+      "always_online": true
+    }
+  },
+  "oauth_config": {
+    "scopes": {
+      "bot": [
+        "app_mentions:read",
+        "assistant:write",
+        "channels:history",
+        "channels:read",
+        "chat:write",
+        "chat:write.customize",
+        "chat:write.public",
+        "files:read",
+        "files:write",
+        "groups:history",
+        "groups:read",
+        "im:history",
+        "im:read",
+        "im:write",
+        "im:write.topic",
+        "mpim:history",
+        "pins:write",
+        "remote_files:read",
+        "remote_files:share",
+        "remote_files:write",
+        "search:read.files",
+        "users.profile:read",
+        "users:read",
+        "users:read.email"
+      ]
+    }
+  }
+}</pre>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2>After Creating the App</h2>
+                    <ol class="help-steps">
+                        <li>In your new app's settings, go to <strong>OAuth & Permissions</strong></li>
+                        <li>Click <strong>Install to Workspace</strong></li>
+                        <li>Authorize the app when prompted</li>
+                        <li>Copy the <strong>Bot User OAuth Token</strong> (starts with <code>xoxb-</code>)</li>
+                        <li>Use this token when creating a workspace in DEO</li>
+                    </ol>
+                    <div class="help-warning">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                        <span>Keep your Bot Token secure. Never share it publicly or commit it to version control.</span>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2>Included Permissions</h2>
+                    <p>The manifest includes all permissions required for DEO features:</p>
+                    <ul class="help-list">
+                        <li><strong>channels:read, channels:history</strong> - Read channel info and messages</li>
+                        <li><strong>chat:write, chat:write.public</strong> - Send messages to channels</li>
+                        <li><strong>files:read, files:write</strong> - Upload and access files</li>
+                        <li><strong>im:read, im:write, im:history</strong> - Direct message capabilities</li>
+                        <li><strong>users:read, users.profile:read</strong> - Access user information</li>
+                        <li><strong>groups:read, groups:history</strong> - Private channel access</li>
+                    </ul>
                 </div>
             </article>
 

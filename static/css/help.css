@@ -414,6 +414,57 @@
     color: var(--text-primary);
 }
 
+/* Manifest Copy Section */
+.help-manifest-wrapper {
+    position: relative;
+    margin: 12px 0;
+}
+
+.help-manifest {
+    margin: 0;
+    padding: 16px;
+}
+
+.help-copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.1));
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 6px;
+    color: #a78bfa;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 1;
+}
+
+.help-copy-btn:hover {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(139, 92, 246, 0.2));
+    border-color: rgba(139, 92, 246, 0.5);
+    transform: translateY(-1px);
+}
+
+.help-copy-btn:active {
+    transform: translateY(0);
+}
+
+.help-copy-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.help-copy-btn.copied {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1));
+    border-color: rgba(34, 197, 94, 0.3);
+    color: #4ade80;
+}
+
 /* Inline code */
 .help-article code {
     background-color: var(--bg-tertiary);
