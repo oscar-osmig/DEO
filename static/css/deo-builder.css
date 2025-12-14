@@ -28,7 +28,7 @@
     flex-direction: column;
     width: 200px;
     flex-shrink: 0;
-    padding: 0 0 24px 0;
+    padding: 0;
 }
 
 .sidebar-column .template-name-wrapper {
@@ -48,8 +48,9 @@
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-left: none;
+    border-bottom: none;
     padding: 16px 0;
-    border-radius: 0 12px 12px 0;
+    border-radius: 0 12px 0 0;
     margin-top: 11px;
 }
 
@@ -1146,6 +1147,7 @@ textarea.canvas-block-input {
     flex: 1;
     position: relative;
     overflow: hidden;
+    margin-top: 11px;
 }
 
 /* The outer canvas - container for pannable content */
@@ -1156,6 +1158,7 @@ textarea.canvas-block-input {
     cursor: grab;
     background-color: var(--bg-primary);
     overflow: hidden;
+    border-radius: 12px 0 0 0;
     /* Background grid - position updated by JS to move with pan */
     background-image:
         /* Small dots grid */
