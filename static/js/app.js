@@ -157,13 +157,13 @@ function loadTemplateEmptyList(workspaceId) {
     const list = document.getElementById('template-empty-list');
     if (!list) return;
 
-    list.innerHTML = '<div class="empty-state-list-title">Templates</div><div class="empty-state-list-empty">Loading...</div>';
+    list.innerHTML = '<div class="empty-state-list-title">Bot Templates</div><div class="empty-state-list-empty">Loading...</div>';
 
     // Build URL - include workspace filter only if provided
     const url = workspaceId ? `/templates?workspace_id=${workspaceId}` : '/templates';
 
     fetch(url).then(r => r.json()).then(data => {
-        let html = '<div class="empty-state-list-title">Templates</div>';
+        let html = '<div class="empty-state-list-title">Bot Templates</div>';
         if (data.templates && data.templates.length > 0) {
             html += data.templates.map(t =>
                 `<a class="empty-state-list-item" data-template-id="${t.template_id}">${t.template_id}</a>`
@@ -173,7 +173,7 @@ function loadTemplateEmptyList(workspaceId) {
         }
         list.innerHTML = html;
     }).catch(() => {
-        list.innerHTML = '<div class="empty-state-list-title">Templates</div><div class="empty-state-list-empty">No templates yet</div>';
+        list.innerHTML = '<div class="empty-state-list-title">Bot Templates</div><div class="empty-state-list-empty">No templates yet</div>';
     });
 }
 
@@ -338,7 +338,7 @@ document.addEventListener('click', (e) => {
     } else if (groupId === 'templates-group') {
         e.preventDefault();
         window.location.hash = '#template';
-        setHeaderSection('Templates');
+        setHeaderSection('Bot Templates');
     }
 });
 

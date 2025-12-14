@@ -67,6 +67,20 @@
                             </button>
                         </div>
 
+                        <!-- Scan Control Buttons (hidden by default, shown when template has scan block) -->
+                        <div class="scan-controls" id="scan-controls" style="display: none;">
+                            <span class="scan-status-badge" id="scan-status-badge">
+                                <span class="status-dot"></span>
+                                <span class="status-text">Scanning</span>
+                            </span>
+                            <button class="btn btn-icon btn-scan btn-stop" id="stop-scan-btn" title="Stop Scanning">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+                                </svg>
+                                Stop
+                            </button>
+                        </div>
+
                         <button class="btn btn-icon" id="run-template-btn" title="Run Template">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polygon points="5 3 19 12 5 21 5 3"></polygon>

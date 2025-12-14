@@ -19,6 +19,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from database import connect_to_mongo, close_mongo_connection
 from endpoints import router
 from orchestra.blocks.timeout_checker import timeout_checker_loop
+from orchestra.blocks.scan_checker import scan_checker_loop
 from orchestra.scheduler import initialize_scheduler, shutdown_scheduler, load_active_schedules
 
 import asyncio
@@ -45,22 +46,28 @@ async def lifespan(app: FastAPI):
     # Startup
     connected = await connect_to_mongo()
     timeout_task = None
+    scan_task = None
 
     if connected:
         await initialize_scheduler()
         await load_active_schedules()
-        print("📅 Scheduler started")
+        print("Scheduler started")
 
         timeout_task = asyncio.create_task(timeout_checker_loop())
-        print("🕐 Timeout checker started")
+        print("Timeout checker started")
+
+        scan_task = asyncio.create_task(scan_checker_loop())
+        print("Scan checker started")
     else:
-        print("⚠️ Skipping scheduler and timeout checker - database not connected")
+        print("Skipping scheduler and checkers - database not connected")
 
     yield
 
     # Shutdown
     if timeout_task:
         timeout_task.cancel()
+    if scan_task:
+        scan_task.cancel()
     if connected:
         await shutdown_scheduler()
     await close_mongo_connection()

@@ -6,7 +6,7 @@ multiple blocks (trigger, message, await, response) in a sequential manner.
 """
 
 from typing import Dict, Any, List
-from .blocks import execute_trigger, execute_message, execute_response, execute_await
+from .blocks import execute_trigger, execute_message, execute_response, execute_await, execute_scan
 
 
 class TemplateOrchestrator:
@@ -30,6 +30,7 @@ class TemplateOrchestrator:
     BLOCK_EXECUTORS = {
         "trigger": execute_trigger,
         "message": execute_message,
+        "scan": execute_scan,
         "await": execute_await,
         "response": execute_response
     }
@@ -180,6 +181,29 @@ class TemplateOrchestrator:
                     # Use the first successful DM channel for single response
                     if self.user_channels:
                         self.last_channel = self.user_channels[0]
+
+            elif block_name == "scan":
+                # Scan block requires bot_token
+                if not self.bot_token:
+                    raise ValueError("Bot token required for scan block")
+                # Calculate remaining blocks to execute after scan completes
+                remaining_blocks = blocks_list[i + 1:]
+                result = await execute_scan(
+                    block_data,
+                    self.bot_token,
+                    self.template_id,
+                    self.workspace_id,
+                    remaining_blocks,
+                    self.action_chain
+                )
+
+                # Scan block pauses execution - return here
+                results.append({
+                    "block": block_name,
+                    "result": result
+                })
+                print(f"\nOrchestration paused - scanning for command in channel")
+                return results
 
             elif block_name == "await":
                 # Await block requires bot_token

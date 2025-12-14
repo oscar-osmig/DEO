@@ -383,7 +383,7 @@ document.addEventListener('click', async (e) => {
         e.preventDefault();
         const templateId = templateLink.dataset.templateId;
         window.location.hash = '#template';
-        setHeaderSection('Templates');
+        setHeaderSection('Bot Templates');
         await openTemplateTab(templateId);
         return;
     }

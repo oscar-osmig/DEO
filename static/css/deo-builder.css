@@ -806,6 +806,45 @@ textarea.canvas-block-input {
     min-width: 100px;
 }
 
+/* Scan block interval/timeout wrappers */
+.scan-interval-wrapper,
+.scan-timeout-wrapper {
+    display: flex;
+    gap: 8px;
+}
+
+.scan-interval-wrapper .block-config-input,
+.scan-timeout-wrapper .block-config-input {
+    flex: 1;
+    min-width: 80px;
+}
+
+.scan-interval-wrapper .block-config-select,
+.scan-timeout-wrapper .block-config-select {
+    flex: 1;
+    min-width: 100px;
+}
+
+/* Block config hint text */
+.block-config-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* Block config warning text */
+.block-config-warning {
+    font-size: 11px;
+    color: var(--error);
+    margin-top: 6px;
+    padding: 8px;
+    background: rgba(248, 113, 113, 0.1);
+    border-radius: 4px;
+    border-left: 2px solid var(--error);
+}
+
 /* Mode toggle buttons */
 .block-config-modes {
     display: flex;

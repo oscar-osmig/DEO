@@ -151,6 +151,75 @@
     animation: none;
 }
 
+/* Scan Controls */
+.scan-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 12px;
+    padding-right: 12px;
+    border-right: 1px solid var(--border-color);
+}
+
+.scan-status-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.scan-status-badge .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #60a5fa;
+    animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.scan-status-badge.scanning .status-dot {
+    background: #60a5fa;
+}
+
+.scan-status-badge.not-scanning .status-dot {
+    background: #6b7280;
+    animation: none;
+}
+
+.btn-scan {
+    padding: 6px 12px;
+    font-size: 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    background: rgba(248, 113, 113, 0.1);
+    color: #f87171;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-scan svg {
+    width: 14px;
+    height: 14px;
+}
+
+.btn-scan:hover {
+    background: rgba(248, 113, 113, 0.2);
+    border-color: rgba(248, 113, 113, 0.5);
+}
+
+.btn-scan:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* View toggle button */
 .template-view-toggle {
     margin-bottom: 16px;

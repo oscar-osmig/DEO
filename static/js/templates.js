@@ -268,6 +268,20 @@ async function loadTemplateDetails(templateId) {
                 if (runBtn) runBtn.style.display = 'inline-flex';
             }
 
+            // Check if template has scan block and show scan controls
+            const blocks = ac.blocks || [];
+            const hasScanBlock = blocks.some(b => {
+                if (typeof b === 'string') return b === 'scan';
+                if (typeof b === 'object') return b.type === 'scan' || Object.keys(b)[0] === 'scan';
+                return false;
+            });
+
+            if (hasScanBlock) {
+                checkScanStatus(t.template_id);
+            } else {
+                hideScanControls();
+            }
+
         } else {
             const subtitle = document.getElementById('template-subtitle');
             if (subtitle) subtitle.textContent = 'Template not found';
@@ -374,6 +388,13 @@ function renderDiagramFromLayout(canvas, svg, layout, icons, triggerLabel) {
                 label = 'Channel';
             }
             bodyContent = config.message ? (config.message.length > 40 ? config.message.substring(0, 40) + '...' : config.message) : '';
+        } else if (nodeData.type === 'scan') {
+            if (config.channel_name) {
+                label = `#${config.channel_name}`;
+            } else {
+                label = 'Configure';
+            }
+            bodyContent = config.command ? `Command: "${config.command}"` : '';
         } else if (nodeData.type === 'await') {
             label = config.timeout || '24h';
             bodyContent = config.expected_response ? `Wait for: "${config.expected_response}"` : '';
@@ -1038,6 +1059,118 @@ document.addEventListener('click', async (e) => {
     }
 });
 
+// === SCAN CONTROLS ===
+
+// Check scan status for a template
+async function checkScanStatus(templateId) {
+    try {
+        const res = await fetch(`/templates/scan/status/${encodeURIComponent(templateId)}`);
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            if (data.status === 'scanning') {
+                updateScanControls('scanning', data.scan);
+            } else {
+                updateScanControls('not_scanning');
+            }
+        } else {
+            hideScanControls();
+        }
+    } catch (err) {
+        console.error('Error checking scan status:', err);
+        hideScanControls();
+    }
+}
+
+// Update scan control buttons based on status
+function updateScanControls(status, scanInfo = null) {
+    const controls = document.getElementById('scan-controls');
+    const badge = document.getElementById('scan-status-badge');
+    const stopBtn = document.getElementById('stop-scan-btn');
+    const runBtn = document.getElementById('run-template-btn');
+
+    if (!controls || !badge) return;
+
+    if (status === 'scanning') {
+        controls.style.display = 'flex';
+        badge.className = 'scan-status-badge scanning';
+
+        // Show scan details in badge
+        let statusText = 'Scanning';
+        if (scanInfo) {
+            statusText = `Scanning #${scanInfo.channel_name}`;
+            if (scanInfo.times_triggered > 0) {
+                statusText += ` (${scanInfo.times_triggered} triggers)`;
+            }
+        }
+        badge.querySelector('.status-text').textContent = statusText;
+
+        if (stopBtn) stopBtn.style.display = 'inline-flex';
+        // Hide Run button when actively scanning
+        if (runBtn) runBtn.style.display = 'none';
+    } else if (status === 'not_scanning') {
+        controls.style.display = 'flex';
+        badge.className = 'scan-status-badge not-scanning';
+        badge.querySelector('.status-text').textContent = 'Not scanning';
+        if (stopBtn) stopBtn.style.display = 'none';
+        // Show Run button when not scanning
+        if (runBtn) runBtn.style.display = 'inline-flex';
+    } else {
+        hideScanControls();
+    }
+}
+
+// Hide scan controls
+function hideScanControls() {
+    const controls = document.getElementById('scan-controls');
+    if (controls) controls.style.display = 'none';
+}
+
+// Stop scan button
+document.addEventListener('click', async (e) => {
+    if (e.target.closest('#stop-scan-btn')) {
+        const btn = e.target.closest('#stop-scan-btn');
+        const runBtn = document.getElementById('run-template-btn');
+        const templateId = runBtn?.dataset.templateId;
+        const status = document.getElementById('template-action-status');
+
+        if (!templateId) return;
+
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/templates/scan/stop', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ template_id: templateId })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                if (status) {
+                    status.textContent = 'Scanning stopped';
+                    status.style.color = '#f87171';
+                }
+                updateScanControls('not_scanning');
+            } else {
+                if (status) {
+                    status.textContent = data.detail || 'Failed to stop';
+                    status.style.color = '#f87171';
+                }
+            }
+        } catch (err) {
+            if (status) {
+                status.textContent = 'Error stopping scan';
+                status.style.color = '#f87171';
+            }
+        }
+
+        btn.disabled = false;
+        setTimeout(() => { if (status) status.textContent = ''; }, 3000);
+    }
+});
+
 // Create template button - navigate to canvas
 document.addEventListener('click', (e) => {
     if (e.target.closest('#create-template-btn')) {
@@ -1287,6 +1420,36 @@ async function loadTemplateIntoCanvas(template) {
 
             const failureInput = newNode.querySelector('.config-failure-message-input');
             if (failureInput) failureInput.value = config.failure_message;
+
+            updateNodeLabel(nodeId);
+        } else if (blockType === 'scan') {
+            const config = nodeConfigs[nodeId];
+            config.channel_name = blockConfig.channel_name || '';
+            config.command = blockConfig.command || '';
+            config.interval = blockConfig.interval || '30m';
+            config.timeout = blockConfig.timeout || '24h';
+
+            // Update UI
+            const commandInput = newNode.querySelector('.config-scan-command-input');
+            if (commandInput) commandInput.value = config.command;
+
+            // Parse interval
+            const intervalMatch = config.interval.match(/^(\d+)(s|m|h)$/);
+            if (intervalMatch) {
+                const intervalValue = newNode.querySelector('.config-scan-interval-value');
+                const intervalUnit = newNode.querySelector('.config-scan-interval-unit');
+                if (intervalValue) intervalValue.value = intervalMatch[1];
+                if (intervalUnit) intervalUnit.value = intervalMatch[2];
+            }
+
+            // Parse timeout
+            const timeoutMatch = config.timeout.match(/^(\d+)(m|h|d)$/);
+            if (timeoutMatch) {
+                const timeoutValue = newNode.querySelector('.config-scan-timeout-value');
+                const timeoutUnit = newNode.querySelector('.config-scan-timeout-unit');
+                if (timeoutValue) timeoutValue.value = timeoutMatch[1];
+                if (timeoutUnit) timeoutUnit.value = timeoutMatch[2];
+            }
 
             updateNodeLabel(nodeId);
         } else if (blockType === 'response') {
@@ -1721,6 +1884,12 @@ function initNodeConfig(nodeId, nodeType) {
             users: '',
             message: ''
         };
+    } else if (nodeType === 'scan') {
+        nodeConfigs[nodeId] = {
+            channel_name: '',
+            command: '',
+            interval: '30m'
+        };
     } else if (nodeType === 'await') {
         nodeConfigs[nodeId] = {
             timeout: '24h',
@@ -1755,6 +1924,14 @@ function updateNodeLabel(nodeId) {
             label.textContent = `${userCount} user${userCount !== 1 ? 's' : ''}`;
         } else {
             label.textContent = config.mode === 'channel' ? 'Channel' : 'Users';
+        }
+    } else if (nodeType === 'scan') {
+        if (config.channel_name && config.command) {
+            label.textContent = `#${config.channel_name}`;
+        } else if (config.channel_name) {
+            label.textContent = `#${config.channel_name}`;
+        } else {
+            label.textContent = 'Configure';
         }
     } else if (nodeType === 'await') {
         label.textContent = config.timeout || '24h';
@@ -1794,7 +1971,14 @@ document.addEventListener('click', (e) => {
             if (n !== flowNode) n.classList.remove('config-open');
         });
 
+        const wasOpen = flowNode.classList.contains('config-open');
         flowNode.classList.toggle('config-open');
+
+        // If opening popup, refresh channel/user dropdowns with latest cache
+        if (!wasOpen) {
+            updateChannelDropdowns();
+            updateUserMultiSelects();
+        }
         return;
     }
 
@@ -1866,6 +2050,21 @@ document.addEventListener('input', (e) => {
         config.expected_response = e.target.value;
     } else if (e.target.classList.contains('config-failure-message-input')) {
         config.failure_message = e.target.value;
+    } else if (e.target.classList.contains('config-scan-command-input')) {
+        config.command = e.target.value;
+        // Show warning if command starts with /
+        const warning = popup.querySelector('.config-scan-slash-warning');
+        if (warning) {
+            warning.style.display = e.target.value.trim().startsWith('/') ? 'block' : 'none';
+        }
+    } else if (e.target.classList.contains('config-scan-interval-value')) {
+        const unitSelect = popup.querySelector('.config-scan-interval-unit');
+        const unit = unitSelect?.value || 'm';
+        config.interval = `${e.target.value}${unit}`;
+    } else if (e.target.classList.contains('config-scan-timeout-value')) {
+        const unitSelect = popup.querySelector('.config-scan-timeout-unit');
+        const unit = unitSelect?.value || 'h';
+        config.timeout = `${e.target.value}${unit}`;
     }
 
     updateNodeLabel(nodeId);
@@ -1913,6 +2112,22 @@ document.addEventListener('change', (e) => {
         const unit = unitSelect?.value || 'h';
         config.timeout = `${value}${unit}`;
         updateNodeLabel(nodeId);
+        triggerAutoSave();
+    }
+
+    // Handle scan block interval unit changes
+    if (e.target.classList.contains('config-scan-interval-unit')) {
+        const valueInput = popup.querySelector('.config-scan-interval-value');
+        const value = valueInput?.value || '30';
+        config.interval = `${value}${e.target.value}`;
+        triggerAutoSave();
+    }
+
+    // Handle scan block timeout unit changes
+    if (e.target.classList.contains('config-scan-timeout-unit')) {
+        const valueInput = popup.querySelector('.config-scan-timeout-value');
+        const value = valueInput?.value || '24';
+        config.timeout = `${value}${e.target.value}`;
         triggerAutoSave();
     }
 });
@@ -2200,6 +2415,29 @@ function restoreCanvasFromState(state) {
 
             const failureInput = newNode.querySelector('.config-failure-message-input');
             if (failureInput) failureInput.value = config.failure_message || '';
+            updateNodeLabel(nodeId);
+        } else if (nodeData.type === 'scan') {
+            const commandInput = newNode.querySelector('.config-scan-command-input');
+            if (commandInput) commandInput.value = config.command || '';
+
+            // Parse and set interval
+            const intervalMatch = (config.interval || '30m').match(/^(\d+)(s|m|h)$/);
+            if (intervalMatch) {
+                const intervalValue = newNode.querySelector('.config-scan-interval-value');
+                const intervalUnit = newNode.querySelector('.config-scan-interval-unit');
+                if (intervalValue) intervalValue.value = intervalMatch[1];
+                if (intervalUnit) intervalUnit.value = intervalMatch[2];
+            }
+
+            // Parse and set timeout
+            const timeoutMatch = (config.timeout || '24h').match(/^(\d+)(m|h|d)$/);
+            if (timeoutMatch) {
+                const timeoutValue = newNode.querySelector('.config-scan-timeout-value');
+                const timeoutUnit = newNode.querySelector('.config-scan-timeout-unit');
+                if (timeoutValue) timeoutValue.value = timeoutMatch[1];
+                if (timeoutUnit) timeoutUnit.value = timeoutMatch[2];
+            }
+
             updateNodeLabel(nodeId);
         } else if (nodeData.type === 'response') {
             const responseInput = newNode.querySelector('.config-response-input');
@@ -2508,18 +2746,21 @@ function createNode(blockType, x, y, optionalId = null) {
 
     const icons = {
         message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>',
+        scan: '<circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path><path d="M11 8v6"></path><path d="M8 11h6"></path>',
         await: '<circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>',
         response: '<polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>'
     };
 
     const labels = {
         message: 'Message',
+        scan: 'Scan',
         await: 'Await',
         response: 'Response'
     };
 
     const defaultLabels = {
         message: 'Channel',
+        scan: 'Configure',
         await: '24h',
         response: 'Response'
     };
@@ -2575,6 +2816,43 @@ function createNode(blockType, x, y, optionalId = null) {
                     <div class="block-config-label">Message</div>
                     <textarea class="block-config-textarea config-message-input" placeholder="Enter your message..."></textarea>
                 </div>
+            </div>
+        `;
+    } else if (blockType === 'scan') {
+        configPopupHtml = `
+            <div class="block-config-popup">
+                <div class="block-config-title">Scan Configuration</div>
+                <div class="block-config-row">
+                    <div class="block-config-label">Channel</div>
+                    <div class="config-channel-dropdown" data-node-id="${nodeId}">
+                        <div class="channel-dropdown-selected">
+                            <span class="channel-dropdown-text">Select a channel...</span>
+                            <svg class="channel-dropdown-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M6 9l6 6 6-6"></path>
+                            </svg>
+                        </div>
+                        <div class="config-channel-list">
+                            <div class="channel-select-empty">Select a workspace first</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="block-config-row">
+                    <div class="block-config-label">Command</div>
+                    <input type="text" class="block-config-input config-scan-command-input" placeholder="e.g., !deploy, @bot start, run">
+                    <p class="block-config-warning config-scan-slash-warning" style="display: none;">Commands starting with / are reserved by Slack and won't work. Use ! or other prefixes instead.</p>
+                </div>
+                <div class="block-config-row">
+                    <div class="block-config-label">Poll Interval</div>
+                    <div class="scan-interval-wrapper">
+                        <input type="number" class="block-config-input config-scan-interval-value" placeholder="30" min="1" value="30">
+                        <select class="block-config-select config-scan-interval-unit">
+                            <option value="s">Seconds</option>
+                            <option value="m" selected>Minutes</option>
+                            <option value="h">Hours</option>
+                        </select>
+                    </div>
+                </div>
+                <p class="block-config-hint">Scans continuously. Triggers every time the command is found until stopped.</p>
             </div>
         `;
     } else if (blockType === 'await') {
@@ -2646,6 +2924,10 @@ function createNode(blockType, x, y, optionalId = null) {
 
     // Initialize config for this node
     initNodeConfig(nodeId, blockType);
+
+    // Populate channel/user dropdowns with cached data
+    updateChannelDropdowns();
+    updateUserMultiSelects();
 
     canvasNodes.push({
         id: nodeId,
@@ -3296,16 +3578,27 @@ function buildTemplatePayload() {
 
     // Check for required blocks
     const hasMessage = orderedBlocks.some(b => b.type === 'message');
+    const hasScan = orderedBlocks.some(b => b.type === 'scan');
     const hasAwait = orderedBlocks.some(b => b.type === 'await');
     const hasResponse = orderedBlocks.some(b => b.type === 'response');
 
-    if (!hasMessage) {
-        return { error: 'Template requires at least one Message block' };
+    // Require at least a message or scan block
+    if (!hasMessage && !hasScan) {
+        return { error: 'Template requires at least one Message or Scan block' };
     }
 
     // Response block is only required if there's an await block
     if (hasAwait && !hasResponse) {
         return { error: 'Template with Await block requires a Response block' };
+    }
+
+    // Scan block requires at least one block after it
+    if (hasScan) {
+        const scanIndex = orderedBlocks.findIndex(b => b.type === 'scan');
+        const blocksAfterScan = orderedBlocks.slice(scanIndex + 1);
+        if (blocksAfterScan.length === 0) {
+            return { error: 'Scan block requires at least one block after it (Message, Await, or Response)' };
+        }
     }
 
     // Build blocks array with inline configs
@@ -3333,6 +3626,19 @@ function buildTemplatePayload() {
                 }
                 blockEntry.config.users = msgConfig.users.split(',').map(u => u.trim()).filter(u => u);
             }
+        } else if (block.type === 'scan') {
+            const scanConfig = block.config;
+            if (!scanConfig.channel_name) {
+                return { error: `Scan block requires a channel` };
+            }
+            if (!scanConfig.command) {
+                return { error: `Scan block requires a command` };
+            }
+            blockEntry.config = {
+                channel_name: scanConfig.channel_name,
+                command: scanConfig.command,
+                interval: scanConfig.interval || '30m'
+            };
         } else if (block.type === 'await') {
             const awaitConfig = block.config;
             blockEntry.config = {

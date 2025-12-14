@@ -45,6 +45,23 @@ class MessageBlock(BaseModel):
         return self
 
 
+class ScanBlock(BaseModel):
+    """
+    Scan block configuration model.
+
+    Monitors a Slack channel for a specific command before continuing the flow.
+    Scans indefinitely until the command is found or the template is manually stopped.
+
+    Attributes:
+        channel_name (str): Slack channel name to monitor
+        command (str): The command to look for (e.g., "!deploy", "/run")
+        interval (str): How often to check (e.g., "30s", "1m", "5m")
+    """
+    channel_name: str
+    command: str
+    interval: str = "30m"  # Default: check every 30 minutes
+
+
 class BlockWithConfig(BaseModel):
     """
     Block with inline configuration.
@@ -699,6 +716,91 @@ async def get_schedule_status(template_id: str):
         "template_id": template_id,
         "schedule": status
     }
+
+
+# =============================================================================
+# SCAN ENDPOINTS
+# =============================================================================
+
+class StopScanRequest(BaseModel):
+    """Request to stop a scanning template."""
+    template_id: str
+
+
+@router.get("/scan/status/{template_id}")
+async def get_scan_status(template_id: str):
+    """
+    Get the scan status for a specific template.
+    Returns info about active scans for this template.
+    """
+    pending_scans = get_collection("pending_scans")
+    templates_collection = get_collection("templates")
+
+    template = await templates_collection.find_one({"template_id": template_id})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    workspace_id = template.get("workspace_id")
+
+    # Find active scan for this template
+    scan = await pending_scans.find_one({
+        "template_id": template_id,
+        "workspace_id": workspace_id,
+        "status": "scanning"
+    })
+
+    if scan:
+        return {
+            "success": True,
+            "template_id": template_id,
+            "status": "scanning",
+            "scan": {
+                "channel_name": scan.get("channel_name"),
+                "command": scan.get("command"),
+                "interval": scan.get("interval_str"),
+                "times_triggered": scan.get("times_triggered", 0),
+                "last_triggered_at": scan.get("last_triggered_at"),
+                "created_at": scan.get("created_at")
+            }
+        }
+    else:
+        return {
+            "success": True,
+            "template_id": template_id,
+            "status": "not_scanning",
+            "scan": None
+        }
+
+
+@router.post("/scan/stop")
+async def stop_scan(request: StopScanRequest):
+    """
+    Stop scanning for a template.
+    Deletes the pending scan record.
+    """
+    pending_scans = get_collection("pending_scans")
+    templates_collection = get_collection("templates")
+
+    template = await templates_collection.find_one({"template_id": request.template_id})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    workspace_id = template.get("workspace_id")
+
+    # Delete active scan(s) for this template
+    result = await pending_scans.delete_many({
+        "template_id": request.template_id,
+        "workspace_id": workspace_id,
+        "status": "scanning"
+    })
+
+    return {
+        "success": True,
+        "template_id": request.template_id,
+        "deleted_count": result.deleted_count,
+        "message": f"Stopped {result.deleted_count} scan(s)"
+    }
+
 
 @router.get("")
 async def get_templates(workspace_id: Optional[str] = Query(None)):

@@ -234,7 +234,7 @@ function initFromHash() {
     } else if (hash === '#workspace') {
         setHeaderSection('Workspaces');
     } else if (hash === '#template') {
-        setHeaderSection('Templates');
+        setHeaderSection('Bot Templates');
     } else if (hash === '#dashboards') {
         setHeaderSection('Dashboards');
     } else if (hash === '#teams') {
