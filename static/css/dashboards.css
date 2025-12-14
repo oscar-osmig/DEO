@@ -214,7 +214,7 @@
 }
 
 .metric-card-icon.orange { background: linear-gradient(135deg, #f59e0b, #d97706); }
-.metric-card-icon.blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.metric-card-icon.blue { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
 .metric-card-icon.green { background: linear-gradient(135deg, #10b981, #059669); }
 .metric-card-icon.purple { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
 .metric-card-icon.pink { background: linear-gradient(135deg, #ec4899, #db2777); }
@@ -280,8 +280,8 @@
 /* Color-coded bars based on parent data-color attribute */
 .metric-card-chart[data-color="orange"] .metric-chart-bar { background: rgba(245, 158, 11, 0.3); }
 .metric-card-chart[data-color="orange"] .metric-chart-bar.current { background: #f59e0b; }
-.metric-card-chart[data-color="blue"] .metric-chart-bar { background: rgba(59, 130, 246, 0.3); }
-.metric-card-chart[data-color="blue"] .metric-chart-bar.current { background: #3b82f6; }
+.metric-card-chart[data-color="blue"] .metric-chart-bar { background: rgba(139, 92, 246, 0.3); }
+.metric-card-chart[data-color="blue"] .metric-chart-bar.current { background: #8b5cf6; }
 .metric-card-chart[data-color="green"] .metric-chart-bar { background: rgba(16, 185, 129, 0.3); }
 .metric-card-chart[data-color="green"] .metric-chart-bar.current { background: #10b981; }
 .metric-card-chart[data-color="purple"] .metric-chart-bar { background: rgba(139, 92, 246, 0.3); }
@@ -1014,28 +1014,28 @@
 
 /* Graph Colors */
 .graph-color-orange { background: #f59e0b; }
-.graph-color-blue { background: #3b82f6; }
+.graph-color-blue { background: #8b5cf6; }
 .graph-color-green { background: #10b981; }
 .graph-color-purple { background: #8b5cf6; }
 .graph-color-pink { background: #ec4899; }
 .graph-color-cyan { background: #06b6d4; }
 
 .graph-line.orange { stroke: #f59e0b; }
-.graph-line.blue { stroke: #3b82f6; }
+.graph-line.blue { stroke: #8b5cf6; }
 .graph-line.green { stroke: #10b981; }
 .graph-line.purple { stroke: #8b5cf6; }
 .graph-line.pink { stroke: #ec4899; }
 .graph-line.cyan { stroke: #06b6d4; }
 
 .graph-area.orange { fill: #f59e0b; }
-.graph-area.blue { fill: #3b82f6; }
+.graph-area.blue { fill: #8b5cf6; }
 .graph-area.green { fill: #10b981; }
 .graph-area.purple { fill: #8b5cf6; }
 .graph-area.pink { fill: #ec4899; }
 .graph-area.cyan { fill: #06b6d4; }
 
 .graph-point.orange { fill: #f59e0b; }
-.graph-point.blue { fill: #3b82f6; }
+.graph-point.blue { fill: #8b5cf6; }
 .graph-point.green { fill: #10b981; }
 .graph-point.purple { fill: #8b5cf6; }
 .graph-point.pink { fill: #ec4899; }

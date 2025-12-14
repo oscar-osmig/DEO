@@ -587,7 +587,7 @@ async function loadPerformanceChart() {
 
         // Chart colors matching our theme
         const chartColors = [
-            { bg: 'rgba(59, 130, 246, 0.2)', border: 'rgba(59, 130, 246, 1)' },
+            { bg: 'rgba(139, 92, 246, 0.2)', border: 'rgba(139, 92, 246, 1)' },
             { bg: 'rgba(74, 222, 128, 0.2)', border: 'rgba(74, 222, 128, 1)' },
             { bg: 'rgba(251, 191, 36, 0.2)', border: 'rgba(251, 191, 36, 1)' },
             { bg: 'rgba(248, 113, 113, 0.2)', border: 'rgba(248, 113, 113, 1)' },

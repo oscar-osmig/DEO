@@ -82,7 +82,7 @@
 }
 
 .typing-text {
-    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+    background: linear-gradient(90deg, #8b5cf6, #a78bfa, #c4b5fd);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -139,9 +139,9 @@
 }
 
 .home-stat:nth-child(1) .home-stat-icon svg { color: #f59e0b; }
-.home-stat:nth-child(2) .home-stat-icon svg { color: #3b82f6; }
+.home-stat:nth-child(2) .home-stat-icon svg { color: #8b5cf6; }
 .home-stat:nth-child(3) .home-stat-icon svg { color: #10b981; }
-.home-stat:nth-child(4) .home-stat-icon svg { color: #8b5cf6; }
+.home-stat:nth-child(4) .home-stat-icon svg { color: #a78bfa; }
 
 .home-stat-label {
     font-size: 13px;

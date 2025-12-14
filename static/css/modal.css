@@ -731,11 +731,11 @@ select.form-input {
 
 /* Icon colors by type */
 .alert-modal-icon-info {
-    background-color: rgba(96, 165, 250, 0.1);
+    background-color: rgba(139, 92, 246, 0.1);
 }
 
 .alert-modal-icon-info svg {
-    color: #60a5fa;
+    color: #a78bfa;
 }
 
 .alert-modal-icon-error {
@@ -829,7 +829,7 @@ select.form-input {
     width: 48px;
     height: 48px;
     border-radius: 50%;
-    background-color: rgba(96, 165, 250, 0.1);
+    background-color: rgba(139, 92, 246, 0.1);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -839,7 +839,7 @@ select.form-input {
 .feedback-modal-icon svg {
     width: 24px;
     height: 24px;
-    color: #60a5fa;
+    color: #a78bfa;
 }
 
 .feedback-modal-title {
@@ -914,7 +914,7 @@ select.form-input {
 
 .feedback-file-upload:hover {
     border-color: var(--accent);
-    background-color: rgba(96, 165, 250, 0.05);
+    background-color: rgba(139, 92, 246, 0.05);
 }
 
 .feedback-file-upload.has-file {

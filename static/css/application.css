@@ -9,8 +9,8 @@
     --text-secondary: #a1a1a1;
     --text-muted: #6b6b6b;
     --border-color: #2a2a2a;
-    --accent: #3b82f6;
-    --accent-hover: #2563eb;
+    --accent: #8b5cf6;
+    --accent-hover: #7c3aed;
     --error: #f87171;
     --success: #4ade80;
 }
@@ -52,12 +52,12 @@ body {
     width: 72px;
     height: 72px;
     margin: 0 auto 24px;
-    background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, #7c3aed 100%);
     border-radius: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 8px 32px rgba(139, 92, 246, 0.3);
 }
 
 .logo svg {
@@ -179,7 +179,7 @@ body {
     outline: none;
     border-color: var(--accent);
     background-color: var(--bg-tertiary);
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
 }
 
 .form-input::placeholder {
@@ -206,7 +206,7 @@ body {
 .file-upload-area:hover,
 .file-upload-area.dragover {
     border-color: var(--accent);
-    background-color: rgba(59, 130, 246, 0.05);
+    background-color: rgba(139, 92, 246, 0.05);
 }
 
 .upload-content {
@@ -308,14 +308,14 @@ body {
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, var(--accent) 0%, #2563eb 100%);
+    background: linear-gradient(135deg, var(--accent) 0%, #7c3aed 100%);
     color: #fff;
-    box-shadow: 0 4px 16px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
 }
 
 .btn-primary:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 6px 24px rgba(59, 130, 246, 0.4);
+    box-shadow: 0 6px 24px rgba(139, 92, 246, 0.4);
 }
 
 .btn-primary:active:not(:disabled) {

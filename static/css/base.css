@@ -9,6 +9,8 @@
     --text-primary: #ffffff;
     --text-secondary: #888888;
     --text-muted: #555555;
+    --accent: #8b5cf6;
+    --accent-hover: #7c3aed;
     --sidebar-width: 56px;
     --sidebar-width-expanded: 200px;
     --header-height: 64px;
