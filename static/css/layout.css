@@ -34,12 +34,13 @@
     position: sticky;
     top: 0;
     z-index: 50;
+    margin-bottom: -1px;
 }
 
 /* === SECTION: CONTENT === */
 .section-content {
     grid-area: content;
-    background: transparent;
+    background: var(--bg-primary);
     overflow-y: auto;
 }
 
@@ -48,6 +49,17 @@
     padding: 48px;
     position: relative;
     min-height: calc(100vh - var(--header-height));
+}
+
+/* Remove padding for full-bleed views */
+.content:has(#help:target),
+.content:has(#dashboards:target),
+.content:has(#teams:target),
+.content:has(#workspace:target),
+.content:has(#template:target),
+.content:has(#apps:target),
+.content:has(#new-deo:target) {
+    padding: 0;
 }
 
 /* === VIEW SYSTEM === */
