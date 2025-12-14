@@ -168,6 +168,58 @@ async def application_page(request: Request, form_id: str):
     })
 
 
+# === FEEDBACK ENDPOINT ===
+from fastapi import File, UploadFile, Form
+from typing import Optional
+from datetime import datetime, timezone
+import base64
+
+
+@app.post("/feedback")
+async def submit_feedback(
+    request: Request,
+    title: str = Form(...),
+    message: str = Form(...),
+    file: Optional[UploadFile] = File(None)
+):
+    """Submit user feedback and save to database."""
+    from database import get_collection
+
+    feedback_collection = get_collection("feedback")
+
+    # Get user info from session if available
+    user_id = request.session.get("user_id")
+    user_email = request.session.get("email")
+
+    feedback_doc = {
+        "title": title,
+        "message": message,
+        "user_id": user_id,
+        "user_email": user_email,
+        "created_at": datetime.now(timezone.utc),
+        "status": "new"
+    }
+
+    # Handle file upload
+    if file and file.filename:
+        file_content = await file.read()
+        # Store file as base64 in database (for simplicity)
+        feedback_doc["attachment"] = {
+            "filename": file.filename,
+            "content_type": file.content_type,
+            "data": base64.b64encode(file_content).decode('utf-8'),
+            "size": len(file_content)
+        }
+
+    result = await feedback_collection.insert_one(feedback_doc)
+
+    return {
+        "success": True,
+        "feedback_id": str(result.inserted_id),
+        "message": "Feedback submitted successfully"
+    }
+
+
 app.include_router(account_router)
 app.include_router(workspace_router)
 app.include_router(oauth_router)

@@ -256,3 +256,185 @@ function initFromHash() {
         }
     }
 }
+
+// === FEEDBACK MODAL ===
+const FeedbackModal = {
+    overlay: null,
+    selectedFile: null,
+
+    init() {
+        if (this.overlay) return;
+
+        this.overlay = document.createElement('div');
+        this.overlay.className = 'feedback-modal-overlay';
+        this.overlay.innerHTML = `
+            <div class="feedback-modal">
+                <div class="feedback-modal-header">
+                    <div class="feedback-modal-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="feedback-modal-title">Send Feedback</h3>
+                        <p class="feedback-modal-subtitle">Help us improve DEO</p>
+                    </div>
+                </div>
+                <form id="feedback-form">
+                    <div class="feedback-form-group">
+                        <label class="feedback-form-label">Title</label>
+                        <input type="text" class="feedback-form-input" id="feedback-title" placeholder="Brief summary of your feedback" required>
+                    </div>
+                    <div class="feedback-form-group">
+                        <label class="feedback-form-label">Message</label>
+                        <textarea class="feedback-form-textarea" id="feedback-message" placeholder="Describe your feedback, suggestion, or issue in detail..." required></textarea>
+                    </div>
+                    <div class="feedback-form-group">
+                        <label class="feedback-form-label">Attachment (optional)</label>
+                        <div class="feedback-file-upload" id="feedback-file-upload">
+                            <input type="file" id="feedback-file" accept="image/*,.pdf,.txt,.log">
+                            <svg class="feedback-file-upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="17 8 12 3 7 8"></polyline>
+                                <line x1="12" y1="3" x2="12" y2="15"></line>
+                            </svg>
+                            <p class="feedback-file-upload-text">Click or drag file to upload</p>
+                            <p class="feedback-file-upload-hint">Images, PDF, or text files up to 5MB</p>
+                            <p class="feedback-file-name" id="feedback-file-name"></p>
+                        </div>
+                    </div>
+                    <div class="feedback-modal-actions">
+                        <button type="button" class="btn btn-secondary feedback-cancel">Cancel</button>
+                        <button type="submit" class="btn btn-primary feedback-submit">Send Feedback</button>
+                    </div>
+                </form>
+            </div>
+        `;
+
+        document.body.appendChild(this.overlay);
+
+        // Event listeners
+        this.overlay.querySelector('.feedback-cancel').addEventListener('click', () => this.close());
+        this.overlay.addEventListener('click', (e) => {
+            if (e.target === this.overlay) this.close();
+        });
+
+        // File upload handling
+        const fileInput = this.overlay.querySelector('#feedback-file');
+        const fileUpload = this.overlay.querySelector('#feedback-file-upload');
+        const fileName = this.overlay.querySelector('#feedback-file-name');
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.size > 5 * 1024 * 1024) {
+                    alertModal.show({
+                        type: 'warning',
+                        title: 'File Too Large',
+                        message: 'File size must be less than 5MB.'
+                    });
+                    fileInput.value = '';
+                    return;
+                }
+                this.selectedFile = file;
+                fileName.textContent = file.name;
+                fileUpload.classList.add('has-file');
+            } else {
+                this.selectedFile = null;
+                fileName.textContent = '';
+                fileUpload.classList.remove('has-file');
+            }
+        });
+
+        // Form submission
+        const form = this.overlay.querySelector('#feedback-form');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.submit();
+        });
+    },
+
+    show() {
+        this.init();
+        this.reset();
+        this.overlay.classList.add('active');
+    },
+
+    close() {
+        if (this.overlay) {
+            this.overlay.classList.remove('active');
+        }
+    },
+
+    reset() {
+        const form = this.overlay.querySelector('#feedback-form');
+        form.reset();
+        this.selectedFile = null;
+        this.overlay.querySelector('#feedback-file-name').textContent = '';
+        this.overlay.querySelector('#feedback-file-upload').classList.remove('has-file');
+        this.overlay.querySelector('.feedback-submit').disabled = false;
+        this.overlay.querySelector('.feedback-submit').textContent = 'Send Feedback';
+    },
+
+    async submit() {
+        const title = this.overlay.querySelector('#feedback-title').value.trim();
+        const message = this.overlay.querySelector('#feedback-message').value.trim();
+        const submitBtn = this.overlay.querySelector('.feedback-submit');
+
+        if (!title || !message) {
+            alertModal.show({
+                type: 'warning',
+                title: 'Missing Fields',
+                message: 'Please fill in both title and message.'
+            });
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Sending...';
+
+        try {
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('message', message);
+            if (this.selectedFile) {
+                formData.append('file', this.selectedFile);
+            }
+
+            const res = await fetch('/feedback', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                this.close();
+                // Show success message using themed modal
+                alertModal.show({
+                    type: 'success',
+                    title: 'Feedback Sent',
+                    message: 'Thank you for your feedback! We appreciate you taking the time to help us improve.'
+                });
+            } else {
+                throw new Error(data.detail || 'Failed to send feedback');
+            }
+        } catch (err) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Send Feedback';
+            alertModal.show({
+                type: 'error',
+                title: 'Error',
+                message: 'Failed to send feedback: ' + err.message
+            });
+        }
+    }
+};
+
+// Open feedback modal on click
+document.addEventListener('click', (e) => {
+    if (e.target.closest('#open-feedback-btn')) {
+        e.preventDefault();
+        FeedbackModal.show();
+    }
+});

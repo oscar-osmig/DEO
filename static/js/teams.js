@@ -1078,11 +1078,19 @@ document.addEventListener('click', async (e) => {
                 document.getElementById('delete-app-link-modal').classList.remove('active');
             } else {
                 const data = await res.json();
-                alert('Failed to delete: ' + (data.detail || 'Unknown error'));
+                alertModal.show({
+                    type: 'error',
+                    title: 'Delete Failed',
+                    message: data.detail || 'Unknown error'
+                });
             }
         } catch (err) {
             console.error('Error deleting app link:', err);
-            alert('Error: ' + err.message);
+            alertModal.show({
+                type: 'error',
+                title: 'Error',
+                message: err.message
+            });
         }
 
         confirmBtn.disabled = false;

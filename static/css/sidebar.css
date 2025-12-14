@@ -238,3 +238,24 @@
 .sidebar-checkbox:checked ~ #teams-toggle:checked ~ .sidebar #teams-group .sidebar-chevron {
     transform: rotate(180deg);
 }
+
+/* === FEEDBACK LINK === */
+.sidebar-feedback-link {
+    display: none;
+    font-size: 12px;
+    color: var(--text-muted);
+    text-decoration: underline;
+    padding: 8px 16px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.sidebar-feedback-link:hover {
+    color: var(--text-secondary);
+}
+
+/* Show feedback link when sidebar is expanded */
+.sidebar-checkbox:checked ~ .sidebar .sidebar-feedback-link {
+    display: block;
+}

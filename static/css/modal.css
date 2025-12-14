@@ -786,3 +786,214 @@ select.form-input {
     min-width: 100px;
     padding: 12px 24px;
 }
+
+/* === FEEDBACK MODAL === */
+.feedback-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 2000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.15s ease;
+}
+
+.feedback-modal-overlay.active {
+    display: flex;
+}
+
+.feedback-modal {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 32px;
+    width: 100%;
+    max-width: 500px;
+    animation: slideUp 0.2s ease;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.feedback-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.feedback-modal-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: rgba(96, 165, 250, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.feedback-modal-icon svg {
+    width: 24px;
+    height: 24px;
+    color: #60a5fa;
+}
+
+.feedback-modal-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.feedback-modal-subtitle {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 4px 0 0 0;
+}
+
+.feedback-form-group {
+    margin-bottom: 20px;
+}
+
+.feedback-form-label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+}
+
+.feedback-form-input {
+    width: 100%;
+    padding: 12px 16px;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+}
+
+.feedback-form-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.feedback-form-textarea {
+    width: 100%;
+    padding: 12px 16px;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    min-height: 120px;
+    resize: vertical;
+    font-family: inherit;
+    transition: border-color 0.2s ease;
+}
+
+.feedback-form-textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.feedback-file-upload {
+    position: relative;
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.feedback-file-upload:hover {
+    border-color: var(--accent);
+    background-color: rgba(96, 165, 250, 0.05);
+}
+
+.feedback-file-upload.has-file {
+    border-color: #4ade80;
+    background-color: rgba(74, 222, 128, 0.05);
+}
+
+.feedback-file-upload input[type="file"] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.feedback-file-upload-icon {
+    width: 32px;
+    height: 32px;
+    margin: 0 auto 8px;
+    color: var(--text-muted);
+}
+
+.feedback-file-upload-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.feedback-file-upload-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 4px 0 0 0;
+}
+
+.feedback-file-name {
+    font-size: 13px;
+    color: #4ade80;
+    margin-top: 8px;
+    display: none;
+}
+
+.feedback-file-upload.has-file .feedback-file-name {
+    display: block;
+}
+
+.feedback-modal-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 28px;
+}
+
+.feedback-modal-actions .btn {
+    flex: 1;
+    padding: 12px 24px;
+}
+
+.feedback-modal-actions .btn-secondary {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.feedback-modal-actions .btn-secondary:hover {
+    background-color: var(--bg-hover);
+}
+
+.feedback-modal-actions .btn-primary {
+    background-color: var(--accent);
+    color: #fff;
+    border: none;
+}
+
+.feedback-modal-actions .btn-primary:hover {
+    background-color: var(--accent-hover);
+}
+
+.feedback-modal-actions .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
