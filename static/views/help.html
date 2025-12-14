@@ -1,0 +1,780 @@
+<!-- VIEW: HELP CENTER -->
+<section class="view" id="help">
+    <div class="help-container">
+        <!-- Left sidebar with topics -->
+        <aside class="help-sidebar">
+            <div class="help-sidebar-header">
+                <h3>Help Center</h3>
+            </div>
+            <nav class="help-nav">
+                <div class="help-nav-section">
+                    <span class="help-nav-title">Getting Started</span>
+                    <a href="#" class="help-nav-item active" data-topic="overview">Overview</a>
+                    <a href="#" class="help-nav-item" data-topic="quick-start">Quick Start Guide</a>
+                </div>
+                <div class="help-nav-section">
+                    <span class="help-nav-title">Workspaces</span>
+                    <a href="#" class="help-nav-item" data-topic="workspaces">Understanding Workspaces</a>
+                    <a href="#" class="help-nav-item" data-topic="workspace-setup">Setting Up a Workspace</a>
+                </div>
+                <div class="help-nav-section">
+                    <span class="help-nav-title">Bot Templates</span>
+                    <a href="#" class="help-nav-item" data-topic="bot-overview">What are Bots?</a>
+                    <a href="#" class="help-nav-item" data-topic="creating-bot">Creating a Bot</a>
+                    <a href="#" class="help-nav-item" data-topic="blocks">Understanding Blocks</a>
+                    <a href="#" class="help-nav-item" data-topic="triggers">Triggers & Scheduling</a>
+                </div>
+                <div class="help-nav-section">
+                    <span class="help-nav-title">Teams</span>
+                    <a href="#" class="help-nav-item" data-topic="teams">Managing Teams</a>
+                    <a href="#" class="help-nav-item" data-topic="team-members">Adding Members</a>
+                </div>
+                <div class="help-nav-section">
+                    <span class="help-nav-title">Dashboards</span>
+                    <a href="#" class="help-nav-item" data-topic="dashboards">Creating Dashboards</a>
+                    <a href="#" class="help-nav-item" data-topic="metrics">Tracking Metrics</a>
+                    <a href="#" class="help-nav-item" data-topic="leaderboards">Leaderboards</a>
+                </div>
+                <div class="help-nav-section">
+                    <span class="help-nav-title">Advanced</span>
+                    <a href="#" class="help-nav-item" data-topic="scan-blocks">Scan Blocks</a>
+                    <a href="#" class="help-nav-item" data-topic="await-blocks">Await & Response</a>
+                    <a href="#" class="help-nav-item" data-topic="applications">Job Applications</a>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main content area -->
+        <main class="help-content">
+            <!-- Overview -->
+            <article class="help-article active" id="help-overview">
+                <h1>Welcome to DEO</h1>
+                <p class="help-intro">DEO is a powerful automation platform that helps you build Slack bots, manage teams, and track metrics through customizable dashboards.</p>
+
+                <div class="help-cards">
+                    <div class="help-card" data-goto="workspaces">
+                        <div class="help-card-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+                                <line x1="8" y1="21" x2="16" y2="21"></line>
+                                <line x1="12" y1="17" x2="12" y2="21"></line>
+                            </svg>
+                        </div>
+                        <h3>Workspaces</h3>
+                        <p>Connect your Slack workspace to start building automations.</p>
+                    </div>
+                    <div class="help-card" data-goto="bot-overview">
+                        <div class="help-card-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                        </div>
+                        <h3>Bot Templates</h3>
+                        <p>Create automated workflows that respond to triggers and commands.</p>
+                    </div>
+                    <div class="help-card" data-goto="teams">
+                        <div class="help-card-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                            </svg>
+                        </div>
+                        <h3>Teams</h3>
+                        <p>Organize your Slack members into teams for better management.</p>
+                    </div>
+                    <div class="help-card" data-goto="dashboards">
+                        <div class="help-card-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                                <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                                <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                                <rect x="14" y="14" width="7" height="7" rx="1"></rect>
+                            </svg>
+                        </div>
+                        <h3>Dashboards</h3>
+                        <p>Track team performance with customizable metrics and leaderboards.</p>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2>Key Features</h2>
+                    <ul class="help-list">
+                        <li><strong>Visual Bot Builder</strong> - Drag and drop blocks to create automation workflows</li>
+                        <li><strong>Slack Integration</strong> - Send messages, scan channels, and respond to commands</li>
+                        <li><strong>Team Management</strong> - Create teams and manage member access</li>
+                        <li><strong>Performance Tracking</strong> - Build dashboards with custom metrics and leaderboards</li>
+                        <li><strong>Job Applications</strong> - Create hiring workflows with application forms</li>
+                    </ul>
+                </div>
+            </article>
+
+            <!-- Quick Start -->
+            <article class="help-article" id="help-quick-start">
+                <h1>Quick Start Guide</h1>
+                <p class="help-intro">Get up and running with DEO in just a few steps.</p>
+
+                <div class="help-section">
+                    <h2>Step 1: Connect Your Workspace</h2>
+                    <p>Before you can start building bots, you need to connect a Slack workspace.</p>
+                    <ol class="help-steps">
+                        <li>Navigate to <strong>Workspaces</strong> in the sidebar</li>
+                        <li>Click <strong>+ Create</strong> to add a new workspace</li>
+                        <li>Enter your Slack Bot Token (starts with <code>xoxb-</code>)</li>
+                        <li>Give your workspace a name and save</li>
+                    </ol>
+                    <div class="help-tip">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        <span>You can find your Bot Token in your Slack App settings under OAuth & Permissions.</span>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2>Step 2: Create Your First Bot</h2>
+                    <p>Now let's create a simple bot that sends a message to a Slack channel.</p>
+                    <ol class="help-steps">
+                        <li>Click <strong>Canvas</strong> in the sidebar to open the bot builder</li>
+                        <li>Select your workspace from the dropdown</li>
+                        <li>Drag a <strong>Message</strong> block onto the canvas</li>
+                        <li>Connect it to the Trigger block</li>
+                        <li>Configure the message: select a channel and enter your message</li>
+                        <li>Click <strong>Save & Run</strong> to execute</li>
+                    </ol>
+                </div>
+
+                <div class="help-section">
+                    <h2>Step 3: Create a Team</h2>
+                    <p>Teams help you organize Slack members for dashboards and targeted messaging.</p>
+                    <ol class="help-steps">
+                        <li>Go to <strong>Teams</strong> in the sidebar</li>
+                        <li>Click <strong>+ Create</strong></li>
+                        <li>Enter a team name and select a workspace</li>
+                        <li>Add members from your Slack workspace</li>
+                    </ol>
+                </div>
+
+                <div class="help-section">
+                    <h2>Step 4: Build a Dashboard</h2>
+                    <p>Track your team's performance with custom metrics.</p>
+                    <ol class="help-steps">
+                        <li>Navigate to <strong>Dashboards</strong></li>
+                        <li>Click <strong>+ Create</strong></li>
+                        <li>Link it to a team and define your metrics (e.g., sales, calls)</li>
+                        <li>Share the dashboard URL with your team</li>
+                    </ol>
+                </div>
+            </article>
+
+            <!-- Workspaces -->
+            <article class="help-article" id="help-workspaces">
+                <h1>Understanding Workspaces</h1>
+                <p class="help-intro">Workspaces are the foundation of DEO. They connect your Slack workspace to enable bot automation and team management.</p>
+
+                <div class="help-section">
+                    <h2>What is a Workspace?</h2>
+                    <p>A workspace in DEO represents a connection to a Slack workspace. Each workspace stores:</p>
+                    <ul class="help-list">
+                        <li>Your Slack Bot Token for API access</li>
+                        <li>Workspace metadata (name, team info)</li>
+                        <li>Associated bot templates, teams, and dashboards</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h2>Why Multiple Workspaces?</h2>
+                    <p>You might need multiple workspaces if:</p>
+                    <ul class="help-list">
+                        <li>You manage multiple Slack organizations</li>
+                        <li>You have separate workspaces for different departments</li>
+                        <li>You want to keep production and testing environments separate</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h2>Required Slack Permissions</h2>
+                    <p>Your Slack bot needs these OAuth scopes:</p>
+                    <div class="help-code-block">
+                        <code>channels:read</code> - View channels<br>
+                        <code>channels:history</code> - Read channel messages<br>
+                        <code>chat:write</code> - Send messages<br>
+                        <code>files:write</code> - Upload files<br>
+                        <code>users:read</code> - View user info
+                    </div>
+                </div>
+            </article>
+
+            <!-- Workspace Setup -->
+            <article class="help-article" id="help-workspace-setup">
+                <h1>Setting Up a Workspace</h1>
+                <p class="help-intro">Follow these steps to connect your Slack workspace to DEO.</p>
+
+                <div class="help-section">
+                    <h2>Creating a Slack App</h2>
+                    <ol class="help-steps">
+                        <li>Go to <a href="https://api.slack.com/apps" target="_blank">api.slack.com/apps</a></li>
+                        <li>Click <strong>Create New App</strong></li>
+                        <li>Choose <strong>From scratch</strong></li>
+                        <li>Name your app and select your workspace</li>
+                    </ol>
+                </div>
+
+                <div class="help-section">
+                    <h2>Configuring OAuth Scopes</h2>
+                    <ol class="help-steps">
+                        <li>In your Slack app, go to <strong>OAuth & Permissions</strong></li>
+                        <li>Under <strong>Scopes</strong>, add the following Bot Token Scopes:</li>
+                    </ol>
+                    <div class="help-code-block">
+                        channels:read, channels:history, chat:write,<br>
+                        files:write, files:read, users:read,<br>
+                        groups:read, groups:history, im:write,<br>
+                        conversations.open
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2>Installing to Workspace</h2>
+                    <ol class="help-steps">
+                        <li>Click <strong>Install to Workspace</strong></li>
+                        <li>Authorize the app</li>
+                        <li>Copy the <strong>Bot User OAuth Token</strong> (starts with <code>xoxb-</code>)</li>
+                        <li>Paste it into DEO when creating your workspace</li>
+                    </ol>
+                    <div class="help-warning">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                            <line x1="12" y1="9" x2="12" y2="13"></line>
+                            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                        <span>Keep your Bot Token secure. Never share it publicly.</span>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Bot Overview -->
+            <article class="help-article" id="help-bot-overview">
+                <h1>What are Bots?</h1>
+                <p class="help-intro">Bots are automated workflows that perform actions in your Slack workspace based on triggers and conditions.</p>
+
+                <div class="help-section">
+                    <h2>Bot Components</h2>
+                    <p>Every bot consists of:</p>
+                    <ul class="help-list">
+                        <li><strong>Trigger</strong> - What starts the bot (manual, scheduled, or scan)</li>
+                        <li><strong>Blocks</strong> - Actions the bot performs (message, scan, await, response)</li>
+                        <li><strong>Connections</strong> - The flow between blocks</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h2>Common Use Cases</h2>
+                    <div class="help-use-cases">
+                        <div class="help-use-case">
+                            <h4>Daily Standup Reminders</h4>
+                            <p>Schedule a bot to message your team every morning asking for updates.</p>
+                        </div>
+                        <div class="help-use-case">
+                            <h4>Command-Based Actions</h4>
+                            <p>Scan for commands like <code>--report</code> and respond with relevant data.</p>
+                        </div>
+                        <div class="help-use-case">
+                            <h4>Metrics Collection</h4>
+                            <p>Ask team members for their daily metrics and await their responses.</p>
+                        </div>
+                        <div class="help-use-case">
+                            <h4>File Distribution</h4>
+                            <p>Send files to channels or users automatically.</p>
+                        </div>
+                    </div>
+                </div>
+            </article>
+
+            <!-- Creating Bot -->
+            <article class="help-article" id="help-creating-bot">
+                <h1>Creating a Bot</h1>
+                <p class="help-intro">Use the visual Canvas to build your bot workflow by connecting blocks.</p>
+
+                <div class="help-section">
+                    <h2>Using the Canvas</h2>
+                    <ol class="help-steps">
+                        <li>Click <strong>Canvas</strong> in the sidebar</li>
+                        <li>Select a workspace from the dropdown (required)</li>
+                        <li>Give your bot a name in the input field at the top</li>
+                        <li>Drag blocks from the left panel onto the canvas</li>
+                        <li>Click and drag from connection points to link blocks</li>
+                        <li>Click a block to configure its settings</li>
+                    </ol>
+                </div>
+
+                <div class="help-section">
+                    <h2>Configuring the Trigger</h2>
+                    <p>Every bot starts with a Trigger block. Configure it as:</p>
+                    <ul class="help-list">
+                        <li><strong>Manual</strong> - Run the bot manually via Save & Run</li>
+                        <li><strong>Scheduled</strong> - Run automatically using cron syntax</li>
+                    </ul>
+                    <div class="help-tip">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        <span>Example cron: <code>0 9 * * 1-5</code> runs at 9 AM on weekdays.</span>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2>Saving and Running</h2>
+                    <ul class="help-list">
+                        <li><strong>Save</strong> - Saves the bot template without running it</li>
+                        <li><strong>Save & Run</strong> - Saves and immediately executes the bot</li>
+                        <li><strong>Reset</strong> - Clears the canvas to start fresh</li>
+                    </ul>
+                </div>
+            </article>
+
+            <!-- Blocks -->
+            <article class="help-article" id="help-blocks">
+                <h1>Understanding Blocks</h1>
+                <p class="help-intro">Blocks are the building blocks of your bot workflows. Each block performs a specific action.</p>
+
+                <div class="help-section">
+                    <h2>Message Block</h2>
+                    <p>Sends a message to a Slack channel or directly to users.</p>
+                    <ul class="help-list">
+                        <li><strong>Channel Mode</strong> - Send to a specific channel</li>
+                        <li><strong>Users Mode</strong> - Send DMs to selected users</li>
+                        <li><strong>File Attachment</strong> - Optionally attach a file</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h2>Scan Block</h2>
+                    <p>Monitors a channel for a specific command and triggers subsequent blocks when found.</p>
+                    <ul class="help-list">
+                        <li><strong>Channel</strong> - The channel to monitor</li>
+                        <li><strong>Command</strong> - Text to look for (e.g., <code>--deploy</code>)</li>
+                        <li><strong>Interval</strong> - How often to check (e.g., <code>30s</code>, <code>5m</code>)</li>
+                    </ul>
+                    <div class="help-tip">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        <span>Scan blocks run continuously until manually stopped from the Bot Templates page.</span>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2>Await Block</h2>
+                    <p>Pauses execution and waits for a response from users.</p>
+                    <ul class="help-list">
+                        <li><strong>Expected Response</strong> - Optional text to match</li>
+                        <li><strong>Timeout</strong> - How long to wait (e.g., <code>24h</code>)</li>
+                        <li><strong>Failure Message</strong> - Message if timeout is reached</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h2>Response Block</h2>
+                    <p>Sends a follow-up message after an Await block completes.</p>
+                    <ul class="help-list">
+                        <li>Uses the same channel/user context as the preceding Message block</li>
+                        <li>Typically used to confirm receipt or provide next steps</li>
+                    </ul>
+                </div>
+            </article>
+
+            <!-- Triggers -->
+            <article class="help-article" id="help-triggers">
+                <h1>Triggers & Scheduling</h1>
+                <p class="help-intro">Control when your bots run using different trigger types.</p>
+
+                <div class="help-section">
+                    <h2>Manual Triggers</h2>
+                    <p>Manual triggers require you to click <strong>Save & Run</strong> or use the <strong>Run</strong> button on the Bot Templates page. Useful for:</p>
+                    <ul class="help-list">
+                        <li>Testing new bots</li>
+                        <li>One-time announcements</li>
+                        <li>On-demand actions</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h2>Scheduled Triggers</h2>
+                    <p>Scheduled triggers use cron syntax to run automatically. Format:</p>
+                    <div class="help-code-block">
+                        ┌───────────── minute (0-59)<br>
+                        │ ┌─────────── hour (0-23)<br>
+                        │ │ ┌───────── day of month (1-31)<br>
+                        │ │ │ ┌─────── month (1-12)<br>
+                        │ │ │ │ ┌───── day of week (0-6, Sun-Sat)<br>
+                        │ │ │ │ │<br>
+                        * * * * *
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2>Common Cron Examples</h2>
+                    <table class="help-table">
+                        <tr>
+                            <td><code>0 9 * * *</code></td>
+                            <td>Every day at 9:00 AM</td>
+                        </tr>
+                        <tr>
+                            <td><code>0 9 * * 1-5</code></td>
+                            <td>Weekdays at 9:00 AM</td>
+                        </tr>
+                        <tr>
+                            <td><code>0 */2 * * *</code></td>
+                            <td>Every 2 hours</td>
+                        </tr>
+                        <tr>
+                            <td><code>0 9 1 * *</code></td>
+                            <td>First day of every month at 9 AM</td>
+                        </tr>
+                        <tr>
+                            <td><code>30 17 * * 5</code></td>
+                            <td>Every Friday at 5:30 PM</td>
+                        </tr>
+                    </table>
+                </div>
+            </article>
+
+            <!-- Teams -->
+            <article class="help-article" id="help-teams">
+                <h1>Managing Teams</h1>
+                <p class="help-intro">Teams help you organize Slack members for dashboards, targeted messaging, and access control.</p>
+
+                <div class="help-section">
+                    <h2>What are Teams?</h2>
+                    <p>Teams are groups of Slack users that you create within DEO. They are used for:</p>
+                    <ul class="help-list">
+                        <li>Linking to dashboards for metrics tracking</li>
+                        <li>Sending targeted messages to specific groups</li>
+                        <li>Managing access to dashboard submissions</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h2>Creating a Team</h2>
+                    <ol class="help-steps">
+                        <li>Navigate to <strong>Teams</strong> in the sidebar</li>
+                        <li>Click <strong>+ Create</strong></li>
+                        <li>Enter a team name</li>
+                        <li>Select the workspace this team belongs to</li>
+                        <li>Click <strong>Create</strong></li>
+                    </ol>
+                </div>
+
+                <div class="help-section">
+                    <h2>Team Details</h2>
+                    <p>Once created, you can view and manage:</p>
+                    <ul class="help-list">
+                        <li><strong>Team Info</strong> - Name, ID, workspace, member count</li>
+                        <li><strong>Members</strong> - List of team members with their Slack info</li>
+                        <li><strong>Actions</strong> - Add members, create hiring links, delete team</li>
+                    </ul>
+                </div>
+            </article>
+
+            <!-- Team Members -->
+            <article class="help-article" id="help-team-members">
+                <h1>Adding Team Members</h1>
+                <p class="help-intro">Add Slack users to your teams using multiple methods.</p>
+
+                <div class="help-section">
+                    <h2>Adding from Slack</h2>
+                    <p>The easiest way to add members is directly from your Slack workspace:</p>
+                    <ol class="help-steps">
+                        <li>Open a team and click <strong>Add Member</strong></li>
+                        <li>Switch to the <strong>From Slack</strong> tab</li>
+                        <li>Select users from the list (shows all workspace members)</li>
+                        <li>Click <strong>Add Selected</strong></li>
+                    </ol>
+                </div>
+
+                <div class="help-section">
+                    <h2>Manual Entry</h2>
+                    <p>You can also add members manually by providing their details:</p>
+                    <ol class="help-steps">
+                        <li>Click <strong>Add Member</strong></li>
+                        <li>Stay on the <strong>Manual</strong> tab</li>
+                        <li>Enter the member's name and email</li>
+                        <li>Optionally enter their Slack User ID</li>
+                        <li>Click <strong>Add Member</strong></li>
+                    </ol>
+                    <div class="help-tip">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        <span>You can find a user's Slack ID by clicking their profile in Slack and selecting "Copy member ID".</span>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2>Removing Members</h2>
+                    <p>To remove a member from a team:</p>
+                    <ol class="help-steps">
+                        <li>Open the team details</li>
+                        <li>Find the member in the Members card</li>
+                        <li>Click the <strong>X</strong> button next to their name</li>
+                    </ol>
+                </div>
+            </article>
+
+            <!-- Dashboards -->
+            <article class="help-article" id="help-dashboards">
+                <h1>Creating Dashboards</h1>
+                <p class="help-intro">Dashboards let you track team performance with custom metrics and visualizations.</p>
+
+                <div class="help-section">
+                    <h2>What are Dashboards?</h2>
+                    <p>Dashboards are linked to teams and allow members to submit metrics on a regular basis. They provide:</p>
+                    <ul class="help-list">
+                        <li>Custom metric tracking (sales, calls, meetings, etc.)</li>
+                        <li>Automatic aggregation and visualization</li>
+                        <li>Leaderboards for team competition</li>
+                        <li>Historical graphs and analytics</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h2>Creating a Dashboard</h2>
+                    <ol class="help-steps">
+                        <li>Go to <strong>Dashboards</strong> in the sidebar</li>
+                        <li>Click <strong>+ Create</strong></li>
+                        <li>Enter a dashboard name</li>
+                        <li>Select or enter the Team ID (use "Pick Team" to choose)</li>
+                        <li>Define your metrics (comma-separated, e.g., <code>sales, calls, meetings</code>)</li>
+                        <li>Select a reporting period (daily, weekly, monthly)</li>
+                        <li>Click <strong>Create</strong></li>
+                    </ol>
+                </div>
+
+                <div class="help-section">
+                    <h2>Dashboard Views</h2>
+                    <p>Each dashboard has three main views:</p>
+                    <ul class="help-list">
+                        <li><strong>Metrics View</strong> - Overview cards showing totals and the leaderboard</li>
+                        <li><strong>Graph View</strong> - Historical data visualization over time</li>
+                        <li><strong>Details View</strong> - Configuration, member access, and danger zone</li>
+                    </ul>
+                </div>
+            </article>
+
+            <!-- Metrics -->
+            <article class="help-article" id="help-metrics">
+                <h1>Tracking Metrics</h1>
+                <p class="help-intro">Learn how to define, collect, and visualize team metrics.</p>
+
+                <div class="help-section">
+                    <h2>Defining Metrics</h2>
+                    <p>When creating a dashboard, define metrics as a comma-separated list:</p>
+                    <div class="help-code-block">
+                        sales, calls, meetings, emails sent
+                    </div>
+                    <p>Each metric becomes a column that team members can submit values for.</p>
+                </div>
+
+                <div class="help-section">
+                    <h2>Submitting Metrics</h2>
+                    <p>Team members submit metrics through the public dashboard URL:</p>
+                    <ol class="help-steps">
+                        <li>Share the dashboard URL with team members</li>
+                        <li>Members enter their passcode to access</li>
+                        <li>They fill in their metric values for the current period</li>
+                        <li>Click Submit to record their data</li>
+                    </ol>
+                    <div class="help-tip">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        <span>Passcodes are auto-generated and can be found in the dashboard's Details view under "Member Access".</span>
+                    </div>
+                </div>
+
+                <div class="help-section">
+                    <h2>Reporting Periods</h2>
+                    <ul class="help-list">
+                        <li><strong>Daily</strong> - Members submit every day, data resets daily</li>
+                        <li><strong>Weekly</strong> - Members submit once per week (Monday-Sunday)</li>
+                        <li><strong>Monthly</strong> - Members submit once per month</li>
+                    </ul>
+                </div>
+            </article>
+
+            <!-- Leaderboards -->
+            <article class="help-article" id="help-leaderboards">
+                <h1>Leaderboards</h1>
+                <p class="help-intro">Leaderboards rank team members based on their metric submissions.</p>
+
+                <div class="help-section">
+                    <h2>How Rankings Work</h2>
+                    <p>The leaderboard ranks members by their total submission value. Rankings consider:</p>
+                    <ul class="help-list">
+                        <li>Sum of all metric values for the current period</li>
+                        <li>Members with no submissions appear at the bottom</li>
+                        <li>Ties are broken by submission time (earlier is higher)</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h2>Viewing the Leaderboard</h2>
+                    <p>The leaderboard is displayed on the Metrics View of each dashboard. It shows:</p>
+                    <ul class="help-list">
+                        <li>Rank position</li>
+                        <li>Member name</li>
+                        <li>Individual metric values</li>
+                        <li>Total score</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h2>Filtering by Member</h2>
+                    <p>Use the member filter dropdown to view metrics for a specific team member instead of the aggregate view.</p>
+                </div>
+            </article>
+
+            <!-- Scan Blocks -->
+            <article class="help-article" id="help-scan-blocks">
+                <h1>Scan Blocks</h1>
+                <p class="help-intro">Scan blocks monitor Slack channels for specific commands and trigger actions when detected.</p>
+
+                <div class="help-section">
+                    <h2>How Scanning Works</h2>
+                    <ol class="help-steps">
+                        <li>The scan block periodically checks the channel history</li>
+                        <li>When the command is found in a new message, subsequent blocks execute</li>
+                        <li>The scan continues running, waiting for the next occurrence</li>
+                        <li>Scanning runs until manually stopped</li>
+                    </ol>
+                </div>
+
+                <div class="help-section">
+                    <h2>Configuration Options</h2>
+                    <ul class="help-list">
+                        <li><strong>Channel</strong> - Which channel to monitor</li>
+                        <li><strong>Command</strong> - Text pattern to match (e.g., <code>--status</code>)</li>
+                        <li><strong>Interval</strong> - Check frequency (<code>30s</code>, <code>1m</code>, <code>5m</code>, <code>30m</code>, <code>1h</code>)</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h2>Example: Command Bot</h2>
+                    <p>Create a bot that responds to <code>--report</code> with a file:</p>
+                    <ol class="help-steps">
+                        <li>Add a Scan block connected to the Trigger</li>
+                        <li>Set the channel and command (<code>--report</code>)</li>
+                        <li>Add a Message block connected to the Scan block</li>
+                        <li>Configure the Message to send to the same channel with a file attached</li>
+                        <li>Save & Run to start scanning</li>
+                    </ol>
+                </div>
+
+                <div class="help-section">
+                    <h2>Stopping Scans</h2>
+                    <p>To stop a running scan:</p>
+                    <ol class="help-steps">
+                        <li>Go to <strong>Bot Templates</strong></li>
+                        <li>Find your template (it will show "Scanning" status)</li>
+                        <li>Click <strong>Stop</strong> to halt the scan</li>
+                    </ol>
+                </div>
+            </article>
+
+            <!-- Await Blocks -->
+            <article class="help-article" id="help-await-blocks">
+                <h1>Await & Response Blocks</h1>
+                <p class="help-intro">Create interactive bots that wait for user responses before continuing.</p>
+
+                <div class="help-section">
+                    <h2>The Await Block</h2>
+                    <p>The Await block pauses bot execution and waits for replies:</p>
+                    <ul class="help-list">
+                        <li>Monitors the channel/DM where the previous message was sent</li>
+                        <li>Waits for responses from all relevant users (channel mode) or first response (DM mode)</li>
+                        <li>Can filter for specific response text</li>
+                        <li>Has a configurable timeout with failure message</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h2>Configuration Options</h2>
+                    <ul class="help-list">
+                        <li><strong>Expected Response</strong> - Optional text the response must contain</li>
+                        <li><strong>Timeout</strong> - How long to wait (e.g., <code>1h</code>, <code>24h</code>, <code>7d</code>)</li>
+                        <li><strong>Failure Message</strong> - Message sent if timeout is reached</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h2>The Response Block</h2>
+                    <p>The Response block sends a follow-up message after the Await completes:</p>
+                    <ul class="help-list">
+                        <li>Automatically uses the same channel context</li>
+                        <li>Typically confirms receipt or provides next steps</li>
+                        <li>Only executes if the Await was successful (not timed out)</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h2>Example: Feedback Collection</h2>
+                    <ol class="help-steps">
+                        <li>Message block asks users "Please reply with your feedback"</li>
+                        <li>Await block waits 24 hours for responses</li>
+                        <li>Response block sends "Thanks for your feedback!"</li>
+                    </ol>
+                </div>
+            </article>
+
+            <!-- Applications -->
+            <article class="help-article" id="help-applications">
+                <h1>Job Applications</h1>
+                <p class="help-intro">Create hiring workflows with application forms and manage candidates.</p>
+
+                <div class="help-section">
+                    <h2>Creating Application Links</h2>
+                    <p>Generate unique application URLs for job positions:</p>
+                    <ol class="help-steps">
+                        <li>Open a team and click <strong>Hire</strong></li>
+                        <li>Enter the position title</li>
+                        <li>Copy the generated application URL</li>
+                        <li>Share the URL with candidates</li>
+                    </ol>
+                </div>
+
+                <div class="help-section">
+                    <h2>Application Form</h2>
+                    <p>Candidates who visit the application URL will see a form to submit:</p>
+                    <ul class="help-list">
+                        <li>Full name</li>
+                        <li>Email address</li>
+                        <li>Position applying for</li>
+                        <li>Additional information</li>
+                    </ul>
+                </div>
+
+                <div class="help-section">
+                    <h2>Managing Applications</h2>
+                    <p>View all application links by clicking <strong>View Links</strong> on the team page. From there you can:</p>
+                    <ul class="help-list">
+                        <li>Copy application URLs</li>
+                        <li>See how many applications each link has received</li>
+                        <li>Deactivate or delete links</li>
+                    </ul>
+                </div>
+            </article>
+        </main>
+    </div>
+</section>

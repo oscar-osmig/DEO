@@ -65,11 +65,46 @@ function initBlocksSidebarToggle() {
     });
 }
 
+// === SIDEBAR TOOLTIPS ===
+// Hide tooltips when sidebar is expanded, show when collapsed
+function initSidebarTooltips() {
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    if (!sidebarToggle) return;
+
+    const sidebar = document.querySelector('.sidebar');
+    if (!sidebar) return;
+
+    // Store original titles
+    const btnsWithTitles = sidebar.querySelectorAll('[title]');
+    btnsWithTitles.forEach(btn => {
+        btn.dataset.originalTitle = btn.getAttribute('title');
+    });
+
+    // Toggle tooltips based on sidebar state
+    function updateTooltips() {
+        const isExpanded = sidebarToggle.checked;
+        btnsWithTitles.forEach(btn => {
+            if (isExpanded) {
+                btn.removeAttribute('title');
+            } else {
+                btn.setAttribute('title', btn.dataset.originalTitle || '');
+            }
+        });
+    }
+
+    // Listen for sidebar toggle changes
+    sidebarToggle.addEventListener('change', updateTooltips);
+
+    // Initial state
+    updateTooltips();
+}
+
 // Run on page load
 window.addEventListener('DOMContentLoaded', () => {
     initFromHash();
     initMobileMenu();
     initBlocksSidebarToggle();
+    initSidebarTooltips();
 });
 
 // Handle back/forward navigation
@@ -291,6 +326,12 @@ document.addEventListener('click', (e) => {
     const dropdownLink = e.target.closest('.dropdown-item');
     if (dropdownLink && dropdownLink.getAttribute('href') === '#settings') {
         setHeaderSection('Settings');
+    }
+
+    // Handle help link click
+    const helpLink = e.target.closest('#open-help-btn');
+    if (helpLink) {
+        setHeaderSection('Help');
     }
 });
 

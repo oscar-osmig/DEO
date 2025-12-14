@@ -241,6 +241,8 @@ function initFromHash() {
         setHeaderSection('Teams');
     } else if (hash === '#apps') {
         setHeaderSection('Apps');
+    } else if (hash === '#help') {
+        setHeaderSection('Help');
     } else {
         // Home or unknown hash
         setHeaderSection('Home');

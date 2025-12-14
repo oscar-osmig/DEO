@@ -53,6 +53,7 @@
 .sidebar-btn {
     width: 40px;
     height: 40px;
+    min-height: 40px;
     border: none;
     background: transparent;
     color: var(--text-secondary);
@@ -91,9 +92,37 @@
 .sidebar-expand { display: flex; }
 .sidebar-settings-row { display: none; }
 
+/* === TOGGLE ROW WITH HOME LINK === */
+.sidebar-toggle-row {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 8px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg-secondary);
+    padding: 4px 0;
+    margin-top: -4px;
+}
+
+/* Home button shown when expanded (in toggle row) */
+.sidebar-home-expanded {
+    display: none;
+}
+
+/* Home button shown when collapsed (separate row) */
+.sidebar-home-collapsed {
+    display: flex;
+    position: sticky;
+    top: 48px;
+    z-index: 10;
+    background: var(--bg-secondary);
+}
+
 /* === PANEL TOGGLE (top icon) === */
 .sidebar-panel-toggle {
-    margin-bottom: 8px;
+    margin-bottom: 0;
 }
 
 /* Hide label for panel toggle always */
@@ -174,6 +203,17 @@
     display: none;
 }
 
+/* Show home in toggle row when expanded */
+.sidebar-checkbox:checked ~ .sidebar .sidebar-home-expanded {
+    display: flex;
+    flex: 1;
+}
+
+/* Hide separate home button when expanded */
+.sidebar-checkbox:checked ~ .sidebar .sidebar-home-collapsed {
+    display: none;
+}
+
 .sidebar-checkbox:checked ~ .sidebar .sidebar-settings-row {
     display: flex;
     align-items: center;
@@ -195,12 +235,12 @@
     display: block;
 }
 
-/* Panel toggle moves to right when expanded */
+/* Panel toggle stays fixed size when expanded */
 .sidebar-checkbox:checked ~ .sidebar .sidebar-panel-toggle {
     width: 40px;
     padding: 0;
     justify-content: center;
-    align-self: flex-end;
+    flex-shrink: 0;
 }
 
 /* === DASHBOARDS SUBMENU === */
