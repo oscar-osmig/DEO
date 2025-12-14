@@ -18,13 +18,16 @@
 }
 
 .modal {
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-color);
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
     border-radius: 12px;
     width: 100%;
     max-width: 480px;
     max-height: 90vh;
     overflow-y: auto;
+    box-shadow: var(--glass-shadow);
 }
 
 .modal-header {

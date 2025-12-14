@@ -101,7 +101,7 @@
     position: sticky;
     top: 0;
     z-index: 10;
-    background: var(--bg-secondary);
+    background: transparent;
     padding: 4px 0;
     margin-top: -4px;
 }
@@ -117,7 +117,7 @@
     position: sticky;
     top: 48px;
     z-index: 10;
-    background: var(--bg-secondary);
+    background: transparent;
 }
 
 /* === PANEL TOGGLE (top icon) === */

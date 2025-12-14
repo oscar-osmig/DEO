@@ -78,8 +78,10 @@
     top: 40px;
     right: 0;
     width: 280px;
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-color);
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
     border-radius: 12px;
     padding: 8px;
     opacity: 0;
@@ -87,6 +89,7 @@
     transform: translateY(-8px);
     transition: all 0.15s ease;
     z-index: 200;
+    box-shadow: var(--glass-shadow);
 }
 
 .dropdown-wrapper:focus-within .dropdown {

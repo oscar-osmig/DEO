@@ -12,8 +12,10 @@
 /* === SECTION: SIDEBAR === */
 .section-sidebar {
     grid-area: sidebar;
-    background-color: var(--bg-secondary);
-    border-right: 1px solid var(--border-color);
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-right: 1px solid var(--glass-border);
     position: sticky;
     top: 0;
     height: 100vh;
@@ -25,8 +27,10 @@
 /* === SECTION: HEADER === */
 .section-header {
     grid-area: header;
-    background-color: var(--bg-primary);
-    border-bottom: 1px solid var(--border-color);
+    background: rgba(10, 10, 15, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--glass-border);
     position: sticky;
     top: 0;
     z-index: 50;
@@ -35,7 +39,7 @@
 /* === SECTION: CONTENT === */
 .section-content {
     grid-area: content;
-    background-color: var(--bg-primary);
+    background: transparent;
     overflow-y: auto;
 }
 
