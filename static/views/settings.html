@@ -29,15 +29,17 @@
                         >
                     </div>
                     <div class="form-group">
-                        <label class="form-label" for="slack-token">Bot Token</label>
+                        <label class="form-label" for="slack-token-display">Bot Token</label>
                         <input
-                            type="password"
-                            id="slack-token"
-                            name="bot_token"
+                            type="text"
+                            id="slack-token-display"
                             class="form-input"
                             placeholder="xoxb-your-bot-token"
-                            required
+                            autocomplete="off"
+                            data-lpignore="true"
+                            data-form-type="other"
                         >
+                        <input type="hidden" id="slack-token" name="bot_token" required>
                         <p class="form-hint">Get your bot token from <a href="https://api.slack.com/apps" target="_blank">api.slack.com/apps</a></p>
                     </div>
 

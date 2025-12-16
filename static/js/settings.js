@@ -1,5 +1,85 @@
 // === SETTINGS ===
 
+// Token masking - store actual token value
+let actualTokenValue = '';
+
+// Handle token display field input - show asterisks, store actual value
+function setupTokenMasking() {
+    const displayInput = document.getElementById('slack-token-display');
+    const hiddenInput = document.getElementById('slack-token');
+
+    if (!displayInput || !hiddenInput) return;
+
+    // Reset state
+    actualTokenValue = '';
+    displayInput.value = '';
+    hiddenInput.value = '';
+
+    // Handle keydown for special keys
+    displayInput.addEventListener('keydown', (e) => {
+        // Allow: backspace, delete, tab, escape, enter, and navigation keys
+        if (e.key === 'Backspace') {
+            e.preventDefault();
+            actualTokenValue = actualTokenValue.slice(0, -1);
+            displayInput.value = '*'.repeat(actualTokenValue.length);
+            hiddenInput.value = actualTokenValue;
+        } else if (e.key === 'Delete') {
+            e.preventDefault();
+            actualTokenValue = '';
+            displayInput.value = '';
+            hiddenInput.value = '';
+        }
+    });
+
+    // Handle regular character input
+    displayInput.addEventListener('input', (e) => {
+        const inputType = e.inputType;
+
+        if (inputType === 'insertText' && e.data) {
+            // Add character to actual value
+            actualTokenValue += e.data;
+        } else if (inputType === 'insertFromPaste') {
+            // Handle paste - get the pasted text from the display field before we mask it
+            // The display field now has the pasted content mixed with asterisks
+            // We need to extract just the new pasted portion
+            const currentDisplay = displayInput.value;
+            const existingLength = actualTokenValue.length;
+            const newChars = currentDisplay.slice(existingLength);
+            actualTokenValue += newChars;
+        } else if (inputType === 'deleteContentBackward') {
+            // Already handled in keydown, but just in case
+            actualTokenValue = actualTokenValue.slice(0, -1);
+        } else if (inputType === 'deleteContentForward' || inputType === 'deleteByCut') {
+            actualTokenValue = '';
+        }
+
+        // Update displays
+        displayInput.value = '*'.repeat(actualTokenValue.length);
+        hiddenInput.value = actualTokenValue;
+    });
+
+    // Prevent autofill from setting values
+    displayInput.addEventListener('change', () => {
+        if (!actualTokenValue && displayInput.value) {
+            // Browser autofilled - clear it
+            displayInput.value = '';
+        }
+    });
+}
+
+// Clear token form and reset masking state
+function clearTokenForm() {
+    const displayInput = document.getElementById('slack-token-display');
+    const hiddenInput = document.getElementById('slack-token');
+    const nameInput = document.getElementById('token-name');
+
+    actualTokenValue = '';
+
+    if (displayInput) displayInput.value = '';
+    if (hiddenInput) hiddenInput.value = '';
+    if (nameInput) nameInput.value = '';
+}
+
 // Load saved tokens on settings view
 function loadSettingsTokens() {
     const list = document.getElementById('settings-tokens-list');
@@ -112,7 +192,7 @@ document.addEventListener('submit', async (e) => {
         if (res.ok && data.success) {
             status.textContent = '✓ Token saved';
             status.style.color = '#4ade80';
-            e.target.reset();
+            clearTokenForm();
             loadSettingsTokens();
         } else {
             status.textContent = '✗ ' + (data.detail || 'Failed to save');
@@ -214,6 +294,8 @@ document.addEventListener('click', async (e) => {
 function loadSettingsPage() {
     loadSettingsTokens();
     loadSettingsAccountInfo();
+    clearTokenForm();
+    setupTokenMasking();
 }
 
 document.addEventListener('DOMContentLoaded', () => {
