@@ -4361,10 +4361,26 @@ document.addEventListener('click', async (e) => {
             btn.textContent = isUpdate ? 'Updated!' : 'Saved!';
             // Clear editing mode after successful save
             editingTemplateId = null;
-            // Redirect to templates view after short delay
-            setTimeout(() => {
-                window.location.hash = '#templates';
-            }, 500);
+
+            // Ask if user wants to view the template
+            const viewTemplate = await showAlert({
+                title: isUpdate ? 'Template Updated!' : 'Template Saved!',
+                message: `Would you like to view "${templateId}" in your templates?`,
+                type: 'success',
+                confirm: true,
+                confirmText: 'View Template',
+                cancelText: 'Stay Here'
+            });
+
+            if (viewTemplate) {
+                window.location.hash = '#template';
+                setHeaderSection('Bot Templates');
+                await openTemplateTab(templateId);
+            } else {
+                // Reset button text
+                btn.textContent = 'Save';
+                btn.disabled = false;
+            }
         }
     }
 });
@@ -4416,15 +4432,28 @@ document.addEventListener('click', async (e) => {
                             }
                         }
 
-                        setTimeout(async () => {
-                            await showAlert({ title: 'Schedule Started', message: `Template "${templateId}" ${isUpdate ? 'updated' : 'saved'} and ${scheduleMsg}!`, type: 'success' });
+                        // Ask if user wants to view the template
+                        const viewTemplate = await showAlert({
+                            title: 'Schedule Started!',
+                            message: `Template "${templateId}" ${isUpdate ? 'updated' : 'saved'} and ${scheduleMsg}. Would you like to view it?`,
+                            type: 'success',
+                            confirm: true,
+                            confirmText: 'View Template',
+                            cancelText: 'Stay Here'
+                        });
+
+                        if (viewTemplate) {
+                            window.location.hash = '#template';
+                            setHeaderSection('Bot Templates');
+                            await openTemplateTab(templateId);
+                        } else {
                             btn.textContent = 'Save & Run';
                             btn.disabled = false;
                             if (saveBtn) {
                                 saveBtn.textContent = 'Save';
                                 saveBtn.disabled = false;
                             }
-                        }, 300);
+                        }
                     } else {
                         await showAlert({ title: 'Schedule Failed', message: `Template ${isUpdate ? 'updated' : 'saved'} but failed to start schedule: ` + (scheduleData.detail || 'Unknown error'), type: 'error' });
                         btn.textContent = 'Save & Run';
@@ -4464,17 +4493,28 @@ document.addEventListener('click', async (e) => {
                         // Clear editing mode after successful save
                         editingTemplateId = null;
 
-                        // Show success notification
-                        setTimeout(async () => {
-                            await showAlert({ title: 'Success', message: `Template "${templateId}" ${isUpdate ? 'updated' : 'saved'} and executed successfully!`, type: 'success' });
-                            // Reset buttons after notification
+                        // Show success notification with option to view template
+                        const viewTemplate = await showAlert({
+                            title: 'Success',
+                            message: `Template "${templateId}" ${isUpdate ? 'updated' : 'saved'} and executed successfully! Would you like to view it in your templates?`,
+                            type: 'success',
+                            confirm: true,
+                            confirmText: 'View Template',
+                            cancelText: 'Stay Here'
+                        });
+
+                        if (viewTemplate) {
+                            window.location.hash = '#template';
+                            setHeaderSection('Bot Templates');
+                            await openTemplateTab(templateId);
+                        } else {
                             btn.textContent = 'Save & Run';
                             btn.disabled = false;
                             if (saveBtn) {
                                 saveBtn.textContent = 'Save';
                                 saveBtn.disabled = false;
                             }
-                        }, 300);
+                        }
                     } else {
                         await showAlert({ title: 'Run Failed', message: `Template ${isUpdate ? 'updated' : 'saved'} but failed to run: ` + (runData.detail || 'Unknown error'), type: 'error' });
                         btn.textContent = 'Save & Run';

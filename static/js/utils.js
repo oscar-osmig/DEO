@@ -79,6 +79,7 @@ async function confirmDelete(options) {
 const alertModal = {
     overlay: null,
     resolvePromise: null,
+    isConfirmMode: false,
 
     init() {
         if (this.overlay) return;
@@ -97,6 +98,7 @@ const alertModal = {
                 <h3 class="alert-modal-title">Alert</h3>
                 <p class="alert-modal-message">Message here</p>
                 <div class="alert-modal-actions">
+                    <button class="btn btn-secondary alert-modal-cancel" style="display: none;">No</button>
                     <button class="btn alert-modal-ok">OK</button>
                 </div>
             </div>
@@ -105,24 +107,39 @@ const alertModal = {
         document.body.appendChild(this.overlay);
 
         // Event listeners
-        this.overlay.querySelector('.alert-modal-ok').addEventListener('click', () => this.close());
+        this.overlay.querySelector('.alert-modal-ok').addEventListener('click', () => this.close(true));
+        this.overlay.querySelector('.alert-modal-cancel').addEventListener('click', () => this.close(false));
         this.overlay.addEventListener('click', (e) => {
-            if (e.target === this.overlay) this.close();
+            if (e.target === this.overlay) this.close(false);
         });
 
         // ESC key to close
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.overlay.classList.contains('active')) {
-                this.close();
+                this.close(false);
             }
         });
     },
 
-    show({ title = 'Alert', message = '', type = 'info' } = {}) {
+    show({ title = 'Alert', message = '', type = 'info', confirm = false, confirmText = 'Yes', cancelText = 'No' } = {}) {
         this.init();
+        this.isConfirmMode = confirm;
 
         this.overlay.querySelector('.alert-modal-title').textContent = title;
         this.overlay.querySelector('.alert-modal-message').textContent = message;
+
+        // Show/hide cancel button based on confirm mode
+        const cancelBtn = this.overlay.querySelector('.alert-modal-cancel');
+        const okBtn = this.overlay.querySelector('.alert-modal-ok');
+
+        if (confirm) {
+            cancelBtn.style.display = 'block';
+            cancelBtn.textContent = cancelText;
+            okBtn.textContent = confirmText;
+        } else {
+            cancelBtn.style.display = 'none';
+            okBtn.textContent = 'OK';
+        }
 
         // Update icon based on type
         const iconContainer = this.overlay.querySelector('.alert-modal-icon');
@@ -168,10 +185,11 @@ const alertModal = {
         });
     },
 
-    close() {
+    close(result = false) {
         this.overlay.classList.remove('active');
         if (this.resolvePromise) {
-            this.resolvePromise();
+            // For confirm mode, return the result; for regular alerts, just resolve
+            this.resolvePromise(this.isConfirmMode ? result : undefined);
             this.resolvePromise = null;
         }
     }
