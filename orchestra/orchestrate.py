@@ -61,6 +61,8 @@ class TemplateOrchestrator:
         self.message_mode = None  # Track whether last message was 'channel' or 'users'
         self.user_channels = []   # Store DM channel IDs for users mode
         self.monitored_users = []  # Store user IDs for await block
+        self.recipients = None    # Store specific recipients for await block (channel mode)
+        self.channel_members = [] # Store all channel members
 
         # Validate template structure before execution
         self.validate_template()
@@ -164,6 +166,12 @@ class TemplateOrchestrator:
                 if self.message_mode == "channel":
                     self.last_channel = result.get("channel_id")  # Store channel ID
                     self.channel_members = result.get("channel_members", [])  # Store all members
+                    # Use recipients if specified, otherwise fall back to all channel members
+                    self.recipients = result.get("recipients")  # May be None
+                    if self.recipients:
+                        print(f"Using specific recipients for await: {len(self.recipients)} user(s)")
+                    else:
+                        print(f"No specific recipients - will use all {len(self.channel_members)} channel members for await")
                 elif self.message_mode == "users":
                     # Extract DM channel IDs from user results
                     user_results = result.get("users", [])
@@ -213,14 +221,19 @@ class TemplateOrchestrator:
                 remaining_blocks = blocks_list[i + 1:]
                 # Determine mode and who to wait for
                 if self.message_mode == "channel":
-                    # Channel mode: wait for everyone in the channel
+                    # Channel mode: wait for specific recipients if provided, otherwise all members
                     if not hasattr(self, 'channel_members') or not self.channel_members:
                         raise ValueError("Await block in channel mode requires channel_members from message block")
+
+                    # Use recipients if specified, otherwise use all channel members
+                    users_to_wait_for = getattr(self, 'recipients', None) or self.channel_members
+                    print(f"Await will wait for {len(users_to_wait_for)} user(s) to respond")
+
                     result = await executor(
                         block_data,
                         self.bot_token,
                         [self.last_channel],  # Single channel ID
-                        self.channel_members,  # ALL channel members must respond
+                        users_to_wait_for,  # Specific recipients OR all channel members
                         self.template_id,
                         self.workspace_id,
                         remaining_blocks,

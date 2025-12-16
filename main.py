@@ -220,6 +220,7 @@ async def submit_feedback(
     }
 
 
+app.include_router(router)  # Slack events endpoint
 app.include_router(account_router)
 app.include_router(workspace_router)
 app.include_router(oauth_router)

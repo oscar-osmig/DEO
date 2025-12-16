@@ -81,6 +81,22 @@
                             </button>
                         </div>
 
+                        <!-- Await Control Buttons (hidden by default, shown when awaiting responses) -->
+                        <div class="await-controls" id="await-controls" style="display: none;">
+                            <span class="await-status-badge" id="await-status-badge">
+                                <span class="status-dot"></span>
+                                <span class="status-text">Waiting for responses</span>
+                            </span>
+                            <button class="btn btn-icon btn-await btn-stop" id="stop-await-btn" title="Cancel Await">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                                </svg>
+                                Cancel
+                            </button>
+                        </div>
+
                         <button class="btn btn-icon" id="run-template-btn" title="Run Template">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polygon points="5 3 19 12 5 21 5 3"></polygon>

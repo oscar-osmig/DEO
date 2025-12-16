@@ -26,13 +26,17 @@ class MessageBlock(BaseModel):
     Attributes:
         channel_name (Optional[str]): Slack channel name or ID (for channel mode)
         users (Optional[List[str]]): List of user IDs (for users mode)
+        recipients (Optional[List[str]]): Specific user IDs to target within a channel (for await block)
         message (str): Message text to send
 
     Note:
         Must provide either channel_name OR users, but not both.
+        Recipients is optional and only applies to channel mode - it specifies which
+        users should be waited for in a subsequent await block.
     """
     channel_name: Optional[str] = None
     users: Optional[List[str]] = None
+    recipients: Optional[List[str]] = None  # Specific users to wait for in channel mode
     message: str
 
     @model_validator(mode='after')
@@ -269,6 +273,9 @@ async def create_template(request: CreateTemplateRequest):
 
         if request.action_chain.message.channel_name:
             message_block["channel_name"] = request.action_chain.message.channel_name
+            # Include recipients if specified (for await block targeting)
+            if request.action_chain.message.recipients:
+                message_block["recipients"] = request.action_chain.message.recipients
         elif request.action_chain.message.users:
             message_block["users"] = request.action_chain.message.users
 
@@ -358,6 +365,9 @@ async def update_template(template_id: str, request: UpdateTemplateRequest):
 
         if request.action_chain.message.channel_name:
             message_block["channel_name"] = request.action_chain.message.channel_name
+            # Include recipients if specified (for await block targeting)
+            if request.action_chain.message.recipients:
+                message_block["recipients"] = request.action_chain.message.recipients
         elif request.action_chain.message.users:
             message_block["users"] = request.action_chain.message.users
 
@@ -799,6 +809,109 @@ async def stop_scan(request: StopScanRequest):
         "template_id": request.template_id,
         "deleted_count": result.deleted_count,
         "message": f"Stopped {result.deleted_count} scan(s)"
+    }
+
+
+@router.get("/await/status/{template_id}")
+async def get_await_status(template_id: str):
+    """
+    Get the await status for a specific template.
+    Returns info about pending await executions for this template.
+    """
+    pending_executions = get_collection("pending_executions")
+    completed_executions = get_collection("completed_executions")
+    templates_collection = get_collection("templates")
+
+    template = await templates_collection.find_one({"template_id": template_id})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    workspace_id = template.get("workspace_id")
+
+    # Find active await for this template
+    pending = await pending_executions.find_one({
+        "template_id": template_id,
+        "workspace_id": workspace_id,
+        "status": "awaiting_response"
+    })
+
+    if pending:
+        monitored_users = pending.get("monitored_users", [])
+        users_responded = pending.get("users_responded", [])
+        return {
+            "success": True,
+            "template_id": template_id,
+            "status": "awaiting",
+            "await": {
+                "mode": pending.get("mode"),
+                "expected_response": pending.get("expected_response"),
+                "monitored_users": len(monitored_users),
+                "users_responded": len(users_responded),
+                "timeout_at": pending.get("timeout_at"),
+                "created_at": pending.get("created_at")
+            }
+        }
+
+    # Check for recently completed await (within last 30 seconds for UI feedback)
+    from datetime import datetime, timedelta
+    recent_cutoff = datetime.utcnow() - timedelta(seconds=30)
+
+    recent_completed = await completed_executions.find_one({
+        "template_id": template_id,
+        "workspace_id": workspace_id,
+        "completed_at": {"$gte": recent_cutoff}
+    }, sort=[("completed_at", -1)])
+
+    if recent_completed:
+        return {
+            "success": True,
+            "template_id": template_id,
+            "status": "completed",
+            "await": {
+                "completed_at": recent_completed.get("completed_at"),
+                "responses_received": len(recent_completed.get("responses_received", []))
+            }
+        }
+
+    return {
+        "success": True,
+        "template_id": template_id,
+        "status": "idle",
+        "await": None
+    }
+
+
+class StopAwaitRequest(BaseModel):
+    template_id: str
+
+
+@router.post("/await/stop")
+async def stop_await(request: StopAwaitRequest):
+    """
+    Stop awaiting responses for a template.
+    Deletes the pending execution record.
+    """
+    pending_executions = get_collection("pending_executions")
+    templates_collection = get_collection("templates")
+
+    template = await templates_collection.find_one({"template_id": request.template_id})
+    if not template:
+        raise HTTPException(status_code=404, detail="Template not found")
+
+    workspace_id = template.get("workspace_id")
+
+    # Delete active await(s) for this template
+    result = await pending_executions.delete_many({
+        "template_id": request.template_id,
+        "workspace_id": workspace_id,
+        "status": "awaiting_response"
+    })
+
+    return {
+        "success": True,
+        "template_id": request.template_id,
+        "deleted_count": result.deleted_count,
+        "message": f"Cancelled {result.deleted_count} await(s)"
     }
 
 

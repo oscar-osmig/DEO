@@ -282,6 +282,20 @@ async function loadTemplateDetails(templateId) {
                 hideScanControls();
             }
 
+            // Check if template has await block and show await controls if active
+            const hasAwaitBlock = blocks.some(b => {
+                if (typeof b === 'string') return b === 'await';
+                if (typeof b === 'object') return b.type === 'await' || Object.keys(b)[0] === 'await';
+                return false;
+            });
+
+            if (hasAwaitBlock) {
+                checkAwaitStatus(t.template_id);
+            } else {
+                hideAwaitControls();
+                stopAwaitPolling();
+            }
+
         } else {
             const subtitle = document.getElementById('template-subtitle');
             if (subtitle) subtitle.textContent = 'Template not found';
@@ -396,7 +410,7 @@ function renderDiagramFromLayout(canvas, svg, layout, icons, triggerLabel) {
             }
             bodyContent = config.command ? `Command: "${config.command}"` : '';
         } else if (nodeData.type === 'await') {
-            label = config.timeout || '24h';
+            label = config.timeout || '1h';
             bodyContent = config.expected_response ? `Wait for: "${config.expected_response}"` : '';
         } else if (nodeData.type === 'response') {
             label = 'Success';
@@ -573,7 +587,7 @@ function renderDiagramSimple(canvas, svg, blocks, ac, icons, triggerLabel) {
             bodyContent = msgText ? (msgText.length > 50 ? msgText.substring(0, 50) + '...' : msgText) : '';
         } else if (blockType === 'await') {
             const awaitCfg = blockConfig || awaitConfig;
-            label = awaitCfg.timeout || '24h';
+            label = awaitCfg.timeout || '1h';
             bodyContent = awaitCfg.expected_response ? `Wait for: "${awaitCfg.expected_response}"` : '';
         } else if (blockType === 'response') {
             label = 'Success';
@@ -712,6 +726,11 @@ document.addEventListener('click', async (e) => {
             if (res.ok && data.success) {
                 status.textContent = '✓ Template executed';
                 status.style.color = '#4ade80';
+
+                // Check if template has await - start checking status after short delay
+                setTimeout(() => {
+                    checkAwaitStatus(templateId);
+                }, 1000);
             } else {
                 status.textContent = '✗ ' + (data.detail || 'Failed');
                 status.style.color = '#f87171';
@@ -1171,6 +1190,153 @@ document.addEventListener('click', async (e) => {
     }
 });
 
+// === AWAIT STATUS ===
+let awaitPollingInterval = null;
+
+// Check await status for a template
+async function checkAwaitStatus(templateId) {
+    try {
+        const res = await fetch(`/templates/await/status/${encodeURIComponent(templateId)}`);
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            if (data.status === 'awaiting') {
+                updateAwaitControls('awaiting', data.await);
+                // Start polling if not already
+                startAwaitPolling(templateId);
+            } else if (data.status === 'completed') {
+                updateAwaitControls('completed', data.await);
+                // Stop polling and clear after a few seconds
+                stopAwaitPolling();
+                setTimeout(() => hideAwaitControls(), 5000);
+            } else {
+                hideAwaitControls();
+                stopAwaitPolling();
+            }
+        } else {
+            hideAwaitControls();
+        }
+    } catch (err) {
+        console.error('Error checking await status:', err);
+        hideAwaitControls();
+    }
+}
+
+// Start polling for await status
+function startAwaitPolling(templateId) {
+    if (awaitPollingInterval) return; // Already polling
+
+    awaitPollingInterval = setInterval(() => {
+        checkAwaitStatus(templateId);
+    }, 3000); // Poll every 3 seconds
+}
+
+// Stop polling for await status
+function stopAwaitPolling() {
+    if (awaitPollingInterval) {
+        clearInterval(awaitPollingInterval);
+        awaitPollingInterval = null;
+    }
+}
+
+// Update await control UI based on status
+function updateAwaitControls(status, awaitInfo = null) {
+    const controls = document.getElementById('await-controls');
+    const badge = document.getElementById('await-status-badge');
+    const cancelBtn = document.getElementById('stop-await-btn');
+    const runBtn = document.getElementById('run-template-btn');
+
+    if (!controls || !badge) return;
+
+    if (status === 'awaiting') {
+        controls.style.display = 'flex';
+        badge.className = 'await-status-badge awaiting';
+
+        // Show await details in badge
+        let statusText = 'Waiting for responses';
+        if (awaitInfo) {
+            const responded = awaitInfo.users_responded || 0;
+            const total = awaitInfo.monitored_users || 0;
+            statusText = `Waiting (${responded}/${total} responded)`;
+        }
+        badge.querySelector('.status-text').textContent = statusText;
+
+        if (cancelBtn) cancelBtn.style.display = 'inline-flex';
+        // Hide Run button when awaiting
+        if (runBtn) runBtn.style.display = 'none';
+    } else if (status === 'completed') {
+        controls.style.display = 'flex';
+        badge.className = 'await-status-badge completed';
+
+        let statusText = 'Responses received';
+        if (awaitInfo && awaitInfo.responses_received) {
+            statusText = `${awaitInfo.responses_received} response(s) received`;
+        }
+        badge.querySelector('.status-text').textContent = statusText;
+
+        if (cancelBtn) cancelBtn.style.display = 'none';
+        // Show Run button when completed
+        if (runBtn) runBtn.style.display = 'inline-flex';
+    } else {
+        hideAwaitControls();
+    }
+}
+
+// Hide await controls
+function hideAwaitControls() {
+    const controls = document.getElementById('await-controls');
+    const runBtn = document.getElementById('run-template-btn');
+    if (controls) controls.style.display = 'none';
+    // Show Run button when no await active
+    if (runBtn) runBtn.style.display = 'inline-flex';
+}
+
+// Stop await button
+document.addEventListener('click', async (e) => {
+    if (e.target.closest('#stop-await-btn')) {
+        const btn = e.target.closest('#stop-await-btn');
+        const runBtn = document.getElementById('run-template-btn');
+        const templateId = runBtn?.dataset.templateId;
+        const status = document.getElementById('template-action-status');
+
+        if (!templateId) return;
+
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/templates/await/stop', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ template_id: templateId })
+            });
+
+            const data = await res.json();
+
+            if (res.ok && data.success) {
+                if (status) {
+                    status.textContent = 'Await cancelled';
+                    status.style.color = '#f87171';
+                }
+                hideAwaitControls();
+                stopAwaitPolling();
+            } else {
+                if (status) {
+                    status.textContent = data.detail || 'Failed to cancel';
+                    status.style.color = '#f87171';
+                }
+            }
+        } catch (err) {
+            if (status) {
+                status.textContent = 'Error cancelling await';
+                status.style.color = '#f87171';
+            }
+        }
+
+        btn.disabled = false;
+        setTimeout(() => { if (status) status.textContent = ''; }, 3000);
+    }
+});
+
 // Create template button - navigate to canvas
 document.addEventListener('click', (e) => {
     if (e.target.closest('#create-template-btn')) {
@@ -1391,7 +1557,7 @@ async function loadTemplateIntoCanvas(template) {
         } else if (blockType === 'await') {
             const config = nodeConfigs[nodeId];
             config.expected_response = blockConfig.expected_response || '';
-            config.timeout = blockConfig.timeout || '24h';
+            config.timeout = blockConfig.timeout || '1h';
             config.failure_message = blockConfig.failed || blockConfig.failure_message || '';
 
             // Update UI
@@ -1893,7 +2059,7 @@ function initNodeConfig(nodeId, nodeType) {
         };
     } else if (nodeType === 'await') {
         nodeConfigs[nodeId] = {
-            timeout: '24h',
+            timeout: '1h',
             expected_response: '',
             failure_message: ''
         };
@@ -1941,7 +2107,7 @@ function updateNodeLabel(nodeId) {
             label.textContent = 'Configure';
         }
     } else if (nodeType === 'await') {
-        label.textContent = config.timeout || '24h';
+        label.textContent = config.timeout || '1h';
     } else if (nodeType === 'response') {
         if (config.message) {
             // Show truncated message preview
@@ -2481,7 +2647,7 @@ function restoreCanvasFromState(state) {
             if (expectedInput) expectedInput.value = config.expected_response || '';
             const timeoutSelect = newNode.querySelector('.config-timeout-select');
             const customRow = newNode.querySelector('.config-custom-timeout-row');
-            const timeout = config.timeout || '24h';
+            const timeout = config.timeout || '1h';
 
             // Check if it's a preset value or custom
             const presetValues = ['1h', '6h', '12h', '24h', '48h', '72h', '7d'];
@@ -2971,20 +3137,20 @@ function createNode(blockType, x, y, optionalId = null) {
                 <div class="block-config-row">
                     <div class="block-config-label">Timeout</div>
                     <select class="block-config-select config-timeout-select">
+                        <option value="custom" selected>Custom</option>
                         <option value="1h">1 hour</option>
                         <option value="6h">6 hours</option>
                         <option value="12h">12 hours</option>
-                        <option value="24h" selected>24 hours</option>
+                        <option value="24h">24 hours</option>
                         <option value="48h">48 hours</option>
                         <option value="72h">72 hours</option>
                         <option value="7d">7 days</option>
-                        <option value="custom">Custom...</option>
                     </select>
                 </div>
-                <div class="block-config-row config-custom-timeout-row" style="display: none;">
+                <div class="block-config-row config-custom-timeout-row">
                     <div class="block-config-label">Custom Timeout</div>
                     <div class="custom-timeout-input-wrapper">
-                        <input type="number" class="block-config-input config-custom-timeout-value" placeholder="30" min="1" value="30">
+                        <input type="number" class="block-config-input config-custom-timeout-value" placeholder="1" min="1" value="1">
                         <select class="block-config-select config-custom-timeout-unit">
                             <option value="m">Minutes</option>
                             <option value="h" selected>Hours</option>

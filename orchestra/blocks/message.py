@@ -75,6 +75,7 @@ async def execute_message(message_data: Dict[str, Any], bot_token: str):
         message_data (Dict[str, Any]): Dictionary containing message configuration:
             Mode 1 (Channel):
                 - channel_name (str): Name or ID of the Slack channel
+                - recipients (List[str]): Optional - specific user IDs to wait for in await block
                 - message (str): The message text to send (optional if file provided)
                 - file (dict): Optional file attachment with filename, content_type, data (base64)
             Mode 2 (Users):
@@ -89,6 +90,7 @@ async def execute_message(message_data: Dict[str, Any], bot_token: str):
             - mode (str): "channel" or "users"
             - channel (str): Channel name (if mode is "channel")
             - channel_members (list): List of user IDs in the channel (if mode is "channel")
+            - recipients (list): Specific users to wait for (if mode is "channel" and recipients specified)
             - users (list): List of user results (if mode is "users")
             - message (str): The message that was sent
             - timestamp (str): Slack message timestamp
@@ -101,6 +103,7 @@ async def execute_message(message_data: Dict[str, Any], bot_token: str):
     # Extract message parameters
     channel_name = message_data.get("channel_name")
     users = message_data.get("users")
+    recipients = message_data.get("recipients")  # Specific users to wait for in channel mode
     message_text = message_data.get("message")
     file_data = message_data.get("file")
 
@@ -118,7 +121,7 @@ async def execute_message(message_data: Dict[str, Any], bot_token: str):
 
     # MODE 1: Send to a channel
     if channel_name:
-        return await _send_to_channel(channel_name, message_text, file_data, bot_token)
+        return await _send_to_channel(channel_name, message_text, file_data, bot_token, recipients)
 
     # MODE 2: Send DMs to users
     else:
@@ -255,7 +258,7 @@ async def _upload_file(channel_id: str, file_data: Dict[str, Any], message_text:
     return {"ok": True, "file": file_info}
 
 
-async def _send_to_channel(channel_name: str, message_text: Optional[str], file_data: Optional[Dict[str, Any]], bot_token: str) -> Dict[str, Any]:
+async def _send_to_channel(channel_name: str, message_text: Optional[str], file_data: Optional[Dict[str, Any]], bot_token: str, recipients: Optional[List[str]] = None) -> Dict[str, Any]:
     """
     Send a message and/or file to a Slack channel.
 
@@ -264,9 +267,10 @@ async def _send_to_channel(channel_name: str, message_text: Optional[str], file_
         message_text (str): Message to send (optional if file provided)
         file_data (dict): Optional file data with filename, content_type, data (base64)
         bot_token (str): Slack bot token
+        recipients (List[str]): Optional - specific user IDs to wait for in await block
 
     Returns:
-        dict: Result with status, mode, channel, channel_members, message, timestamp, and file_id
+        dict: Result with status, mode, channel, channel_members, recipients, message, timestamp, and file_id
 
     Raises:
         Exception: If Slack API returns an error
@@ -322,6 +326,12 @@ async def _send_to_channel(channel_name: str, message_text: Optional[str], file_
     # Get all members in the channel
     channel_members = await _get_channel_members(channel_id, bot_token)
     result["channel_members"] = channel_members
+
+    # If specific recipients were provided, include them in the result
+    # The await block will use recipients (if provided) instead of all channel_members
+    if recipients:
+        result["recipients"] = recipients
+        print(f"Specific recipients for await: {len(recipients)} user(s)")
 
     print(f"Channel has {len(channel_members)} members (excluding bots)")
 

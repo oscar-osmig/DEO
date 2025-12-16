@@ -410,7 +410,23 @@ async def check_and_resume_awaits(user_id: str, channel_id: str, message_text: s
 
                     if remaining_blocks and action_chain:
                         all_blocks = action_chain.get("blocks", [])
-                        await_index = all_blocks.index("await")
+
+                        # Find await block index - support both old and new format
+                        await_index = None
+                        for i, block in enumerate(all_blocks):
+                            if isinstance(block, dict):
+                                # New format: {type: "await", config: {...}}
+                                if block.get("type") == "await":
+                                    await_index = i
+                                    break
+                            elif block == "await":
+                                # Old format: "await"
+                                await_index = i
+                                break
+
+                        if await_index is None:
+                            raise ValueError("Could not find await block in action chain")
+
                         resume_index = await_index + 1
 
                         print(f"   Creating orchestrator to resume from block {resume_index}")
