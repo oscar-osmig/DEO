@@ -31,6 +31,7 @@ class CreateApplicationFormRequest(BaseModel):
         send_to_type (str): "user" or "channel"
         send_to_id (str): Slack user ID or channel ID to send applications to
         base_url (str): Base URL for generating form link
+        publish_on_deo_jobs (bool): Whether to publish on public DEO Jobs board
     """
     team_id: str
     position_title: str
@@ -39,6 +40,7 @@ class CreateApplicationFormRequest(BaseModel):
     send_to_type: str  # "user" or "channel"
     send_to_id: str
     base_url: str
+    publish_on_deo_jobs: bool = False
 
 
 @router.post("/create")
@@ -106,7 +108,8 @@ async def create_application_form(request: Request, data: CreateApplicationFormR
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow(),
         "is_active": True,
-        "application_count": 0
+        "application_count": 0,
+        "publish_on_deo_jobs": data.publish_on_deo_jobs
     }
 
     result = await applications_collection.insert_one(form_doc)
@@ -122,10 +125,27 @@ async def create_application_form(request: Request, data: CreateApplicationFormR
         {"$set": {"url": full_url, "url_path": url_path}}
     )
 
+    # If publishing on DEO Jobs, add to public jobs collection
+    if data.publish_on_deo_jobs:
+        deo_jobs_collection = get_collection("deo_jobs")
+        job_doc = {
+            "form_id": form_id,
+            "position_title": data.position_title,
+            "company_name": data.company_name,
+            "team_name": team.get("team_name"),
+            "application_url": full_url,
+            "owner_email": user_email,
+            "created_at": datetime.utcnow(),
+            "is_active": True
+        }
+        await deo_jobs_collection.insert_one(job_doc)
+        print(f"📢 Job published on DEO Jobs: {data.position_title} at {data.company_name}")
+
     print(f"✅ Application form created: {data.position_title}")
     print(f"   URL: {full_url}")
     print(f"   Team: {team.get('team_name')}")
     print(f"   Send to: {data.send_to_type} - {data.send_to_id}")
+    print(f"   Published on DEO Jobs: {data.publish_on_deo_jobs}")
 
     return {
         "success": True,
@@ -623,4 +643,25 @@ async def toggle_application_form(request: Request, form_id: str):
         "success": True,
         "form_id": form_id,
         "is_active": new_status
+    }
+
+
+@router.get("/deo-jobs/public")
+async def get_public_deo_jobs():
+    """
+    Get all active public job listings for DEO Jobs page.
+    No authentication required - this is a public endpoint.
+    """
+    deo_jobs_collection = get_collection("deo_jobs")
+
+    jobs = await deo_jobs_collection.find({"is_active": True}).sort("created_at", -1).to_list(length=100)
+
+    for job in jobs:
+        job['_id'] = str(job['_id'])
+        job['created_at'] = job['created_at'].isoformat() if job.get('created_at') else None
+
+    return {
+        "success": True,
+        "jobs": jobs,
+        "count": len(jobs)
     }

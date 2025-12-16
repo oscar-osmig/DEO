@@ -168,6 +168,14 @@ async def application_page(request: Request, form_id: str):
     })
 
 
+@app.get("/get/deo-jobs", response_class=HTMLResponse)
+async def deo_jobs_page(request: Request):
+    """Serve the public DEO Jobs board page."""
+    return templates.TemplateResponse("templates/deo-jobs.html", {
+        "request": request
+    })
+
+
 # === FEEDBACK ENDPOINT ===
 from fastapi import File, UploadFile, Form
 from typing import Optional

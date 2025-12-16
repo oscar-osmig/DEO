@@ -630,6 +630,10 @@ document.addEventListener('click', (e) => {
             document.querySelector('.send-to-tab[data-type="channel"]')?.classList.add('active');
             document.getElementById('hire-channel-group').style.display = 'block';
             document.getElementById('hire-user-group').style.display = 'none';
+
+            // Reset publish checkbox
+            const publishCheckbox = document.getElementById('publish-deo-jobs');
+            if (publishCheckbox) publishCheckbox.checked = false;
         }
     }
 });
@@ -824,6 +828,9 @@ if (hireForm) {
         btn.textContent = 'Creating...';
         status.textContent = '';
 
+        // Check if publish on DEO Jobs is checked
+        const publishOnDeoJobs = document.getElementById('publish-deo-jobs')?.checked || false;
+
         try {
             const res = await fetch('/applications/create', {
                 method: 'POST',
@@ -836,7 +843,8 @@ if (hireForm) {
                     workspace_id: workspaceId,
                     send_to_type: currentSendToType,
                     send_to_id: sendToId,
-                    base_url: window.location.origin
+                    base_url: window.location.origin,
+                    publish_on_deo_jobs: publishOnDeoJobs
                 })
             });
 

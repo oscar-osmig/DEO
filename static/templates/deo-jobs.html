@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DEO Jobs - Find Your Next Opportunity</title>
+    <link rel="icon" type="image/png" href="/static/favicon.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: rgba(15, 10, 25, 0.8);
+            --bg-tertiary: rgba(25, 15, 40, 0.6);
+            --border-color: rgba(139, 92, 246, 0.15);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0b0;
+            --text-muted: #606070;
+            --accent: #8b5cf6;
+            --accent-hover: #7c3aed;
+            --glass-bg: rgba(15, 10, 25, 0.7);
+            --glass-border: rgba(139, 92, 246, 0.2);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a0a20 25%, #0f0a1a 50%, #150a25 75%, #0a0a0f 100%);
+            background-attachment: fixed;
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(124, 58, 237, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(139, 92, 246, 0.03) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 40px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .logo-jobs {
+            font-size: 14px;
+            color: var(--accent);
+            padding: 4px 10px;
+            background: rgba(139, 92, 246, 0.1);
+            border-radius: 20px;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        /* Hero Section */
+        .hero {
+            text-align: center;
+            padding: 80px 40px 40px;
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #fff 0%, #a78bfa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 20px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Carousel Container */
+        .carousel-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            perspective: 1200px;
+            margin: 60px 0;
+            overflow: hidden;
+        }
+
+        .carousel {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            animation: rotate 40s linear infinite;
+        }
+
+        .carousel:hover {
+            animation-play-state: paused;
+        }
+
+        @keyframes rotate {
+            from { transform: rotateY(0deg); }
+            to { transform: rotateY(360deg); }
+        }
+
+        /* Job Card */
+        .job-card {
+            position: absolute;
+            width: 320px;
+            height: 200px;
+            left: 50%;
+            top: 50%;
+            margin-left: -160px;
+            margin-top: -100px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .job-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 0 40px rgba(139, 92, 246, 0.3);
+            transform: scale(1.05) !important;
+        }
+
+        .job-company {
+            font-size: 12px;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .job-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            line-height: 1.3;
+        }
+
+        .job-team {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .job-apply {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 8px;
+            color: var(--accent);
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .job-card:hover .job-apply {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .job-apply svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 120px 40px;
+        }
+
+        .empty-icon {
+            width: 80px;
+            height: 80px;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+
+        .empty-state h2 {
+            font-size: 24px;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+        }
+
+        .empty-state p {
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 400px;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Footer */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            text-align: center;
+            padding: 20px;
+            color: var(--text-muted);
+            font-size: 14px;
+            background: linear-gradient(to top, var(--bg-primary) 0%, transparent 100%);
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Grid fallback for many jobs */
+        .jobs-grid {
+            display: none;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 24px;
+            padding: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .jobs-grid .job-card {
+            position: relative;
+            width: 100%;
+            height: auto;
+            left: auto;
+            top: auto;
+            margin: 0;
+        }
+
+        /* Show grid when carousel is hidden */
+        .show-grid .carousel-container {
+            display: none;
+        }
+
+        .show-grid .jobs-grid {
+            display: grid;
+        }
+
+        /* View toggle */
+        .view-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .view-btn {
+            padding: 10px 20px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .view-btn:hover,
+        .view-btn.active {
+            background: rgba(139, 92, 246, 0.1);
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 32px;
+            }
+
+            .hero p {
+                font-size: 16px;
+            }
+
+            .carousel-container {
+                height: 400px;
+            }
+
+            .job-card {
+                width: 280px;
+                margin-left: -140px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <a href="https://deo.bot" class="logo">
+            <span class="logo-text">DEO</span>
+            <span class="logo-jobs">Jobs</span>
+        </a>
+    </header>
+
+    <section class="hero">
+        <h1>Find Your Next Opportunity</h1>
+        <p>Discover exciting positions from innovative companies using DEO</p>
+    </section>
+
+    <div class="view-toggle" id="view-toggle" style="display: none;">
+        <button class="view-btn active" data-view="carousel">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <path d="M12 6v6l4 2"></path>
+            </svg>
+            Carousel
+        </button>
+        <button class="view-btn" data-view="grid">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+            </svg>
+            Grid
+        </button>
+    </div>
+
+    <main id="main-content">
+        <div class="loading" id="loading">
+            <div class="loading-spinner"></div>
+        </div>
+
+        <div class="carousel-container" id="carousel-container" style="display: none;">
+            <div class="carousel" id="carousel"></div>
+        </div>
+
+        <div class="jobs-grid" id="jobs-grid"></div>
+
+        <div class="empty-state" id="empty-state" style="display: none;">
+            <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+            </svg>
+            <h2>No Jobs Available</h2>
+            <p>Check back soon for new opportunities!</p>
+        </div>
+    </main>
+
+    <footer class="footer">
+        Powered by <a href="https://deo.bot">DEO</a>
+    </footer>
+
+    <script>
+        let jobsData = [];
+        let currentView = 'carousel';
+
+        async function loadJobs() {
+            const loading = document.getElementById('loading');
+            const carouselContainer = document.getElementById('carousel-container');
+            const carousel = document.getElementById('carousel');
+            const jobsGrid = document.getElementById('jobs-grid');
+            const emptyState = document.getElementById('empty-state');
+            const viewToggle = document.getElementById('view-toggle');
+
+            try {
+                const res = await fetch('/applications/deo-jobs/public');
+                const data = await res.json();
+
+                loading.style.display = 'none';
+
+                if (!data.success || !data.jobs || data.jobs.length === 0) {
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                jobsData = data.jobs;
+
+                // Show view toggle if we have jobs
+                viewToggle.style.display = 'flex';
+
+                // Render carousel
+                renderCarousel();
+
+                // Render grid
+                renderGrid();
+
+                // Show carousel by default
+                carouselContainer.style.display = 'block';
+
+            } catch (err) {
+                console.error('Error loading jobs:', err);
+                loading.style.display = 'none';
+                emptyState.style.display = 'block';
+            }
+        }
+
+        function renderCarousel() {
+            const carousel = document.getElementById('carousel');
+            const jobs = jobsData;
+            const total = jobs.length;
+
+            // Calculate positions in a circle
+            const radius = Math.min(400, 80 * total); // Adjust radius based on job count
+
+            carousel.innerHTML = jobs.map((job, i) => {
+                const angle = (360 / total) * i;
+                const transform = `rotateY(${angle}deg) translateZ(${radius}px)`;
+
+                return `
+                    <a href="${job.application_url}" target="_blank" class="job-card" style="transform: ${transform}">
+                        <div>
+                            <div class="job-company">${escapeHtml(job.company_name)}</div>
+                            <div class="job-title">${escapeHtml(job.position_title)}</div>
+                            <div class="job-team">${escapeHtml(job.team_name)}</div>
+                        </div>
+                        <div class="job-apply">
+                            Apply Now
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M5 12h14M12 5l7 7-7 7"></path>
+                            </svg>
+                        </div>
+                    </a>
+                `;
+            }).join('');
+        }
+
+        function renderGrid() {
+            const grid = document.getElementById('jobs-grid');
+
+            grid.innerHTML = jobsData.map(job => `
+                <a href="${job.application_url}" target="_blank" class="job-card">
+                    <div>
+                        <div class="job-company">${escapeHtml(job.company_name)}</div>
+                        <div class="job-title">${escapeHtml(job.position_title)}</div>
+                        <div class="job-team">${escapeHtml(job.team_name)}</div>
+                    </div>
+                    <div class="job-apply">
+                        Apply Now
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                </a>
+            `).join('');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text || '';
+            return div.innerHTML;
+        }
+
+        // View toggle
+        document.getElementById('view-toggle').addEventListener('click', (e) => {
+            const btn = e.target.closest('.view-btn');
+            if (!btn) return;
+
+            const view = btn.dataset.view;
+            if (view === currentView) return;
+
+            currentView = view;
+
+            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            const carouselContainer = document.getElementById('carousel-container');
+            const jobsGrid = document.getElementById('jobs-grid');
+
+            if (view === 'carousel') {
+                carouselContainer.style.display = 'block';
+                jobsGrid.style.display = 'none';
+            } else {
+                carouselContainer.style.display = 'none';
+                jobsGrid.style.display = 'grid';
+            }
+        });
+
+        // Load jobs on page load
+        loadJobs();
+    </script>
+</body>
+</html>
