@@ -306,21 +306,27 @@ async def check_and_resume_awaits(user_id: str, channel_id: str, message_text: s
     for execution in pending:
         print(f"\n📋 Processing execution: {execution.get('_id')}")
         print(f"   Mode: {execution.get('mode')}")
-        print(f"   Expected: '{execution.get('expected_response')}'")
+        # Show expected responses (new format) or single expected response (legacy)
+        expected_responses = execution.get("expected_responses", [])
+        expected_response = execution.get("expected_response", "")
+        if expected_responses:
+            print(f"   Expected (any of): {expected_responses}")
+        else:
+            print(f"   Expected: '{expected_response}'")
         print(f"   Monitored users: {execution.get('monitored_users')}")
         print(f"   Users responded so far: {execution.get('users_responded', [])}")
 
-        expected_response = execution.get("expected_response")
         match_type = execution.get("match_type", "contains")
         case_sensitive = execution.get("case_sensitive", False)
         mode = execution.get("mode", "users")
 
-        # Check if message matches
+        # Check if message matches - use expected_responses list if available (OR logic)
         is_match = await check_response_match(
             message_text,
             expected_response,
             match_type,
-            case_sensitive
+            case_sensitive,
+            expected_responses=expected_responses if expected_responses else None
         )
 
         print(f"   Message match: {is_match}")
@@ -408,29 +414,7 @@ async def check_and_resume_awaits(user_id: str, channel_id: str, message_text: s
 
                     print(f"   Remaining blocks: {remaining_blocks}")
 
-                    if remaining_blocks and action_chain:
-                        all_blocks = action_chain.get("blocks", [])
-
-                        # Find await block index - support both old and new format
-                        await_index = None
-                        for i, block in enumerate(all_blocks):
-                            if isinstance(block, dict):
-                                # New format: {type: "await", config: {...}}
-                                if block.get("type") == "await":
-                                    await_index = i
-                                    break
-                            elif block == "await":
-                                # Old format: "await"
-                                await_index = i
-                                break
-
-                        if await_index is None:
-                            raise ValueError("Could not find await block in action chain")
-
-                        resume_index = await_index + 1
-
-                        print(f"   Creating orchestrator to resume from block {resume_index}")
-
+                    if action_chain:
                         orchestrator = TemplateOrchestrator(
                             action_chain,
                             bot_token,
@@ -449,7 +433,51 @@ async def check_and_resume_awaits(user_id: str, channel_id: str, message_text: s
                             orchestrator.user_channels = latest_execution.get("monitored_channels", [])
                             print(f"   Set orchestrator to users mode, channels: {orchestrator.user_channels}")
 
-                        results = await orchestrator.execute(start_from_block=resume_index)
+                        # Set execution context with response data for condition blocks
+                        responses_received = latest_execution.get("responses_received", [])
+                        orchestrator.context = {
+                            "last_response": message_text,  # The message that triggered resume
+                            "last_user": user_id,           # User who sent the final response
+                            "response_count": len(responses_received),
+                            "responses": responses_received
+                        }
+                        print(f"   Set context: last_response='{message_text}', last_user={user_id}")
+
+                        # Find the await node in the graph and get the next node after it
+                        start_node = None
+                        if orchestrator.node_to_block:
+                            # Find await node
+                            await_node_id = None
+                            for node_id, node_info in orchestrator.node_to_block.items():
+                                if node_info.get("type") == "await":
+                                    await_node_id = node_id
+                                    break
+
+                            if await_node_id:
+                                # Get the next node connected to await's bottom output
+                                start_node = orchestrator._get_next_node(await_node_id, "bottom")
+                                print(f"   Graph mode: Found await node {await_node_id}, resuming from {start_node}")
+
+                        if start_node:
+                            # Use graph-based execution starting from the node after await
+                            results = await orchestrator._execute_graph(start_from_node=start_node)
+                        else:
+                            # Fall back to sequential execution
+                            all_blocks = action_chain.get("blocks", [])
+                            await_index = None
+                            for i, block in enumerate(all_blocks):
+                                if isinstance(block, dict):
+                                    if block.get("type") == "await":
+                                        await_index = i
+                                        break
+                                elif block == "await":
+                                    await_index = i
+                                    break
+
+                            resume_index = (await_index + 1) if await_index is not None else 0
+                            print(f"   Sequential mode: resuming from block {resume_index}")
+                            results = await orchestrator._execute_sequential(start_from_block=resume_index, results=[])
+
                         print(f"✅ Execution resumed and completed successfully")
                         latest_execution["execution_results"] = results
 

@@ -9,11 +9,13 @@ from .message import execute_message
 from .response import execute_response
 from .await_block import execute_await
 from .scan import execute_scan
+from .condition_block import execute_condition
 
 __all__ = [
     'execute_trigger',
     'execute_message',
     'execute_response',
     'execute_await',
-    'execute_scan'
+    'execute_scan',
+    'execute_condition'
 ]

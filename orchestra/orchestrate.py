@@ -2,11 +2,12 @@
 Template Orchestration Module
 
 This module orchestrates the execution of workflow templates by coordinating
-multiple blocks (trigger, message, await, response) in a sequential manner.
+multiple blocks (trigger, message, await, response, condition) in a sequential manner.
+Supports conditional branching through condition blocks using graph-based execution.
 """
 
-from typing import Dict, Any, List
-from .blocks import execute_trigger, execute_message, execute_response, execute_await, execute_scan
+from typing import Dict, Any, List, Optional
+from .blocks import execute_trigger, execute_message, execute_response, execute_await, execute_scan, execute_condition
 
 
 class TemplateOrchestrator:
@@ -32,7 +33,8 @@ class TemplateOrchestrator:
         "message": execute_message,
         "scan": execute_scan,
         "await": execute_await,
-        "response": execute_response
+        "response": execute_response,
+        "condition": execute_condition
     }
 
     def __init__(self, action_chain: Dict[str, Any], bot_token: str = None, template_id: str = None, workspace_id: str = None):
@@ -64,8 +66,100 @@ class TemplateOrchestrator:
         self.recipients = None    # Store specific recipients for await block (channel mode)
         self.channel_members = [] # Store all channel members
 
+        # Execution context for passing data between blocks (e.g., for condition blocks)
+        self.context = {
+            "last_response": "",      # Last response text from user (set after await)
+            "last_user": "",          # User ID who last responded
+            "response_count": 0,      # Number of responses received
+            "responses": []           # All responses received
+        }
+
+        # Build graph structure from canvas_layout for branching support
+        self._build_graph()
+
         # Validate template structure before execution
         self.validate_template()
+
+    def _build_graph(self):
+        """
+        Build graph structure from canvas_layout connections.
+
+        Creates:
+        - node_to_block: Maps node IDs to their block index and config
+        - connections_from: Maps (nodeId, side) to connected node
+        """
+        self.node_to_block = {}  # nodeId -> {index, type, config}
+        self.connections_from = {}  # (fromNodeId, fromSide) -> toNodeId
+        self.connections_to = {}  # toNodeId -> (fromNodeId, fromSide)
+
+        canvas_layout = self.action_chain.get("canvas_layout", {})
+        connections = canvas_layout.get("connections", [])
+        nodes = canvas_layout.get("nodes", [])
+        node_configs = canvas_layout.get("nodeConfigs", {})
+
+        blocks_list = self.action_chain.get("blocks", [])
+
+        # Map node IDs to their block data
+        # Priority: 1) nodeConfigs from canvas_layout, 2) matching block from blocks list
+        for i, node in enumerate(nodes):
+            node_id = node.get("id")
+            node_type = node.get("type")
+
+            # First check if nodeConfigs has config for this node (most reliable)
+            node_config_from_layout = node_configs.get(node_id, {})
+
+            # Find matching block in blocks list as backup
+            block_config = None
+            block_index = None
+            for j, block in enumerate(blocks_list):
+                if isinstance(block, dict) and block.get("type") == node_type:
+                    # Check if this block hasn't been assigned yet
+                    if not any(self.node_to_block.get(nid, {}).get("index") == j for nid in self.node_to_block):
+                        block_config = block.get("config", {})
+                        block_index = j
+                        break
+
+            # Use nodeConfigs first (has file data), fall back to block config
+            final_config = node_config_from_layout if node_config_from_layout else block_config
+
+            self.node_to_block[node_id] = {
+                "index": block_index,
+                "type": node_type,
+                "config": final_config or {}
+            }
+
+            # Debug: log what config was used
+            config_source = "nodeConfigs" if node_config_from_layout else ("blocks" if block_config else "none")
+            print(f"   Node {node_id} ({node_type}): config from {config_source}")
+
+        # Build connection maps
+        for conn in connections:
+            from_node = conn.get("from", {}).get("nodeId")
+            from_side = conn.get("from", {}).get("side")
+            to_node = conn.get("to", {}).get("nodeId")
+
+            if from_node and to_node:
+                self.connections_from[(from_node, from_side)] = to_node
+                self.connections_to[to_node] = (from_node, from_side)
+
+        print(f"Graph built: {len(self.node_to_block)} nodes, {len(self.connections_from)} connections")
+
+    def _get_next_node(self, current_node_id: str, output_side: str = "bottom") -> Optional[str]:
+        """
+        Get the next node ID connected to the given output side.
+
+        Args:
+            current_node_id: Current node's ID
+            output_side: Output connector side (bottom, right, left)
+
+        Returns:
+            Next node ID or None if no connection
+        """
+        return self.connections_from.get((current_node_id, output_side))
+
+    def _get_first_node_after_trigger(self) -> Optional[str]:
+        """Get the first node connected to the trigger."""
+        return self.connections_from.get(("trigger-node", "bottom"))
 
     def validate_template(self):
         """
@@ -111,16 +205,16 @@ class TemplateOrchestrator:
                         f"Template error: Block '{block_name}' is not a supported block type"
                     )
 
-    async def execute(self, start_from_block: int = 0) -> List[Dict[str, Any]]:
+    async def execute(self, start_from_block: int = 0, start_from_node: str = None) -> List[Dict[str, Any]]:
         """
-        Execute all blocks in the template sequentially.
+        Execute blocks using graph-based traversal with conditional branching support.
 
-        Supports two formats:
-        NEW FORMAT: blocks as list of {type, config} objects with inline configs
-        OLD FORMAT: blocks as list of strings with separate config fields
+        Traverses the workflow graph following connections. After condition blocks,
+        follows the path based on the evaluated output_side.
 
         Args:
-            start_from_block (int): Index to start execution from (for resuming)
+            start_from_block (int): Index to start execution from (for resuming, legacy)
+            start_from_node (str): Node ID to start from (for resuming with graph)
 
         Returns:
             List[Dict[str, Any]]: List of execution results
@@ -132,14 +226,183 @@ class TemplateOrchestrator:
         blocks_list = self.action_chain.get("blocks", [])
         results = []
 
-        print(f"Starting orchestration with blocks: {blocks_list}")
+        print(f"Starting orchestration with {len(blocks_list)} blocks")
         print(f"Format: {'NEW' if self.is_new_format else 'OLD'}")
+        print(f"Graph mode: {len(self.node_to_block)} nodes mapped")
+
+        # Determine if we should use graph-based execution
+        use_graph = len(self.node_to_block) > 0 and len(self.connections_from) > 0
+
+        if use_graph:
+            # Graph-based execution for proper branching
+            return await self._execute_graph(start_from_node, results)
+        else:
+            # Fall back to sequential execution (legacy)
+            return await self._execute_sequential(start_from_block, results)
+
+    async def _execute_graph(self, start_from_node: str = None, results: List = None) -> List[Dict[str, Any]]:
+        """Execute using graph traversal with proper branching."""
+        if results is None:
+            results = []
+
+        # Start from first node after trigger (or specified node)
+        current_node_id = start_from_node or self._get_first_node_after_trigger()
+
+        if not current_node_id:
+            print("No nodes connected to trigger, nothing to execute")
+            return results
+
+        visited = set()
+        blocks_list = self.action_chain.get("blocks", [])
+
+        while current_node_id and current_node_id not in visited:
+            visited.add(current_node_id)
+
+            node_info = self.node_to_block.get(current_node_id, {})
+            block_name = node_info.get("type")
+            block_data = node_info.get("config", {})
+
+            if not block_name:
+                print(f"Unknown node {current_node_id}, skipping")
+                current_node_id = self._get_next_node(current_node_id, "bottom")
+                continue
+
+            print(f"\nExecuting block: {block_name} (node {current_node_id})")
+            print(f"   Block config keys: {list(block_data.keys()) if block_data else 'empty'}")
+            if block_name == "message" and block_data:
+                has_file = "file" in block_data and block_data["file"]
+                print(f"   Has file attachment: {has_file}")
+                if has_file:
+                    print(f"   File: {block_data['file'].get('filename', 'unknown')}")
+
+            # Execute block based on type
+            result = await self._execute_block(block_name, block_data, current_node_id, blocks_list)
+
+            if result is None:
+                # Block returned None, meaning execution should stop (await/scan)
+                return results
+
+            # Store execution result
+            results.append({
+                "block": block_name,
+                "node_id": current_node_id,
+                "result": result
+            })
+
+            # Determine next node based on block type
+            if block_name == "condition":
+                # Use the output_side from condition result to branch
+                output_side = result.get("output_side", "bottom")
+                next_node = self._get_next_node(current_node_id, output_side)
+                print(f"Condition branching: following '{output_side}' path -> {next_node}")
+                current_node_id = next_node
+            else:
+                # Default: follow bottom connector
+                current_node_id = self._get_next_node(current_node_id, "bottom")
+
+        print("\nOrchestration completed successfully")
+        return results
+
+    async def _execute_block(self, block_name: str, block_data: Dict, node_id: str, blocks_list: List) -> Optional[Dict]:
+        """Execute a single block and return result (or None to stop execution)."""
+        executor = self.BLOCK_EXECUTORS.get(block_name)
+        if not executor:
+            print(f"No executor for block type: {block_name}")
+            return {"error": f"Unknown block type: {block_name}"}
+
+        if block_name == "trigger":
+            return await executor(block_data)
+
+        elif block_name == "message":
+            if not self.bot_token:
+                raise ValueError("Bot token required for message block")
+            result = await executor(block_data, self.bot_token)
+            # Track mode and channel info
+            self.message_mode = result.get("mode")
+            if self.message_mode == "channel":
+                self.last_channel = result.get("channel_id")
+                self.channel_members = result.get("channel_members", [])
+                self.recipients = result.get("recipients")
+            elif self.message_mode == "users":
+                user_results = result.get("users", [])
+                self.user_channels = [u.get("channel_id") for u in user_results if u.get("status") == "sent" and u.get("channel_id")]
+                self.monitored_users = [u.get("user_id") for u in user_results if u.get("status") == "sent"]
+                if self.user_channels:
+                    self.last_channel = self.user_channels[0]
+            return result
+
+        elif block_name == "scan":
+            if not self.bot_token:
+                raise ValueError("Bot token required for scan block")
+            # For scan, we need remaining blocks - but with graph execution we pass the whole action_chain
+            result = await execute_scan(
+                block_data, self.bot_token, self.template_id, self.workspace_id,
+                blocks_list, self.action_chain
+            )
+            print(f"\nOrchestration paused - scanning for command in channel")
+            return None  # Stop execution
+
+        elif block_name == "await":
+            if not self.bot_token:
+                raise ValueError("Bot token required for await block")
+
+            if self.message_mode == "channel":
+                if not self.channel_members:
+                    raise ValueError("Await block in channel mode requires channel_members")
+                users_to_wait_for = self.recipients or self.channel_members
+                result = await executor(
+                    block_data, self.bot_token, [self.last_channel], users_to_wait_for,
+                    self.template_id, self.workspace_id, blocks_list, self.action_chain,
+                    mode="channel", channel_name=self.last_channel
+                )
+            else:
+                if not self.user_channels:
+                    raise ValueError("Await block requires a message block with users first")
+                result = await executor(
+                    block_data, self.bot_token, self.user_channels, self.monitored_users,
+                    self.template_id, self.workspace_id, blocks_list, self.action_chain,
+                    mode="users"
+                )
+            print(f"\nOrchestration paused - waiting for user response(s)")
+            return None  # Stop execution
+
+        elif block_name == "response":
+            if not self.bot_token:
+                raise ValueError("Bot token required for response block")
+            if not self.last_channel:
+                raise ValueError("Response block requires a message block first")
+
+            response_message = block_data.get('message', '') if isinstance(block_data, dict) else block_data
+
+            if self.message_mode == "users" and len(self.user_channels) > 1:
+                response_results = []
+                for channel_id in self.user_channels:
+                    try:
+                        single_result = await executor(response_message, self.bot_token, channel_id)
+                        response_results.append({"channel": channel_id, "result": single_result})
+                    except Exception as e:
+                        response_results.append({"channel": channel_id, "error": str(e)})
+                return {"status": "completed", "mode": "users", "responses": response_results}
+            else:
+                return await executor(response_message, self.bot_token, self.last_channel)
+
+        elif block_name == "condition":
+            result = await execute_condition(block_data, self.context)
+            self.context["last_condition_result"] = result
+            print(f"Condition evaluated: output_side={result.get('output_side')}")
+            return result
+
+        else:
+            return await executor(block_data)
+
+    async def _execute_sequential(self, start_from_block: int, results: List) -> List[Dict[str, Any]]:
+        """Legacy sequential execution for templates without canvas_layout."""
+        blocks_list = self.action_chain.get("blocks", [])
+
         if start_from_block > 0:
             print(f"Resuming from block index {start_from_block}")
 
-        # Execute each block in sequence, starting from the specified index
         for i, block_entry in enumerate(blocks_list[start_from_block:], start=start_from_block):
-            # Handle both formats
             if self.is_new_format:
                 block_name = block_entry.get('type')
                 block_data = block_entry.get('config', {})
@@ -149,169 +412,12 @@ class TemplateOrchestrator:
 
             print(f"\nExecuting block: {block_name} (index {i})")
 
-            executor = self.BLOCK_EXECUTORS[block_name]
+            result = await self._execute_block(block_name, block_data, f"index-{i}", blocks_list)
 
-            # Execute based on block type with appropriate parameters
-            if block_name == "trigger":
-                # Trigger block doesn't need bot_token
-                result = await executor(block_data)
-
-            elif block_name == "message":
-                # Message block requires bot_token
-                if not self.bot_token:
-                    raise ValueError("Bot token required for message block")
-                result = await executor(block_data, self.bot_token)
-                # Track the mode and channel info for response/await blocks
-                self.message_mode = result.get("mode")
-                if self.message_mode == "channel":
-                    self.last_channel = result.get("channel_id")  # Store channel ID
-                    self.channel_members = result.get("channel_members", [])  # Store all members
-                    # Use recipients if specified, otherwise fall back to all channel members
-                    self.recipients = result.get("recipients")  # May be None
-                    if self.recipients:
-                        print(f"Using specific recipients for await: {len(self.recipients)} user(s)")
-                    else:
-                        print(f"No specific recipients - will use all {len(self.channel_members)} channel members for await")
-                elif self.message_mode == "users":
-                    # Extract DM channel IDs from user results
-                    user_results = result.get("users", [])
-                    self.user_channels = [
-                        user.get("channel_id")
-                        for user in user_results
-                        if user.get("status") == "sent" and user.get("channel_id")
-                    ]
-                    # Store user IDs for await block
-                    self.monitored_users = [
-                        user.get("user_id")
-                        for user in user_results
-                        if user.get("status") == "sent"
-                    ]
-                    # Use the first successful DM channel for single response
-                    if self.user_channels:
-                        self.last_channel = self.user_channels[0]
-
-            elif block_name == "scan":
-                # Scan block requires bot_token
-                if not self.bot_token:
-                    raise ValueError("Bot token required for scan block")
-                # Calculate remaining blocks to execute after scan completes
-                remaining_blocks = blocks_list[i + 1:]
-                result = await execute_scan(
-                    block_data,
-                    self.bot_token,
-                    self.template_id,
-                    self.workspace_id,
-                    remaining_blocks,
-                    self.action_chain
-                )
-
-                # Scan block pauses execution - return here
-                results.append({
-                    "block": block_name,
-                    "result": result
-                })
-                print(f"\nOrchestration paused - scanning for command in channel")
+            if result is None:
                 return results
 
-            elif block_name == "await":
-                # Await block requires bot_token
-                if not self.bot_token:
-                    raise ValueError("Bot token required for await block")
-                # Calculate remaining blocks to execute after await completes
-                remaining_blocks = blocks_list[i + 1:]
-                # Determine mode and who to wait for
-                if self.message_mode == "channel":
-                    # Channel mode: wait for specific recipients if provided, otherwise all members
-                    if not hasattr(self, 'channel_members') or not self.channel_members:
-                        raise ValueError("Await block in channel mode requires channel_members from message block")
-
-                    # Use recipients if specified, otherwise use all channel members
-                    users_to_wait_for = getattr(self, 'recipients', None) or self.channel_members
-                    print(f"Await will wait for {len(users_to_wait_for)} user(s) to respond")
-
-                    result = await executor(
-                        block_data,
-                        self.bot_token,
-                        [self.last_channel],  # Single channel ID
-                        users_to_wait_for,  # Specific recipients OR all channel members
-                        self.template_id,
-                        self.workspace_id,
-                        remaining_blocks,
-                        self.action_chain,
-                        mode="channel",
-                        channel_name=self.last_channel
-                    )
-                else:
-                    # Users mode: wait for first user to respond
-                    if not self.user_channels:
-                        raise ValueError("Await block requires a message block with users to be executed first")
-                    result = await executor(
-                        block_data,
-                        self.bot_token,
-                        self.user_channels,
-                        self.monitored_users,
-                        self.template_id,
-                        self.workspace_id,
-                        remaining_blocks,
-                        self.action_chain,
-                        mode="users"
-                    )
-
-                # Await block pauses execution - return here
-                results.append({
-                    "block": block_name,
-                    "result": result
-                })
-                print(f"\nOrchestration paused - waiting for user response(s)")
-                return results
-
-            elif block_name == "response":
-                # Response block requires bot_token and channel from previous message
-                if not self.bot_token:
-                    raise ValueError("Bot token required for response block")
-                if not self.last_channel:
-                    raise ValueError("Response block requires a message block to be executed first")
-
-                # For new format, extract message from config
-                if self.is_new_format:
-                    response_message = block_data.get('message', '')
-                else:
-                    response_message = block_data
-
-                # If message was sent to multiple users, send response to each
-                if self.message_mode == "users" and len(self.user_channels) > 1:
-                    # Send response to all user DM channels
-                    response_results = []
-                    for channel_id in self.user_channels:
-                        try:
-                            single_result = await executor(response_message, self.bot_token, channel_id)
-                            response_results.append({
-                                "channel": channel_id,
-                                "result": single_result
-                            })
-                        except Exception as e:
-                            response_results.append({
-                                "channel": channel_id,
-                                "error": str(e)
-                            })
-                    result = {
-                        "status": "completed",
-                        "mode": "users",
-                        "responses": response_results
-                    }
-                else:
-                    # Single channel response (either channel mode or single user)
-                    result = await executor(response_message, self.bot_token, self.last_channel)
-
-            else:
-                # Generic execution for any other block types
-                result = await executor(block_data)
-
-            # Store execution result
-            results.append({
-                "block": block_name,
-                "result": result
-            })
+            results.append({"block": block_name, "result": result})
 
         print("\nOrchestration completed successfully")
         return results

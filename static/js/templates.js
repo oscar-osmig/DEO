@@ -329,7 +329,9 @@ function renderTemplateDiagram(template) {
         trigger: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>',
         message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>',
         await: '<circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>',
-        response: '<polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>'
+        response: '<polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>',
+        condition: '<path d="M12 3L2 12l10 9 10-9L12 3z"></path><path d="M12 8v4"></path><path d="M12 16h.01"></path>',
+        scan: '<circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path><path d="M11 8v6"></path><path d="M8 11h6"></path>'
     };
 
     // Get trigger label
@@ -415,6 +417,13 @@ function renderDiagramFromLayout(canvas, svg, layout, icons, triggerLabel) {
         } else if (nodeData.type === 'response') {
             label = 'Success';
             bodyContent = config.message ? (config.message.length > 40 ? config.message.substring(0, 40) + '...' : config.message) : '';
+        } else if (nodeData.type === 'condition') {
+            const condCount = config.conditions?.length || 0;
+            label = `${condCount} condition${condCount !== 1 ? 's' : ''}`;
+            const firstCond = config.conditions?.[0];
+            if (firstCond?.value) {
+                bodyContent = `If: "${firstCond.value}"`;
+            }
         }
 
         node.innerHTML = `
@@ -593,6 +602,13 @@ function renderDiagramSimple(canvas, svg, blocks, ac, icons, triggerLabel) {
             label = 'Success';
             const respMsg = blockConfig ? blockConfig.message : ac.response;
             bodyContent = respMsg ? (respMsg.length > 50 ? respMsg.substring(0, 50) + '...' : respMsg) : '';
+        } else if (blockType === 'condition') {
+            const condCount = blockConfig?.conditions?.length || 0;
+            label = `${condCount} condition${condCount !== 1 ? 's' : ''}`;
+            const firstCond = blockConfig?.conditions?.[0];
+            if (firstCond?.value) {
+                bodyContent = `If: "${firstCond.value}"`;
+            }
         }
 
         node.innerHTML = `
@@ -1557,12 +1573,15 @@ async function loadTemplateIntoCanvas(template) {
         } else if (blockType === 'await') {
             const config = nodeConfigs[nodeId];
             config.expected_response = blockConfig.expected_response || '';
+            config.instructions = blockConfig.instructions || '';
             config.timeout = blockConfig.timeout || '1h';
             config.failure_message = blockConfig.failed || blockConfig.failure_message || '';
 
             // Update UI
             const expectedInput = newNode.querySelector('.config-expected-response-input');
             if (expectedInput) expectedInput.value = config.expected_response;
+            const instructionsInput = newNode.querySelector('.config-instructions-input');
+            if (instructionsInput) instructionsInput.value = config.instructions;
             const timeoutSelect = newNode.querySelector('.config-timeout-select');
             const customRow = newNode.querySelector('.config-custom-timeout-row');
 
@@ -1625,6 +1644,52 @@ async function loadTemplateIntoCanvas(template) {
             // Update UI
             const responseInput = newNode.querySelector('.config-response-input');
             if (responseInput) responseInput.value = config.message;
+
+            updateNodeLabel(nodeId);
+        } else if (blockType === 'condition') {
+            const config = nodeConfigs[nodeId];
+            config.variable = blockConfig.variable || 'last_response';
+            config.conditions = blockConfig.conditions || [{ operator: 'equals', value: '', output_side: 'bottom' }];
+            config.default_output = blockConfig.default_output || 'bottom';
+
+            // Update UI
+            const variableSelect = newNode.querySelector('.config-condition-variable');
+            if (variableSelect) variableSelect.value = config.variable;
+
+            const defaultSelect = newNode.querySelector('.config-condition-default');
+            if (defaultSelect) defaultSelect.value = config.default_output;
+
+            // Restore conditions in UI
+            const conditionsList = newNode.querySelector('.config-conditions-list');
+            if (conditionsList && config.conditions.length > 0) {
+                conditionsList.innerHTML = '';
+                config.conditions.forEach((cond, idx) => {
+                    const row = document.createElement('div');
+                    row.className = 'config-condition-row';
+                    row.dataset.conditionIndex = idx;
+                    row.innerHTML = `
+                        <select class="block-config-select config-condition-operator">
+                            <option value="equals" ${cond.operator === 'equals' ? 'selected' : ''}>equals</option>
+                            <option value="not_equals" ${cond.operator === 'not_equals' ? 'selected' : ''}>not equals</option>
+                            <option value="contains" ${cond.operator === 'contains' ? 'selected' : ''}>contains</option>
+                            <option value="not_contains" ${cond.operator === 'not_contains' ? 'selected' : ''}>does not contain</option>
+                            <option value="starts_with" ${cond.operator === 'starts_with' ? 'selected' : ''}>starts with</option>
+                            <option value="ends_with" ${cond.operator === 'ends_with' ? 'selected' : ''}>ends with</option>
+                            <option value="is_empty" ${cond.operator === 'is_empty' ? 'selected' : ''}>is empty</option>
+                            <option value="is_not_empty" ${cond.operator === 'is_not_empty' ? 'selected' : ''}>is not empty</option>
+                            <option value="regex" ${cond.operator === 'regex' ? 'selected' : ''}>regex</option>
+                        </select>
+                        <input type="text" class="block-config-input config-condition-value" placeholder="Value to match" value="${cond.value || ''}">
+                        <select class="block-config-select config-condition-output">
+                            <option value="bottom" ${cond.output_side === 'bottom' ? 'selected' : ''}>Bottom</option>
+                            <option value="right" ${cond.output_side === 'right' ? 'selected' : ''}>Right</option>
+                            <option value="left" ${cond.output_side === 'left' ? 'selected' : ''}>Left</option>
+                        </select>
+                        <button class="btn-remove-condition" title="Remove condition">&times;</button>
+                    `;
+                    conditionsList.appendChild(row);
+                });
+            }
 
             updateNodeLabel(nodeId);
         }
@@ -2061,11 +2126,20 @@ function initNodeConfig(nodeId, nodeType) {
         nodeConfigs[nodeId] = {
             timeout: '1h',
             expected_response: '',
+            instructions: '',
             failure_message: ''
         };
     } else if (nodeType === 'response') {
         nodeConfigs[nodeId] = {
             message: ''
+        };
+    } else if (nodeType === 'condition') {
+        nodeConfigs[nodeId] = {
+            variable: 'last_response',
+            conditions: [
+                { operator: 'equals', value: '', output_side: 'bottom' }
+            ],
+            default_output: 'bottom'
         };
     }
 }
@@ -2117,6 +2191,14 @@ function updateNodeLabel(nodeId) {
             label.textContent = preview;
         } else {
             label.textContent = 'Response';
+        }
+    } else if (nodeType === 'condition') {
+        // Show number of conditions configured
+        const condCount = config.conditions ? config.conditions.length : 0;
+        if (condCount > 0 && config.conditions[0].value) {
+            label.textContent = `${condCount} condition${condCount !== 1 ? 's' : ''}`;
+        } else {
+            label.textContent = 'If/Else';
         }
     }
 
@@ -2221,6 +2303,8 @@ document.addEventListener('input', (e) => {
         config.message = e.target.value;
     } else if (e.target.classList.contains('config-expected-response-input')) {
         config.expected_response = e.target.value;
+    } else if (e.target.classList.contains('config-instructions-input')) {
+        config.instructions = e.target.value;
     } else if (e.target.classList.contains('config-failure-message-input')) {
         config.failure_message = e.target.value;
     } else if (e.target.classList.contains('config-scan-command-input')) {
@@ -2481,6 +2565,151 @@ document.addEventListener('click', (e) => {
     });
 });
 
+// === CONDITION BLOCK EVENT HANDLERS ===
+
+// Handle condition block input changes
+document.addEventListener('change', (e) => {
+    const popup = e.target.closest('.condition-config-popup');
+    if (!popup) return;
+
+    const node = popup.closest('.flow-node');
+    if (!node) return;
+
+    const nodeId = node.dataset.nodeId;
+    const config = nodeConfigs[nodeId];
+    if (!config) return;
+
+    // Handle variable change
+    if (e.target.classList.contains('config-condition-variable')) {
+        config.variable = e.target.value;
+        updateNodeLabel(nodeId);
+    }
+
+    // Handle default output change
+    if (e.target.classList.contains('config-condition-default')) {
+        config.default_output = e.target.value;
+        triggerAutoSave();
+    }
+
+    // Handle condition row changes
+    const conditionRow = e.target.closest('.config-condition-row');
+    if (conditionRow) {
+        const conditionIndex = parseInt(conditionRow.dataset.conditionIndex, 10);
+        if (!config.conditions[conditionIndex]) {
+            config.conditions[conditionIndex] = { operator: 'equals', value: '', output_side: 'bottom' };
+        }
+
+        if (e.target.classList.contains('config-condition-operator')) {
+            config.conditions[conditionIndex].operator = e.target.value;
+        }
+        if (e.target.classList.contains('config-condition-output')) {
+            config.conditions[conditionIndex].output_side = e.target.value;
+        }
+
+        updateNodeLabel(nodeId);
+    }
+});
+
+// Handle condition value input
+document.addEventListener('input', (e) => {
+    if (!e.target.classList.contains('config-condition-value')) return;
+
+    const popup = e.target.closest('.condition-config-popup');
+    if (!popup) return;
+
+    const node = popup.closest('.flow-node');
+    if (!node) return;
+
+    const nodeId = node.dataset.nodeId;
+    const config = nodeConfigs[nodeId];
+    if (!config) return;
+
+    const conditionRow = e.target.closest('.config-condition-row');
+    if (conditionRow) {
+        const conditionIndex = parseInt(conditionRow.dataset.conditionIndex, 10);
+        if (!config.conditions[conditionIndex]) {
+            config.conditions[conditionIndex] = { operator: 'equals', value: '', output_side: 'bottom' };
+        }
+        config.conditions[conditionIndex].value = e.target.value;
+        updateNodeLabel(nodeId);
+    }
+});
+
+// Handle add condition button
+document.addEventListener('click', (e) => {
+    if (!e.target.classList.contains('btn-add-condition')) return;
+
+    const nodeId = e.target.dataset.nodeId;
+    const config = nodeConfigs[nodeId];
+    if (!config) return;
+
+    const conditionsList = document.querySelector(`.config-conditions-list[data-node-id="${nodeId}"]`);
+    if (!conditionsList) return;
+
+    // Add new condition to config
+    const newIndex = config.conditions.length;
+    config.conditions.push({ operator: 'equals', value: '', output_side: 'right' });
+
+    // Add new condition row to UI
+    const newRow = document.createElement('div');
+    newRow.className = 'config-condition-row';
+    newRow.dataset.conditionIndex = newIndex;
+    newRow.innerHTML = `
+        <select class="block-config-select config-condition-operator">
+            <option value="equals">equals</option>
+            <option value="not_equals">not equals</option>
+            <option value="contains">contains</option>
+            <option value="not_contains">does not contain</option>
+            <option value="starts_with">starts with</option>
+            <option value="ends_with">ends with</option>
+            <option value="is_empty">is empty</option>
+            <option value="is_not_empty">is not empty</option>
+            <option value="regex">regex</option>
+        </select>
+        <input type="text" class="block-config-input config-condition-value" placeholder="Value to match">
+        <select class="block-config-select config-condition-output">
+            <option value="bottom">Bottom</option>
+            <option value="right" selected>Right</option>
+            <option value="left">Left</option>
+        </select>
+        <button class="btn-remove-condition" title="Remove condition">&times;</button>
+    `;
+    conditionsList.appendChild(newRow);
+
+    updateNodeLabel(nodeId);
+    triggerAutoSave();
+});
+
+// Handle remove condition button
+document.addEventListener('click', (e) => {
+    if (!e.target.classList.contains('btn-remove-condition')) return;
+
+    const conditionRow = e.target.closest('.config-condition-row');
+    if (!conditionRow) return;
+
+    const conditionsList = conditionRow.closest('.config-conditions-list');
+    if (!conditionsList) return;
+
+    const nodeId = conditionsList.dataset.nodeId;
+    const config = nodeConfigs[nodeId];
+    if (!config || config.conditions.length <= 1) return; // Keep at least one condition
+
+    const conditionIndex = parseInt(conditionRow.dataset.conditionIndex, 10);
+    config.conditions.splice(conditionIndex, 1);
+
+    // Remove from UI
+    conditionRow.remove();
+
+    // Re-index remaining rows
+    const rows = conditionsList.querySelectorAll('.config-condition-row');
+    rows.forEach((row, index) => {
+        row.dataset.conditionIndex = index;
+    });
+
+    updateNodeLabel(nodeId);
+    triggerAutoSave();
+});
+
 // === CANVAS DRAG AND DROP (Flow-based) ===
 let draggedBlock = null;
 let canvasNodes = [];
@@ -2645,6 +2874,8 @@ function restoreCanvasFromState(state) {
         } else if (nodeData.type === 'await') {
             const expectedInput = newNode.querySelector('.config-expected-response-input');
             if (expectedInput) expectedInput.value = config.expected_response || '';
+            const instructionsInput = newNode.querySelector('.config-instructions-input');
+            if (instructionsInput) instructionsInput.value = config.instructions || '';
             const timeoutSelect = newNode.querySelector('.config-timeout-select');
             const customRow = newNode.querySelector('.config-custom-timeout-row');
             const timeout = config.timeout || '1h';
@@ -3002,21 +3233,24 @@ function createNode(blockType, x, y, optionalId = null) {
         message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>',
         scan: '<circle cx="11" cy="11" r="8"></circle><path d="M21 21l-4.35-4.35"></path><path d="M11 8v6"></path><path d="M8 11h6"></path>',
         await: '<circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline>',
-        response: '<polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>'
+        response: '<polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>',
+        condition: '<path d="M12 3L2 12l10 9 10-9L12 3z"></path><path d="M12 8v4"></path><path d="M12 16h.01"></path>'
     };
 
     const labels = {
         message: 'Message',
         scan: 'Scan',
         await: 'Await',
-        response: 'Response'
+        response: 'Response',
+        condition: 'Condition'
     };
 
     const defaultLabels = {
         message: 'Channel',
         scan: 'Configure',
         await: '24h',
-        response: 'Response'
+        response: 'Response',
+        condition: 'If/Else'
     };
 
     // Generate config popup HTML based on block type
@@ -3131,8 +3365,13 @@ function createNode(blockType, x, y, optionalId = null) {
             <div class="block-config-popup">
                 <div class="block-config-title">Await Configuration</div>
                 <div class="block-config-row">
-                    <div class="block-config-label">Expected Response</div>
-                    <input type="text" class="block-config-input config-expected-response-input" placeholder="e.g., yes, approve, done">
+                    <div class="block-config-label">Expected Response(s)</div>
+                    <input type="text" class="block-config-input config-expected-response-input" placeholder="e.g., yes, no (comma-separated)">
+                    <p class="block-config-hint" style="margin-top: 4px;">Separate multiple valid responses with commas</p>
+                </div>
+                <div class="block-config-row">
+                    <div class="block-config-label">Instructions <span class="config-optional">(shown in italics)</span></div>
+                    <input type="text" class="block-config-input config-instructions-input" placeholder="e.g., Please reply with yes or no">
                 </div>
                 <div class="block-config-row">
                     <div class="block-config-label">Timeout</div>
@@ -3172,6 +3411,55 @@ function createNode(blockType, x, y, optionalId = null) {
                     <div class="block-config-label">Success Message</div>
                     <textarea class="block-config-textarea config-response-input" placeholder="Message to send on success..."></textarea>
                 </div>
+            </div>
+        `;
+    } else if (blockType === 'condition') {
+        configPopupHtml = `
+            <div class="block-config-popup condition-config-popup">
+                <div class="block-config-title">Condition Configuration</div>
+                <div class="block-config-row">
+                    <div class="block-config-label">Check Variable</div>
+                    <select class="block-config-select config-condition-variable">
+                        <option value="last_response">Last Response</option>
+                        <option value="last_user">Last User</option>
+                        <option value="response_count">Response Count</option>
+                    </select>
+                </div>
+                <div class="block-config-row">
+                    <div class="block-config-label">Conditions</div>
+                    <div class="config-conditions-list" data-node-id="${nodeId}">
+                        <div class="config-condition-row" data-condition-index="0">
+                            <select class="block-config-select config-condition-operator">
+                                <option value="equals">equals</option>
+                                <option value="not_equals">not equals</option>
+                                <option value="contains">contains</option>
+                                <option value="not_contains">does not contain</option>
+                                <option value="starts_with">starts with</option>
+                                <option value="ends_with">ends with</option>
+                                <option value="is_empty">is empty</option>
+                                <option value="is_not_empty">is not empty</option>
+                                <option value="regex">regex</option>
+                            </select>
+                            <input type="text" class="block-config-input config-condition-value" placeholder="Value to match">
+                            <select class="block-config-select config-condition-output">
+                                <option value="bottom">Bottom</option>
+                                <option value="right">Right</option>
+                                <option value="left">Left</option>
+                            </select>
+                            <button class="btn-remove-condition" title="Remove condition">&times;</button>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-add-condition" data-node-id="${nodeId}">+ Add Condition</button>
+                </div>
+                <div class="block-config-row">
+                    <div class="block-config-label">Default Output (no match)</div>
+                    <select class="block-config-select config-condition-default">
+                        <option value="bottom">Bottom</option>
+                        <option value="right">Right</option>
+                        <option value="left">Left</option>
+                    </select>
+                </div>
+                <p class="block-config-hint">Conditions are evaluated in order. First match determines the path.</p>
             </div>
         `;
     }
@@ -3922,7 +4210,8 @@ function buildTemplatePayload() {
             blockEntry.config = {
                 expected_response: awaitConfig.expected_response || '',
                 timeout: awaitConfig.timeout || '24h',
-                failure_message: awaitConfig.failure_message || ''
+                failure_message: awaitConfig.failure_message || '',
+                instructions: awaitConfig.instructions || ''
             };
         } else if (block.type === 'response') {
             const respConfig = block.config;
@@ -3930,6 +4219,22 @@ function buildTemplatePayload() {
                 return { error: `Response block requires a message` };
             }
             blockEntry.config = { message: respConfig.message };
+        } else if (block.type === 'condition') {
+            const condConfig = block.config;
+            // Validate at least one condition has a value
+            const hasValidCondition = condConfig.conditions && condConfig.conditions.some(c => c.value);
+            if (!hasValidCondition) {
+                return { error: `Condition block requires at least one condition with a value` };
+            }
+            blockEntry.config = {
+                variable: condConfig.variable || 'last_response',
+                conditions: condConfig.conditions.map(c => ({
+                    operator: c.operator || 'equals',
+                    value: c.value || '',
+                    output_side: c.output_side || 'bottom'
+                })),
+                default_output: condConfig.default_output || 'bottom'
+            };
         }
 
         blocksWithConfig.push(blockEntry);

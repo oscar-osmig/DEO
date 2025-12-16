@@ -9,6 +9,54 @@ from typing import Dict, Any, List, Union
 from database import get_collection
 from datetime import datetime, timedelta
 import re
+import httpx
+
+
+async def send_instructions_message(instructions: str, channels: List[str], bot_token: str):
+    """
+    Send instructions as italic text to the specified channels.
+
+    Args:
+        instructions (str): Instructions text to send
+        channels (List[str]): List of channel IDs to send to
+        bot_token (str): Slack bot token
+
+    Returns:
+        list: Results of sending to each channel
+    """
+    if not instructions:
+        return []
+
+    # Format as italic using Slack markdown (underscore wrapping)
+    italic_text = f"_{instructions}_"
+
+    headers = {
+        "Authorization": f"Bearer {bot_token}",
+        "Content-Type": "application/json"
+    }
+
+    results = []
+    async with httpx.AsyncClient() as client:
+        for channel_id in channels:
+            try:
+                response = await client.post(
+                    "https://slack.com/api/chat.postMessage",
+                    json={"channel": channel_id, "text": italic_text},
+                    headers=headers
+                )
+                response_data = response.json()
+
+                if response_data.get("ok"):
+                    print(f"📝 Instructions sent to channel {channel_id}: {instructions}")
+                    results.append({"channel": channel_id, "status": "sent"})
+                else:
+                    print(f"⚠️ Failed to send instructions to {channel_id}: {response_data.get('error')}")
+                    results.append({"channel": channel_id, "status": "failed", "error": response_data.get("error")})
+            except Exception as e:
+                print(f"⚠️ Exception sending instructions to {channel_id}: {str(e)}")
+                results.append({"channel": channel_id, "status": "failed", "error": str(e)})
+
+    return results
 
 
 def parse_timeout(timeout_str: str) -> timedelta:
@@ -75,16 +123,28 @@ async def execute_await(await_data: Union[str, Dict[str, Any]], bot_token: str, 
     # Parse await_data
     if isinstance(await_data, str):
         expected_response = await_data
+        expected_responses = [expected_response]  # Single response as list
         timeout_duration = timedelta(hours=1)
         failure_message = None
+        instructions = None
     else:
-        expected_response = await_data.get("expected_response")
+        expected_response = await_data.get("expected_response", "")
         timeout_str = await_data.get("timeout", "1h")
         timeout_duration = parse_timeout(timeout_str)
-        failure_message = await_data.get("failed")
+        failure_message = await_data.get("failed") or await_data.get("failure_message")
+        instructions = await_data.get("instructions")
 
-        if not expected_response:
-            raise ValueError("await block requires 'expected_response' field")
+        # Parse multiple expected responses (comma-separated or already a list)
+        if isinstance(expected_response, list):
+            expected_responses = [r.strip().lower() for r in expected_response if r.strip()]
+        elif expected_response:
+            # Split by comma for multiple options (e.g., "yes, no" -> ["yes", "no"])
+            expected_responses = [r.strip().lower() for r in expected_response.split(",") if r.strip()]
+        else:
+            expected_responses = []
+
+        if not expected_responses:
+            raise ValueError("await block requires at least one expected response")
 
     # Delete any existing pending executions for this template
     existing_count = await pending_executions.count_documents({
@@ -109,7 +169,8 @@ async def execute_await(await_data: Union[str, Dict[str, Any]], bot_token: str, 
         "template_id": template_id,
         "workspace_id": workspace_id,
         "status": "awaiting_response",
-        "expected_response": expected_response.lower(),
+        "expected_response": expected_response.lower() if expected_response else "",  # Keep for backwards compat
+        "expected_responses": expected_responses,  # List of valid responses (OR logic)
         "match_type": "contains",
         "case_sensitive": False,
 
@@ -131,6 +192,7 @@ async def execute_await(await_data: Union[str, Dict[str, Any]], bot_token: str, 
         "created_at": datetime.utcnow(),
         "timeout_at": timeout_at,
         "failure_message": failure_message,
+        "instructions": instructions,  # Instructions text to display
 
         # Results
         "responses_received": [],
@@ -140,22 +202,32 @@ async def execute_await(await_data: Union[str, Dict[str, Any]], bot_token: str, 
     result = await pending_executions.insert_one(pending_doc)
     execution_id = str(result.inserted_id)
 
+    responses_str = " OR ".join(f"'{r}'" for r in expected_responses)
     if mode == "channel":
-        print(
-            f"Await block (CHANNEL mode): Waiting for '{expected_response}' from ALL {len(users)} members in channel {channel_name}")
+        print(f"Await block (CHANNEL mode): Waiting for {responses_str} from ALL {len(users)} members in channel {channel_name}")
     else:
-        print(f"Await block (USERS mode): Waiting for '{expected_response}' from {len(users)} users")
+        print(f"Await block (USERS mode): Waiting for {responses_str} from {len(users)} users")
 
     print(f"Monitoring channels: {channels}")
     print(f"Timeout: {timeout_duration} (at {timeout_at.isoformat()})")
+    if instructions:
+        print(f"Instructions: '{instructions}'")
     if failure_message:
         print(f"Failure message: '{failure_message}'")
     print(f"Execution ID: {execution_id}")
+
+    # Send instructions as italic text to the channels
+    instructions_results = []
+    if instructions:
+        instructions_results = await send_instructions_message(instructions, channels, bot_token)
 
     return {
         "status": "waiting",
         "mode": mode,
         "expected_response": expected_response,
+        "expected_responses": expected_responses,
+        "instructions": instructions,
+        "instructions_sent": instructions_results,
         "monitored_channels": channels,
         "monitored_users": users,
         "timeout_at": timeout_at.isoformat() + "Z",
@@ -165,29 +237,42 @@ async def execute_await(await_data: Union[str, Dict[str, Any]], bot_token: str, 
 
 
 async def check_response_match(user_message: str, expected_response: str, match_type: str = "contains",
-                               case_sensitive: bool = False) -> bool:
+                               case_sensitive: bool = False, expected_responses: List[str] = None) -> bool:
     """
-    Check if a user's message matches the expected response.
+    Check if a user's message matches the expected response(s).
+
+    Supports multiple expected responses with OR logic - if any match, returns True.
 
     Args:
         user_message (str): The message from the user
-        expected_response (str): The expected response to match against
+        expected_response (str): The expected response to match against (legacy, single value)
         match_type (str): Type of match - "contains", "exact", or "regex"
         case_sensitive (bool): Whether the match should be case-sensitive
+        expected_responses (List[str]): List of valid responses (OR logic) - preferred over expected_response
 
     Returns:
-        bool: True if the message matches, False otherwise
+        bool: True if the message matches any expected response, False otherwise
     """
     if not case_sensitive:
         user_message = user_message.lower()
-        expected_response = expected_response.lower()
 
-    if match_type == "exact":
-        return user_message.strip() == expected_response.strip()
-    elif match_type == "contains":
-        return expected_response in user_message
-    elif match_type == "regex":
-        import re
-        return bool(re.search(expected_response, user_message))
+    # Use expected_responses list if provided, otherwise fall back to single expected_response
+    responses_to_check = expected_responses if expected_responses else [expected_response]
+
+    for response in responses_to_check:
+        if not response:
+            continue
+
+        check_response = response.lower() if not case_sensitive else response
+
+        if match_type == "exact":
+            if user_message.strip() == check_response.strip():
+                return True
+        elif match_type == "contains":
+            if check_response in user_message:
+                return True
+        elif match_type == "regex":
+            if re.search(check_response, user_message):
+                return True
 
     return False

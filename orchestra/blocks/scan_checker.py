@@ -23,24 +23,55 @@ async def process_scan_trigger(scan: dict):
     template_id = scan.get("template_id")
     workspace_id = scan.get("workspace_id")
     bot_token = scan.get("bot_token")
-    remaining_blocks = scan.get("remaining_blocks", [])
     action_chain = scan.get("action_chain", {})
 
     print(f"Executing remaining blocks for scan trigger: {template_id}")
 
     try:
-        # Create orchestrator with remaining blocks
-        modified_chain = action_chain.copy()
-        modified_chain["blocks"] = remaining_blocks
-
+        # Use the full action_chain (with canvas_layout) for graph-based execution
+        # The orchestrator will find the scan node and start from the next connected node
         orchestrator = TemplateOrchestrator(
-            modified_chain,
+            action_chain,
             bot_token,
             template_id=template_id,
             workspace_id=workspace_id
         )
 
-        results = await orchestrator.execute()
+        # Find scan node and get the next node after it
+        start_node = None
+        if orchestrator.node_to_block:
+            # Find scan node
+            scan_node_id = None
+            for node_id, node_info in orchestrator.node_to_block.items():
+                if node_info.get("type") == "scan":
+                    scan_node_id = node_id
+                    break
+
+            if scan_node_id:
+                # Get the next node connected to scan's bottom output
+                start_node = orchestrator._get_next_node(scan_node_id, "bottom")
+                print(f"Graph mode: Found scan node {scan_node_id}, starting from {start_node}")
+
+        if start_node:
+            # Use graph-based execution starting from the node after scan
+            results = await orchestrator._execute_graph(start_from_node=start_node)
+        else:
+            # Fall back: Use the original remaining_blocks approach
+            remaining_blocks = scan.get("remaining_blocks", [])
+            modified_chain = action_chain.copy()
+            modified_chain["blocks"] = remaining_blocks
+            # Remove canvas_layout to force sequential execution
+            if "canvas_layout" in modified_chain:
+                del modified_chain["canvas_layout"]
+
+            orchestrator = TemplateOrchestrator(
+                modified_chain,
+                bot_token,
+                template_id=template_id,
+                workspace_id=workspace_id
+            )
+            results = await orchestrator.execute()
+
         print(f"Scan trigger execution completed: {template_id}")
 
         # Log execution
