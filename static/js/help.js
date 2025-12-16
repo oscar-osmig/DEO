@@ -63,6 +63,35 @@ function showHelpTopic(topic) {
     }
 }
 
+// Copy manifest to clipboard
+function copyManifest(button) {
+    const manifest = button.closest('.help-manifest-wrapper').querySelector('.help-manifest');
+    if (!manifest) return;
+
+    const text = manifest.textContent;
+
+    navigator.clipboard.writeText(text).then(() => {
+        // Update button state
+        button.classList.add('copied');
+        const span = button.querySelector('span');
+        const originalText = span.textContent;
+        span.textContent = 'Copied!';
+
+        // Update icon to checkmark
+        const svg = button.querySelector('svg');
+        svg.innerHTML = '<polyline points="20 6 9 17 4 12"></polyline>';
+
+        // Reset after 2 seconds
+        setTimeout(() => {
+            button.classList.remove('copied');
+            span.textContent = originalText;
+            svg.innerHTML = '<rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>';
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy:', err);
+    });
+}
+
 // Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', initHelpNavigation);
 

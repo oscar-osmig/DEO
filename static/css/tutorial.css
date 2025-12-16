@@ -1,0 +1,638 @@
+/* === TUTORIAL SYSTEM === */
+
+/* Tutorial Toggle Button - in home view under cards */
+.tutorial-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 32px auto 0;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.15), rgba(139, 92, 246, 0.05));
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 10px;
+    color: #a78bfa;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tutorial-toggle:hover {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.25), rgba(139, 92, 246, 0.1));
+    border-color: rgba(139, 92, 246, 0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+}
+
+.tutorial-toggle:active {
+    transform: translateY(0);
+}
+
+.tutorial-toggle svg {
+    width: 18px;
+    height: 18px;
+}
+
+.tutorial-toggle.active {
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(139, 92, 246, 0.15));
+    border-color: rgba(139, 92, 246, 0.6);
+    color: #c4b5fd;
+}
+
+/* Tutorial Overlay Container */
+.tutorial-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.tutorial-overlay.active {
+    opacity: 1;
+    visibility: visible;
+    /* Keep pointer-events: none so clicks pass through to highlighted elements */
+    pointer-events: none;
+}
+
+/* Dark backdrop with cutout */
+.tutorial-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    transition: opacity 0.3s ease;
+}
+
+/* Spotlight effect - highlights the target element */
+.tutorial-spotlight {
+    position: absolute;
+    border-radius: 12px;
+    box-shadow:
+        0 0 0 9999px rgba(0, 0, 0, 0.75),
+        0 0 30px rgba(139, 92, 246, 0.4),
+        inset 0 0 20px rgba(139, 92, 246, 0.1);
+    border: 2px solid rgba(139, 92, 246, 0.6);
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none !important;
+    /* Allow clicks to pass through the spotlight area */
+    background: transparent;
+}
+
+.tutorial-spotlight::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    border-radius: 14px;
+    border: 2px solid rgba(139, 92, 246, 0.3);
+    animation: tutorial-pulse 2s ease-in-out infinite;
+}
+
+@keyframes tutorial-pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(1.02);
+    }
+}
+
+/* Tooltip */
+.tutorial-tooltip {
+    position: absolute;
+    width: 360px;
+    background: linear-gradient(135deg, rgba(15, 10, 25, 0.95), rgba(20, 15, 35, 0.95));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    border-radius: 16px;
+    box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        0 0 40px rgba(139, 92, 246, 0.15);
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: auto;
+}
+
+/* Tooltip arrow */
+.tutorial-tooltip::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: linear-gradient(135deg, rgba(15, 10, 25, 0.95), rgba(20, 15, 35, 0.95));
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    transform: rotate(45deg);
+    z-index: -1;
+}
+
+.tutorial-tooltip[data-position="bottom"]::before {
+    top: -9px;
+    left: 50%;
+    margin-left: -8px;
+    border-right: none;
+    border-bottom: none;
+}
+
+.tutorial-tooltip[data-position="top"]::before {
+    bottom: -9px;
+    left: 50%;
+    margin-left: -8px;
+    border-left: none;
+    border-top: none;
+}
+
+.tutorial-tooltip[data-position="left"]::before {
+    right: -9px;
+    top: 50%;
+    margin-top: -8px;
+    border-left: none;
+    border-bottom: none;
+}
+
+.tutorial-tooltip[data-position="right"]::before {
+    left: -9px;
+    top: 50%;
+    margin-top: -8px;
+    border-right: none;
+    border-top: none;
+}
+
+/* Tooltip Header */
+.tutorial-tooltip-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 0;
+}
+
+.tutorial-step-indicator {
+    font-size: 12px;
+    font-weight: 600;
+    color: #a78bfa;
+    background: rgba(139, 92, 246, 0.15);
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+}
+
+.tutorial-close {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tutorial-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.tutorial-close svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Tooltip Content */
+.tutorial-tooltip-content {
+    padding: 20px;
+}
+
+.tutorial-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 10px 0;
+}
+
+.tutorial-description {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* Tooltip Footer */
+.tutorial-tooltip-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px 20px;
+    gap: 12px;
+}
+
+.tutorial-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tutorial-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.tutorial-btn-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-secondary);
+}
+
+.tutorial-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.tutorial-btn-secondary:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.tutorial-btn-primary {
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    border: none;
+    color: white;
+    flex: 1;
+    justify-content: center;
+}
+
+.tutorial-btn-primary:hover {
+    background: linear-gradient(135deg, #9d6eff, #8b5cf6);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+}
+
+/* Progress Bar */
+.tutorial-progress {
+    height: 3px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.tutorial-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+/* Welcome Screen (Step 0) - Centered overlay */
+.tutorial-tooltip.welcome-screen {
+    width: 440px;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+}
+
+.tutorial-tooltip.welcome-screen::before {
+    display: none;
+}
+
+.welcome-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(139, 92, 246, 0.1));
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.welcome-icon svg {
+    width: 40px;
+    height: 40px;
+    color: #a78bfa;
+}
+
+.tutorial-tooltip.welcome-screen .tutorial-tooltip-content {
+    text-align: center;
+    padding: 30px 30px 20px;
+}
+
+.tutorial-tooltip.welcome-screen .tutorial-title {
+    font-size: 24px;
+    margin-bottom: 16px;
+}
+
+.tutorial-tooltip.welcome-screen .tutorial-description {
+    font-size: 15px;
+}
+
+.tutorial-tooltip.welcome-screen .tutorial-tooltip-footer {
+    padding: 0 30px 30px;
+    justify-content: center;
+}
+
+.tutorial-tooltip.welcome-screen .tutorial-btn-secondary {
+    display: none;
+}
+
+.tutorial-tooltip.welcome-screen .tutorial-btn-primary {
+    padding: 12px 32px;
+    font-size: 15px;
+    flex: none;
+}
+
+/* Skip Tutorial Link */
+.tutorial-skip {
+    display: block;
+    text-align: center;
+    padding: 12px;
+    color: var(--text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.tutorial-skip:hover {
+    color: var(--text-secondary);
+}
+
+/* Completion Screen */
+.tutorial-tooltip.completion-screen {
+    width: 440px;
+    left: 50% !important;
+    top: 50% !important;
+    transform: translate(-50%, -50%) !important;
+}
+
+.tutorial-tooltip.completion-screen::before {
+    display: none;
+}
+
+.completion-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(34, 197, 94, 0.1));
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: completion-pop 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes completion-pop {
+    0% {
+        transform: scale(0);
+        opacity: 0;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.completion-icon svg {
+    width: 40px;
+    height: 40px;
+    color: #4ade80;
+}
+
+.tutorial-tooltip.completion-screen .tutorial-tooltip-content {
+    text-align: center;
+    padding: 30px 30px 20px;
+}
+
+.tutorial-tooltip.completion-screen .tutorial-title {
+    font-size: 24px;
+    margin-bottom: 16px;
+    color: #4ade80;
+}
+
+.tutorial-tooltip.completion-screen .tutorial-tooltip-footer {
+    padding: 0 30px 30px;
+    justify-content: center;
+}
+
+/* === INTERACTIVE TUTORIAL ELEMENTS === */
+
+/* Click Hint - floating indicator pointing to clickable element */
+.tutorial-click-hint {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    border-radius: 20px;
+    color: white;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    animation: tutorial-hint-bounce 1s ease-in-out infinite;
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.5);
+    pointer-events: none;
+}
+
+.tutorial-click-hint svg {
+    width: 16px;
+    height: 16px;
+    animation: tutorial-hint-arrow 1s ease-in-out infinite;
+}
+
+@keyframes tutorial-hint-bounce {
+    0%, 100% {
+        transform: translateX(-50%) translateY(0);
+    }
+    50% {
+        transform: translateX(-50%) translateY(-5px);
+    }
+}
+
+@keyframes tutorial-hint-arrow {
+    0%, 100% {
+        transform: translateY(0) rotate(180deg);
+    }
+    50% {
+        transform: translateY(-3px) rotate(180deg);
+    }
+}
+
+/* Clickable target - allows clicks through overlay */
+.tutorial-clickable {
+    position: relative;
+    z-index: 10000 !important;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+}
+
+/* Ensure sidebar elements are clickable during tutorial */
+.sidebar .tutorial-clickable {
+    z-index: 10000 !important;
+}
+
+/* Highlight effect for clickable elements */
+.tutorial-clickable::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    border-radius: inherit;
+    pointer-events: none;
+    animation: tutorial-target-glow 1.5s ease-in-out infinite;
+}
+
+@keyframes tutorial-target-glow {
+    0%, 100% {
+        box-shadow: 0 0 8px rgba(139, 92, 246, 0.6);
+    }
+    50% {
+        box-shadow: 0 0 16px rgba(139, 92, 246, 0.9);
+    }
+}
+
+/* Smooth transition when highlight is removed */
+.tutorial-clickable {
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+/* Tutorial active state for body - prevents scrolling during tutorial */
+body.tutorial-active {
+    overflow: hidden;
+}
+
+/* Ensure overlay structure allows clicks to highlighted elements */
+.tutorial-overlay {
+    pointer-events: none;
+}
+
+.tutorial-overlay .tutorial-backdrop {
+    pointer-events: auto;
+}
+
+.tutorial-overlay .tutorial-tooltip {
+    pointer-events: auto;
+}
+
+.tutorial-overlay .tutorial-spotlight {
+    pointer-events: none;
+}
+
+/* Action Indicator - shown for action-required steps */
+.action-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(251, 191, 36, 0.1));
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    border-radius: 6px;
+    margin-bottom: 16px;
+    width: fit-content;
+}
+
+.action-indicator svg {
+    width: 18px;
+    height: 18px;
+    color: #fbbf24;
+}
+
+.action-indicator span {
+    font-size: 12px;
+    font-weight: 600;
+    color: #fbbf24;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Info Indicator - shown for informational steps */
+.info-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1));
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 6px;
+    margin-bottom: 16px;
+    width: fit-content;
+}
+
+.info-indicator svg {
+    width: 18px;
+    height: 18px;
+    color: #3b82f6;
+}
+
+.info-indicator span {
+    font-size: 12px;
+    font-weight: 600;
+    color: #3b82f6;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Enhanced spotlight animation for action steps */
+.tutorial-overlay.active .tutorial-spotlight {
+    animation: tutorial-spotlight-pulse 2s ease-in-out infinite;
+}
+
+@keyframes tutorial-spotlight-pulse {
+    0%, 100% {
+        box-shadow:
+            0 0 0 9999px rgba(0, 0, 0, 0.75),
+            0 0 30px rgba(139, 92, 246, 0.4),
+            inset 0 0 20px rgba(139, 92, 246, 0.1);
+    }
+    50% {
+        box-shadow:
+            0 0 0 9999px rgba(0, 0, 0, 0.75),
+            0 0 50px rgba(139, 92, 246, 0.6),
+            inset 0 0 30px rgba(139, 92, 246, 0.2);
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+    .tutorial-tooltip {
+        width: calc(100vw - 32px);
+        max-width: 360px;
+    }
+
+    .tutorial-tooltip.welcome-screen,
+    .tutorial-tooltip.completion-screen {
+        width: calc(100vw - 32px);
+        max-width: 400px;
+    }
+
+    .tutorial-toggle span {
+        display: none;
+    }
+
+    .tutorial-toggle {
+        padding: 8px;
+    }
+
+    .tutorial-click-hint {
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+}

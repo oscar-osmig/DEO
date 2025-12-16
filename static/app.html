@@ -21,6 +21,44 @@
         {% include 'sections/content.html' %}
     </div>
 
+    <!-- Tutorial Overlay -->
+    <div class="tutorial-overlay" id="tutorial-overlay">
+        <div class="tutorial-backdrop"></div>
+        <div class="tutorial-spotlight" id="tutorial-spotlight"></div>
+        <div class="tutorial-tooltip" id="tutorial-tooltip">
+            <div class="tutorial-tooltip-header">
+                <span class="tutorial-step-indicator" id="tutorial-step-indicator">1 of 6</span>
+                <button class="tutorial-close" id="tutorial-close" aria-label="Close tutorial">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="tutorial-tooltip-content">
+                <h3 class="tutorial-title" id="tutorial-title">Welcome to DEO</h3>
+                <p class="tutorial-description" id="tutorial-description">Let's take a quick tour of the main features.</p>
+            </div>
+            <div class="tutorial-tooltip-footer">
+                <button class="tutorial-btn tutorial-btn-secondary" id="tutorial-prev">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                    Back
+                </button>
+                <button class="tutorial-btn tutorial-btn-primary" id="tutorial-next">
+                    Next
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
+            </div>
+            <div class="tutorial-progress">
+                <div class="tutorial-progress-bar" id="tutorial-progress-bar"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript -->
     <script src="/static/js/utils.js?v=8"></script>
     <script src="/static/js/tabs.js?v=8"></script>
@@ -30,6 +68,7 @@
     <script src="/static/js/teams.js?v=8"></script>
     <script src="/static/js/settings.js?v=8"></script>
     <script src="/static/js/help.js?v=1"></script>
+    <script src="/static/js/tutorial.js?v=1"></script>
     <script src="/static/js/app.js?v=8"></script>
 </body>
 </html>
