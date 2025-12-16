@@ -1,0 +1,255 @@
+/* === SETTINGS PAGE STYLES === */
+
+/* Settings container - two column layout */
+#settings {
+    padding: 32px;
+    max-width: 1200px;
+}
+
+#settings .template-title {
+    font-size: 28px;
+    margin-bottom: 8px;
+}
+
+#settings .template-subtitle {
+    margin-bottom: 32px;
+}
+
+/* Settings grid layout */
+.settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: stretch;
+}
+
+/* Settings card styling */
+#settings .card {
+    margin-top: 0;
+    height: fit-content;
+}
+
+#settings .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Tokens list styling */
+.settings-tokens-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 0;
+}
+
+.settings-token-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    transition: all 0.2s ease;
+}
+
+.settings-token-item:hover {
+    border-color: var(--text-muted);
+}
+
+.settings-token-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.settings-token-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 14px;
+}
+
+.settings-token-value {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: monospace;
+}
+
+.settings-token-item .btn {
+    padding: 6px 14px;
+    font-size: 12px;
+}
+
+/* Add token section */
+.add-token-section {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+}
+
+.add-token-section .section-subtitle {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+}
+
+.add-token-section .form-group {
+    margin-bottom: 16px;
+}
+
+.add-token-section .form-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.add-token-section .form-input {
+    padding: 10px 14px;
+    font-size: 14px;
+}
+
+.add-token-section .form-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 6px;
+}
+
+.add-token-section .form-hint a {
+    color: var(--accent);
+}
+
+.add-token-section .btn {
+    margin-top: 8px;
+}
+
+#token-status {
+    margin-left: 12px;
+    font-size: 13px;
+}
+
+/* Danger zone card */
+#settings .card-danger {
+    border-color: rgba(239, 68, 68, 0.2);
+    background: rgba(239, 68, 68, 0.03);
+}
+
+#settings .card-danger .card-title {
+    color: #ef4444;
+    border-bottom-color: rgba(239, 68, 68, 0.2);
+}
+
+#settings .card-danger .card-subtitle {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+/* Account section styling */
+.settings-account-section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.settings-account-info {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: var(--bg-tertiary);
+    border-radius: 10px;
+    margin-bottom: 8px;
+}
+
+.settings-account-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), #7c3aed);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 600;
+    color: white;
+}
+
+.settings-account-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.settings-account-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 15px;
+}
+
+.settings-account-email {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+/* Right column layout */
+.settings-right-column {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.settings-right-column .card {
+    margin: 0;
+}
+
+/* Account card should grow to fill space */
+.settings-right-column .card:first-child {
+    flex: 1;
+}
+
+/* Empty state for tokens */
+.settings-tokens-empty {
+    padding: 24px;
+    text-align: center;
+    background: var(--bg-tertiary);
+    border-radius: 10px;
+    border: 1px dashed var(--border-color);
+}
+
+.settings-tokens-empty svg {
+    width: 40px;
+    height: 40px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+}
+
+.settings-tokens-empty p {
+    color: var(--text-muted);
+    font-size: 14px;
+    margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    #settings {
+        padding: 20px 16px;
+    }
+
+    #settings .template-title {
+        font-size: 24px;
+    }
+}

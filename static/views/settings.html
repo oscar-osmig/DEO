@@ -1,55 +1,75 @@
 <!-- VIEW: SETTINGS -->
 <section class="view" id="settings">
     <h2 class="template-title">Settings</h2>
-    <p class="template-subtitle">Manage your workspace configuration</p>
+    <p class="template-subtitle">Manage your account and workspace configuration</p>
 
-    <div class="card">
-        <div class="card-title">Slack Tokens</div>
+    <div class="settings-grid">
+        <!-- Left Column - Slack Tokens -->
+        <div class="card">
+            <div class="card-title">Slack Tokens</div>
 
-        <!-- Saved tokens list -->
-        <div class="settings-tokens-list" id="settings-tokens-list">
-            <p class="text-muted">Loading saved tokens...</p>
+            <!-- Saved tokens list -->
+            <div class="settings-tokens-list" id="settings-tokens-list">
+                <p class="text-muted">Loading saved tokens...</p>
+            </div>
+
+            <!-- Add new token form -->
+            <div class="add-token-section">
+                <h4 class="section-subtitle">Add New Token</h4>
+                <form id="token-form">
+                    <div class="form-group">
+                        <label class="form-label" for="token-name">Token Name</label>
+                        <input
+                            type="text"
+                            id="token-name"
+                            name="token_name"
+                            class="form-input"
+                            placeholder="Main Workspace Token"
+                            required
+                        >
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="slack-token">Bot Token</label>
+                        <input
+                            type="password"
+                            id="slack-token"
+                            name="bot_token"
+                            class="form-input"
+                            placeholder="xoxb-your-bot-token"
+                            required
+                        >
+                        <p class="form-hint">Get your bot token from <a href="https://api.slack.com/apps" target="_blank">api.slack.com/apps</a></p>
+                    </div>
+
+                    <button type="submit" class="btn" id="save-token-btn">Save Token</button>
+                    <span id="token-status"></span>
+                </form>
+            </div>
         </div>
 
-        <!-- Add new token form -->
-        <div class="add-token-section">
-            <div class="section-divider"></div>
-            <h4 class="section-subtitle">Add New Token</h4>
-            <form id="token-form">
-                <div class="form-group">
-                    <label class="form-label" for="token-name">Token Name</label>
-                    <input
-                        type="text"
-                        id="token-name"
-                        name="token_name"
-                        class="form-input"
-                        placeholder="Main Workspace Token"
-                        required
-                    >
+        <!-- Right Column - Account & Danger Zone -->
+        <div class="settings-right-column">
+            <!-- Account Info Card -->
+            <div class="card">
+                <div class="card-title">Account</div>
+                <div class="settings-account-section">
+                    <div class="settings-account-info">
+                        <div class="settings-account-avatar" id="settings-avatar">O</div>
+                        <div class="settings-account-details">
+                            <span class="settings-account-name" id="settings-account-name">Loading...</span>
+                            <span class="settings-account-email" id="settings-account-email">Loading...</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label class="form-label" for="slack-token">Bot Token</label>
-                    <input
-                        type="password"
-                        id="slack-token"
-                        name="bot_token"
-                        class="form-input"
-                        placeholder="xoxb-your-bot-token"
-                        required
-                    >
-                    <p class="form-hint">Get your bot token from <a href="https://api.slack.com/apps" target="_blank">api.slack.com/apps</a></p>
-                </div>
+            </div>
 
-                <button type="submit" class="btn" id="save-token-btn">Save Token</button>
-                <span id="token-status"></span>
-            </form>
+            <!-- Danger Zone Card -->
+            <div class="card card-danger">
+                <div class="card-title">Danger Zone</div>
+                <p class="card-subtitle">Permanently delete your account and all associated data. This action cannot be undone.</p>
+                <button class="btn btn-small btn-danger" id="delete-account-btn">Delete Account</button>
+                <span id="account-action-status" class="action-status"></span>
+            </div>
         </div>
-    </div>
-
-    <div class="card card-danger">
-        <div class="card-title">Danger Zone</div>
-        <p class="card-subtitle">Permanently delete your account and all associated data.</p>
-        <button class="btn btn-small btn-danger" id="delete-account-btn">Delete Account</button>
-        <span id="account-action-status" class="action-status"></span>
     </div>
 </section>

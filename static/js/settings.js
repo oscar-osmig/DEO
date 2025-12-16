@@ -11,22 +11,66 @@ function loadSettingsTokens() {
             console.log('Loaded tokens:', data);
             if (data.tokens && data.tokens.length > 0) {
                 list.innerHTML = data.tokens.map(t => `
-                    <div class="saved-token-item">
-                        <div class="saved-token-info">
-                            <span class="saved-token-name">${t.name}</span>
-                            <span class="saved-token-value">${t.masked}</span>
+                    <div class="settings-token-item">
+                        <div class="settings-token-info">
+                            <span class="settings-token-name">${t.name}</span>
+                            <span class="settings-token-value">${t.masked}</span>
                         </div>
                         <button class="btn btn-small btn-secondary delete-token-btn" data-token-id="${t.id}">Delete</button>
                     </div>
                 `).join('');
             } else {
-                list.innerHTML = '<p class="text-muted">No saved tokens yet</p>';
+                list.innerHTML = `
+                    <div class="settings-tokens-empty">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        <p>No saved tokens yet</p>
+                    </div>
+                `;
             }
         })
         .catch(err => {
             console.error('Error loading tokens:', err);
             list.innerHTML = '<p class="text-muted">Could not load tokens</p>';
         });
+}
+
+// Load account info for settings page
+function loadSettingsAccountInfo() {
+    const nameEl = document.getElementById('settings-account-name');
+    const emailEl = document.getElementById('settings-account-email');
+    const avatarEl = document.getElementById('settings-avatar');
+
+    if (!nameEl || !emailEl) return;
+
+    // Use cached user data if available
+    if (typeof currentUser !== 'undefined' && currentUser) {
+        nameEl.textContent = currentUser.name || currentUser.email?.split('@')[0] || 'User';
+        emailEl.textContent = currentUser.email || '';
+        if (avatarEl) {
+            avatarEl.textContent = (currentUser.name || currentUser.email || 'U').charAt(0).toUpperCase();
+        }
+    } else {
+        // Fetch from API
+        fetch('/auth/me', { credentials: 'same-origin' })
+            .then(r => r.json())
+            .then(data => {
+                if (data.email) {
+                    nameEl.textContent = data.name || data.email.split('@')[0];
+                    emailEl.textContent = data.email;
+                    if (avatarEl) {
+                        avatarEl.textContent = (data.name || data.email).charAt(0).toUpperCase();
+                    }
+                }
+            })
+            .catch(err => {
+                console.error('Error loading account info:', err);
+                nameEl.textContent = 'Unable to load';
+                emailEl.textContent = '';
+            });
+    }
 }
 
 // Save token form - use event delegation
@@ -166,16 +210,21 @@ document.addEventListener('click', async (e) => {
     e.target.disabled = false;
 });
 
-// Load tokens when settings view becomes visible
+// Load settings data when settings view becomes visible
+function loadSettingsPage() {
+    loadSettingsTokens();
+    loadSettingsAccountInfo();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     if (window.location.hash === '#settings') {
-        loadSettingsTokens();
+        loadSettingsPage();
     }
 });
 
 // Also load when hash changes to settings
 window.addEventListener('hashchange', () => {
     if (window.location.hash === '#settings') {
-        loadSettingsTokens();
+        loadSettingsPage();
     }
 });
